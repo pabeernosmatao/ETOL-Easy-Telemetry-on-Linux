@@ -1,68 +1,86 @@
 # ETOL · Easy Telemetry On Linux
 
-**Español** · [English](README.en.md)
+**English** · [Español](README.es.md)
 
-[![Versión](https://img.shields.io/badge/versi%C3%B3n-0.3.0-38e1b0)](https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux/releases)
-[![Licencia](https://img.shields.io/badge/licencia-MIT-4aa8ff)](LICENSE)
-[![Plataforma](https://img.shields.io/badge/plataforma-Linux%20x86__64-8ea3b9)](#requisitos)
+[![Version](https://img.shields.io/badge/version-0.3.0-38e1b0)](https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux/releases)
+[![License](https://img.shields.io/badge/license-MIT-4aa8ff)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-Linux%20x86__64-8ea3b9)](#requirements)
 [![Tauri](https://img.shields.io/badge/Tauri-2-24c8db)](https://tauri.app)
 
-**Telemetría para tus simuladores en Linux sin pelearte con Wine.**
-ETOL detecta tus juegos, prepara SimHub (y CrewChief) y lo lanza todo con un clic.
+**Telemetry for your simulators on Linux without fighting Wine.**
+ETOL detects your games, sets up SimHub (and CrewChief) and launches everything
+with one click.
 
 ---
 
-## Qué hace
+## What it does
 
-- **Detecta solo** los simuladores instalados en Steam (en cualquier biblioteca,
-  también en otros discos), su Proton y la botella de Bottles con SimHub.
-- **Autoconfigura cada juego** con un botón. El engranaje de la ficha se pone en
-  **rojo** cuando ese juego aún no se ha configurado o ETOL ve algo mal.
-- **Puente de telemetría por juego**: memoria compartida o UDP según lo que use
-  cada simulador. Siempre de solo lectura: no escribe en el juego.
-- **Vigilancia automática**: al abrir un simulador levanta el puente y las apps
-  elegidas; al cerrarlo lo para todo. Si cambias de juego, cambia solo.
-- **Pad HF8** (ForceFeel) con su COM dentro de la botella, listo para SimHub.
-- **Dashboards de SimHub sobre el juego** en KDE/KWin, sin gamescope.
-- Interfaz en **español, catalán e inglés**.
+- **Auto-detects** your Steam simulators (any library, any disk), their Proton
+  build and the Bottles bottle with SimHub.
+- **Per-game auto-configuration** with one button. The gear turns **red** when a
+  game has never been configured or ETOL finds something wrong.
+- **Per-game telemetry bridge**: shared memory or UDP, whichever the simulator
+  uses. Always read-only: it never writes into the game.
+- **Automatic watchdog**: opening a simulator starts its bridge and apps;
+  closing it stops everything. Switching games switches everything.
+- **HF8 pad** (ForceFeel) with its COM port wired inside the bottle.
+- **SimHub dashboards over the game** on KDE/KWin, no gamescope needed.
+- Interface in **Spanish, Catalan and English**.
 
-## Simuladores soportados
+## From scratch: Bottles, SimHub and CrewChief
 
-| Juego | Telemetría | Apps | Notas |
+You do not need Bottles or SimHub installed beforehand. ETOL prepares the whole
+stack:
+
+1. **Installs Bottles** (Flatpak, per user) if it is missing.
+2. **Creates the `simhub` bottle** with a 64-bit Windows 11 prefix and a Proton
+   runner (it downloads the runner if needed).
+3. **Prepares the prefix** with the libraries SimHub and CrewChief need:
+   `dotnet48`, `vcrun2019`, `vcrun2022`, `d3dcompiler_43`, `d3dx9` and
+   `corefonts`, installed through winetricks.
+4. **Downloads and opens the installers**: the latest CrewChief (MSI) and
+   SimHub (ZIP), and tells you exactly which boxes to leave unchecked.
+
+The two installers are interactive (they are Windows installers), so you click
+"Next" twice; everything around them is automated.
+
+## Supported simulators
+
+| Game | Telemetry | Apps | Notes |
 |---|---|---|---|
-| **Le Mans Ultimate** | memoria compartida | SimHub + CrewChief | |
-| **Automobilista 2** | memoria compartida | SimHub + CrewChief | |
-| **Assetto Corsa EVO** | memoria compartida | SimHub + CrewChief | |
-| **Assetto Corsa** | memoria compartida | SimHub + CrewChief | |
-| **rFactor 2** | memoria compartida | SimHub + CrewChief | incluye el plugin SMMP |
-| **DiRT Rally 2.0** | UDP (relay 20777) | SimHub + CrewChief | `extradata=3` |
-| **Euro Truck Simulator 2** | Linux nativo, `/dev/shm` | SimHub | instala el plugin SCS |
-| **BeamNG.drive** | Linux nativo, OutGauge UDP | SimHub | |
+| **Le Mans Ultimate** | shared memory | SimHub + CrewChief | |
+| **Automobilista 2** | shared memory | SimHub + CrewChief | |
+| **Assetto Corsa EVO** | shared memory | SimHub + CrewChief | |
+| **Assetto Corsa** | shared memory | SimHub + CrewChief | |
+| **rFactor 2** | shared memory | SimHub + CrewChief | bundles the SMMP plugin |
+| **DiRT Rally 2.0** | UDP relay (20777) | SimHub + CrewChief | `extradata=3` |
+| **Euro Truck Simulator 2** | native Linux, `/dev/shm` | SimHub | installs the SCS plugin |
+| **BeamNG.drive** | native Linux, OutGauge UDP | SimHub | |
 
-## Cómo se usa
+## How to use it
 
-1. **Detectar.** ETOL encuentra Steam, Bottles, SimHub y el pad HF8.
-2. **Configurar.** Pulsa el engranaje de cada ficha (una vez por juego).
-3. **Jugar.** Abre el simulador y pulsa **Lanzar**, o deja que la vigilancia
-   automática lo haga al detectarlo.
+1. **Detect.** ETOL finds Steam, Bottles, SimHub and the HF8 pad.
+2. **Configure.** Press the gear on each card (once per game).
+3. **Play.** Open the simulator and press **Launch**, or let the automatic
+   watchdog do it when it sees the game.
 
-## Instalación
+## Installation
 
-Descarga el AppImage de la última release y dale permisos:
+Download the AppImage from the latest release and make it executable:
 
 ```bash
 chmod +x ETOL-0.3.0-linux-x86_64.AppImage
 ./ETOL-0.3.0-linux-x86_64.AppImage
 ```
 
-Hay dos variantes:
+Two builds are published:
 
-| Variante | Tamaño | Cuándo usarla |
+| Build | Size | When to use |
 |---|---|---|
-| `ETOL-0.3.0-linux-x86_64.AppImage` | ~6 MB | **Recomendada.** Usa el WebKit del sistema; funciona en Ubuntu 26.04+, Fedora, Arch y CachyOS |
-| `ETOL_0.3.0_amd64.AppImage` | ~111 MB | Todo incluido; exige glibc 2.44 (CachyOS/Arch/Fedora actuales) |
+| `ETOL-0.3.0-linux-x86_64.AppImage` | ~6 MB | **Recommended.** Uses the system WebKit; works on Ubuntu 26.04+, Fedora, Arch and CachyOS |
+| `ETOL_0.3.0_amd64.AppImage` | ~111 MB | Everything bundled; needs glibc 2.44 (current CachyOS/Arch/Fedora) |
 
-La variante portable necesita `libwebkit2gtk-4.1` y `libgtk-3`:
+The portable build needs `libwebkit2gtk-4.1` and `libgtk-3`:
 
 ```bash
 sudo apt install libwebkit2gtk-4.1-0 libgtk-3-0    # Ubuntu/Debian
@@ -70,37 +88,37 @@ sudo dnf install webkit2gtk4.1 gtk3                # Fedora
 sudo pacman -S webkit2gtk-4.1 gtk3                 # Arch/CachyOS
 ```
 
-Sin FUSE2:
+Without FUSE2:
 
 ```bash
 ./ETOL-0.3.0-linux-x86_64.AppImage --appimage-extract-and-run
 ```
 
-## Requisitos
+## Requirements
 
-- Linux x86_64 con **glibc 2.39 o superior**.
-- **Steam** con los juegos instalados.
-- **Bottles** (Flatpak o nativo) con una botella que tenga **SimHub**; CrewChief
-  es opcional.
-- **KDE Plasma** si quieres los dashboards por encima del juego.
-- El pad **HF8** es opcional.
+- Linux x86_64 with **glibc 2.39 or newer**.
+- **Steam** with the games installed.
+- **Bottles** (Flatpak or native) with a bottle that has **SimHub**; CrewChief
+  is optional. ETOL can install and prepare both (see above).
+- **KDE Plasma** for dashboards above the game.
+- The **HF8** pad is optional.
 
-## La ventana
+## The window
 
-- **Juegos**: una ficha por simulador con su estado, botones de apps y el
-  engranaje de configuración.
-- **Aplicaciones**: SimHub y CrewChief, con sus procesos.
-- **Dispositivos**: el pad HF8 y el enlace de su puerto COM.
-- **Diagnóstico**: comprobaciones con el arreglo exacto al lado.
-- **Opciones**: idioma, vigilancia automática, dashboards, logs y USB.
+- **Games**: one card per simulator with its status, app buttons and the
+  configuration gear.
+- **Applications**: SimHub and CrewChief with their processes.
+- **Devices**: the HF8 pad and its COM link.
+- **Diagnostics**: checks with the exact fix next to them.
+- **Options**: language, automatic watchdog, dashboards, logs and USB.
 
-## Documentación
+## Documentation
 
-- [`docs/TECNICO.md`](docs/TECNICO.md): CLI, configuración, detección, compilación.
-- [`docs/guia-reinstalacion.html`](docs/guia-reinstalacion.html): reinstalar desde cero.
-- [`THIRD-PARTY.md`](THIRD-PARTY.md): licencias de los componentes incluidos.
+- [`docs/TECNICO.md`](docs/TECNICO.md): CLI, configuration, detection, building.
+- [`docs/guia-reinstalacion.html`](docs/guia-reinstalacion.html): reinstall from scratch (Spanish).
+- [`THIRD-PARTY.md`](THIRD-PARTY.md): licenses of the bundled components.
 
-## Licencia
+## License
 
-ETOL es MIT. El AppImage incluye componentes de terceros; ver
+ETOL is MIT. The AppImage bundles third-party components; see
 [THIRD-PARTY.md](THIRD-PARTY.md).
