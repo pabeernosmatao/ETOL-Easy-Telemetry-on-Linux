@@ -22,7 +22,7 @@ import json, sys
 print(json.load(open(sys.argv[1]))["version"])
 PY
 )"
-OUT="$BUNDLE/ETOL-${VERSION}-linux-x86_64.AppImage"
+OUT="$BUNDLE/ETOL-${VERSION}-linux-x86_64-portable.AppImage"
 
 SRC="${1:-}"
 if [[ -z "$SRC" ]]; then

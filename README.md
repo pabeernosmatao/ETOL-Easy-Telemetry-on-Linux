@@ -69,16 +69,17 @@ The two installers are interactive (they are Windows installers), so you click
 Download the AppImage from the latest release and make it executable:
 
 ```bash
-chmod +x ETOL-0.3.0-linux-x86_64.AppImage
-./ETOL-0.3.0-linux-x86_64.AppImage
+chmod +x ETOL-0.3.0-linux-x86_64-portable.AppImage
+./ETOL-0.3.0-linux-x86_64-portable.AppImage
 ```
 
-Two builds are published:
+Two builds are published. Both are **x86_64** (`amd64` is just Debian's name
+for the same architecture); the difference is whether WebKit is bundled:
 
-| Build | Size | When to use |
-|---|---|---|
-| `ETOL-0.3.0-linux-x86_64.AppImage` | ~6 MB | **Recommended.** Uses the system WebKit; works on Ubuntu 26.04+, Fedora, Arch and CachyOS |
-| `ETOL_0.3.0_amd64.AppImage` | ~111 MB | Everything bundled; needs glibc 2.44 (current CachyOS/Arch/Fedora) |
+| Build | Size | WebKit | glibc | When to use |
+|---|---|---|---|---|
+| `ETOL-0.3.0-linux-x86_64-portable.AppImage` | ~6 MB | system | 2.39+ | Ubuntu 26.04, Fedora, Arch, CachyOS. Needs `libwebkit2gtk-4.1` |
+| `ETOL-0.3.0-linux-x86_64-full.AppImage` | ~111 MB | bundled | 2.44+ | Everything included; current rolling and desktop distros |
 
 The portable build needs `libwebkit2gtk-4.1` and `libgtk-3`:
 
@@ -91,7 +92,7 @@ sudo pacman -S webkit2gtk-4.1 gtk3                 # Arch/CachyOS
 Without FUSE2:
 
 ```bash
-./ETOL-0.3.0-linux-x86_64.AppImage --appimage-extract-and-run
+./ETOL-0.3.0-linux-x86_64-portable.AppImage --appimage-extract-and-run
 ```
 
 ## Requirements

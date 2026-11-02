@@ -35,11 +35,12 @@ with one click.
 
 | Asset | Size | SHA-256 |
 |---|---|---|
-| `ETOL-0.3.0-linux-x86_64.AppImage` | 5.6 MB | `047d0553d2a2ad5eb4fa2155f5a8d22b5dfbcdbcb186b9f3411626ee05ef3609` |
-| `ETOL_0.3.0_amd64.AppImage` | 111 MB | `d4cfaf10d644f940e32c5737cd063d34f21494eec4c9bd48bef97bc1b89a2d01` |
+| `ETOL-0.3.0-linux-x86_64-portable.AppImage` | 5.6 MB | `00de4ce2fcb8019e8ed261f36bb43d37cf02364ffe12a340be653c1ad82634cd` |
+| `ETOL-0.3.0-linux-x86_64-full.AppImage` | 111 MB | `d4cfaf10d644f940e32c5737cd063d34f21494eec4c9bd48bef97bc1b89a2d01` |
 
-**Use the portable build** unless you are on a rolling/current distro and prefer
-everything bundled.
+Both assets are x86_64 (`amd64` is the Debian name for the same architecture).
+Use the **portable** build on Ubuntu 26.04 (glibc 2.43) or when you want a 6 MB
+download; use the **full** build to avoid depending on system libraries.
 
 ## Requirements
 
@@ -53,8 +54,8 @@ everything bundled.
 ## Install
 
 ```bash
-chmod +x ETOL-0.3.0-linux-x86_64.AppImage
-./ETOL-0.3.0-linux-x86_64.AppImage
+chmod +x ETOL-0.3.0-linux-x86_64-portable.AppImage
+./ETOL-0.3.0-linux-x86_64-portable.AppImage
 ```
 
 ## Known limitations

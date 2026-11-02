@@ -120,7 +120,15 @@ El payload (scripts y binarios) viaja dentro del AppImage y se instala en
 npm install                       # CLI de Tauri (una vez)
 ./scripts/gui.sh build            # AppImage en target/release/bundle/appimage/
 ./scripts/empaquetar-portable.sh  # variante que usa el WebKit del sistema
+./scripts/preparar-release.sh     # los dos con el nombre final, en dist/
 ```
+
+`preparar-release.sh` deja los assets listos para subir:
+
+- `ETOL-<version>-linux-x86_64-portable.AppImage` (WebKit del sistema)
+- `ETOL-<version>-linux-x86_64-full.AppImage` (todo incluido)
+
+`amd64` y `x86_64` son la misma arquitectura; el sufijo lo pone Tauri.
 
 ## Configuración y logs
 
