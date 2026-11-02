@@ -26,6 +26,16 @@ ETOL detecta tus juegos, prepara SimHub (y CrewChief) y lo lanza todo con un cli
 - **Dashboards de SimHub sobre el juego** en KDE/KWin, sin gamescope.
 - Interfaz en **español, catalán e inglés**.
 
+## Capturas
+
+<img src="docs/capturas/juegos.png" width="820" alt="Pestaña de juegos de ETOL">
+
+*Pestaña Juegos: una ficha por simulador. BeamNG.drive (Linux) muestra su puente UDP y solo el botón de SimHub.*
+
+<img src="docs/capturas/opciones.png" width="820" alt="Pestaña de opciones de ETOL">
+
+*Opciones: idioma, vigilancia automática, apps por juego y dashboards sobre el juego.*
+
 ## Desde cero: Bottles, SimHub y CrewChief
 
 No hace falta tener Bottles ni SimHub instalados. ETOL prepara toda la pila:

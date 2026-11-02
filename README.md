@@ -27,6 +27,16 @@ with one click.
 - **SimHub dashboards over the game** on KDE/KWin, no gamescope needed.
 - Interface in **Spanish, Catalan and English**.
 
+## Screenshots
+
+<img src="docs/capturas/juegos.png" width="820" alt="ETOL games tab">
+
+*Games tab: one card per simulator. BeamNG.drive (Linux) shows its UDP bridge and only the SimHub button.*
+
+<img src="docs/capturas/opciones.png" width="820" alt="ETOL options tab">
+
+*Options: language, automatic monitoring, per-game apps and dashboards over the game.*
+
 ## From scratch: Bottles, SimHub and CrewChief
 
 You do not need Bottles or SimHub installed beforehand. ETOL prepares the whole

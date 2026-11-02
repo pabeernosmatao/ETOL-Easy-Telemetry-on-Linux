@@ -63,8 +63,6 @@ chmod +x ETOL-0.3.0-linux-x86_64-portable.AppImage
 - SimHub dashboards over the game use a KWin rule: KDE Plasma only.
 - The full AppImage bundles WebKit built against glibc 2.44; Ubuntu 26.04 ships
   2.43, so use the portable build there.
-- Screenshots in the README are pending; the interface is described in
-  `README.md`.
 
 ## Supported simulators
 
