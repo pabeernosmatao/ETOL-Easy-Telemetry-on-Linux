@@ -177,6 +177,23 @@ def componer() -> Image.Image:
     return base.resize((S, S), Image.LANCZOS)
 
 
+def appimage() -> str:
+    """AppImage instalado mas reciente (para el Exec de la entrada)."""
+    instalados = sorted(
+        (HOME / ".local/bin").glob("ETOL*.AppImage"),
+        key=lambda path: path.stat().st_mtime,
+        reverse=True,
+    )
+    if instalados:
+        return str(instalados[0])
+    raiz = Path(__file__).resolve().parent.parent
+    try:
+        version = json.loads((raiz / "src-tauri/tauri.conf.json").read_text())["version"]
+    except Exception:
+        version = "0.3.0"
+    return str(HOME / f".local/bin/ETOL_{version}_amd64.AppImage")
+
+
 def instalar(icono: Image.Image) -> None:
     for size in (512, 256, 128, 64, 32):
         destino = ICON_DIR / f"{size}x{size}/apps"
@@ -189,7 +206,7 @@ def instalar(icono: Image.Image) -> None:
         "Type=Application\n"
         "Name=SimHub + CrewChief\n"
         "Comment=Apps de telemetria que lanza ETOL (icono de grupo)\n"
-        f"Exec={HOME}/.local/bin/ETOL_0.2.0_amd64.AppImage\n"
+        f"Exec={appimage()}\n"
         f"Icon={ICON_NAME}\n"
         f"StartupWMClass={WINDOW_CLASS}\n"
         "NoDisplay=true\n"
