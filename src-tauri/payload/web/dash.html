@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SimHub Linux — Telemetría</title>
+<style>
+  :root {
+    --bg: #07080a;
+    --panel: #101216;
+    --line: #23262d;
+    --muted: #7f8794;
+    --text: #eef1f5;
+    --green: #3ddc84;
+    --amber: #ffb300;
+    --red: #ff3b3b;
+    --cyan: #37c8ff;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    background: radial-gradient(circle at 50% 0%, #141820 0%, var(--bg) 55%);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-variant-numeric: tabular-nums;
+  }
+  #app {
+    display: grid;
+    grid-template-columns: 1.15fr .85fr;
+    grid-template-rows: auto 1fr auto;
+    gap: 14px;
+    height: 100%;
+    padding: 16px 18px;
+  }
+  .panel {
+    background: linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012));
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 14px 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.28);
+  }
+  #top {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 10px 16px;
+  }
+  #top .title { font-weight: 700; letter-spacing: .08em; font-size: 12px; color: var(--muted); }
+  #top .track { font-size: 20px; font-weight: 700; }
+  #top .session { color: var(--cyan); font-size: 13px; margin-left: 10px; }
+  #topRight { display: flex; align-items: center; gap: 16px; }
+  #nav { display: flex; gap: 12px; font-size: 12px; }
+  #nav a { color: var(--muted); text-decoration: none; }
+  #nav a:hover { color: var(--cyan); }
+  #conn { font-size: 12px; color: var(--green); }
+  #main {
+    display: grid;
+    grid-template-rows: 1fr;
+    gap: 14px;
+    min-height: 0;
+  }
+  #hero {
+    display: grid;
+    grid-template-columns: 1fr 220px;
+    gap: 14px;
+    align-items: stretch;
+  }
+  #speedBox { display: flex; align-items: flex-end; justify-content: center; padding: 6px 0 2px; }
+  #speed { font-size: clamp(90px, 16vw, 210px); line-height: .82; font-weight: 800; letter-spacing: -.04em; }
+  #speedUnit { font-size: 22px; color: var(--muted); margin-left: 10px; padding-bottom: 18px; }
+  #gearBox {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-left: 1px solid var(--line);
+  }
+  #gearLabel { font-size: 11px; color: var(--muted); letter-spacing: .18em; }
+  #gear { font-size: clamp(96px, 11vw, 150px); line-height: .9; font-weight: 800; color: var(--cyan); }
+  #rpmWrap { margin-top: 8px; }
+  #rpmBar {
+    position: relative;
+    height: 18px;
+    background: #1a1d23;
+    border-radius: 999px;
+    overflow: hidden;
+    border: 1px solid #262a32;
+  }
+  #rpmFill {
+    position: absolute; inset: 0 auto 0 0;
+    width: 0%;
+    background: linear-gradient(90deg, var(--green), var(--amber) 72%, var(--red));
+    transition: width .045s linear;
+  }
+  #rpmRedline {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0%;
+    width: 2px;
+    background: #fff;
+    opacity: .85;
+    box-shadow: 0 0 6px rgba(255,255,255,.8);
+    pointer-events: none;
+  }
+  #rpmText { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 6px; }
+  #pedals { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+  .pedal { background: #15181e; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+  .pedal .row { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+  .pedal .bar { height: 10px; background: #0b0d10; border-radius: 999px; overflow: hidden; }
+  .pedal .fill { height: 100%; width: 0%; }
+  #throttleFill { background: var(--green); }
+  #brakeFill { background: var(--red); }
+  #side { display: grid; grid-template-rows: auto auto 1fr; gap: 14px; min-height: 0; }
+  .kv { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .kv .cell { background: #12151a; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+  .kv .k { font-size: 10px; letter-spacing: .12em; color: var(--muted); text-transform: uppercase; }
+  .kv .v { font-size: 22px; font-weight: 700; margin-top: 2px; }
+  #tyres { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .tyre { background: #12151a; border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
+  .tyre .name { font-size: 10px; color: var(--muted); letter-spacing: .12em; }
+  .tyre .temp { font-size: 26px; font-weight: 700; margin-top: 2px; }
+  .tyre .wear { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .tyre.flat { border-color: var(--red); box-shadow: 0 0 0 1px rgba(255, 80, 80, .25) inset; }
+  .tyre.flat .wear { color: var(--red); font-weight: 700; letter-spacing: .08em; }
+  #times { display: grid; gap: 8px; }
+  .timeRow { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 10px; background: #12151a; border: 1px solid var(--line); border-radius: 10px; }
+  .timeRow .k { font-size: 11px; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+  .timeRow .v { font-size: 24px; font-weight: 700; }
+  #footer { grid-column: 1 / -1; display: flex; justify-content: space-between; color: var(--muted); font-size: 11px; padding: 0 4px; }
+  #footer b { color: var(--text); font-weight: 600; }
+  @media (max-width: 900px) {
+    #app { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; }
+    #main { grid-template-rows: auto 1fr auto; }
+    #hero { grid-template-columns: 1fr 150px; }
+    #side { grid-template-rows: auto auto auto; }
+    #footer { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="top" class="panel">
+    <div>
+      <div class="title">SIMHUB LINUX · TELEMETRÍA</div>
+      <div><span class="track" id="track">—</span><span class="session" id="session">—</span></div>
+    </div>
+    <div id="topRight">
+      <nav id="nav"><a href="/relative">Relative</a><a href="/djson">Dash Studio</a></nav>
+      <div id="conn">conectando…</div>
+    </div>
+  </header>
+
+  <main id="main">
+    <section id="hero" class="panel">
+      <div>
+        <div id="speedBox"><span id="speed">0</span><span id="speedUnit">km/h</span></div>
+        <div id="rpmWrap">
+          <div id="rpmBar"><div id="rpmFill"></div><div id="rpmRedline"></div></div>
+          <div id="rpmText"><span id="rpm">0 rpm</span><span id="redline">—</span></div>
+        </div>
+        <div id="pedals">
+          <div class="pedal">
+            <div class="row"><span>THROTTLE</span><span id="throttleVal">0%</span></div>
+            <div class="bar"><div class="fill" id="throttleFill"></div></div>
+          </div>
+          <div class="pedal">
+            <div class="row"><span>BRAKE</span><span id="brakeVal">0%</span></div>
+            <div class="bar"><div class="fill" id="brakeFill"></div></div>
+          </div>
+        </div>
+      </div>
+      <div id="gearBox">
+        <div id="gearLabel">GEAR</div>
+        <div id="gear">N</div>
+      </div>
+    </section>
+  </main>
+
+  <section id="side">
+      <div class="kv">
+        <div class="cell"><div class="k">Posición</div><div class="v" id="position">—</div></div>
+        <div class="cell"><div class="k">Combustible</div><div class="v" id="fuel">—</div></div>
+        <div class="cell"><div class="k">Vueltas</div><div class="v" id="laps">—</div></div>
+        <div class="cell"><div class="k">Coche</div><div class="v" id="car" style="font-size:14px">—</div></div>
+      </div>
+
+      <div id="times">
+        <div class="timeRow"><span class="k">Vuelta actual</span><span class="v" id="currentLap">-:--.-</span></div>
+        <div class="timeRow"><span class="k">Última</span><span class="v" id="lastLap">-:--.---</span></div>
+        <div class="timeRow"><span class="k">Mejor</span><span class="v" id="bestLap">-:--.---</span></div>
+      </div>
+
+      <div id="tyres">
+        <div class="tyre" id="cardFL"><div class="name">FL</div><div class="temp" id="tyreFL">—</div><div class="wear" id="wearFL">—</div></div>
+        <div class="tyre" id="cardFR"><div class="name">FR</div><div class="temp" id="tyreFR">—</div><div class="wear" id="wearFR">—</div></div>
+        <div class="tyre" id="cardRL"><div class="name">RL</div><div class="temp" id="tyreRL">—</div><div class="wear" id="wearRL">—</div></div>
+        <div class="tyre" id="cardRR"><div class="name">RR</div><div class="temp" id="tyreRR">—</div><div class="wear" id="wearRR">—</div></div>
+      </div>
+    </section>
+
+  <footer id="footer">
+    <div>Fuente: <b id="source">SimHub WS + LMU REST</b></div>
+    <div id="stamp">—</div>
+  </footer>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+
+  function parseTime(v) {
+    if (v == null) return null;
+    if (typeof v === 'number') return v;
+    const s = String(v).trim();
+    if (!s) return null;
+    let m = s.match(/^(-)?(\d+):(\d+):(\d+(?:\.\d+)?)$/);
+    if (m) return (m[1] ? -1 : 1) * (parseInt(m[2],10)*3600 + parseInt(m[3],10)*60 + parseFloat(m[4]));
+    m = s.match(/^(-)?(\d+):(\d+(?:\.\d+)?)$/);
+    if (m) return (m[1] ? -1 : 1) * (parseInt(m[2],10)*60 + parseFloat(m[3]));
+    const f = parseFloat(s);
+    return isNaN(f) ? null : f;
+  }
+  function fmtTime(v, dec, ph) {
+    const t = parseTime(v);
+    if (t == null || t <= 0) return ph;
+    const m = Math.floor(t/60), s = t - m*60;
+    return `${m}:${(s<10?'0':'')}${s.toFixed(dec)}`;
+  }
+  function num(v, d=0) {
+    const n = Number(v);
+    return isFinite(n) ? n.toFixed(d) : '—';
+  }
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+  function setText(id, v) {
+    const el = $(id);
+    if (el && el.textContent !== String(v)) el.textContent = v;
+  }
+  function setWidth(id, pct) {
+    const el = $(id);
+    if (el) el.style.width = clamp(pct,0,100) + '%';
+  }
+
+  let state = null;
+
+  function update() {
+    if (!state) return;
+    const s = state.simhub || {};
+    const lmu = state.lmu || {};
+    const p = lmu.player || {};
+    const meta = state.meta || {};
+
+    const speed = Number(s.SpeedKmh != null ? s.SpeedKmh : 0);
+    const rpm = Number(s.Rpms != null ? s.Rpms : 0);
+    const maxRpm = Number(s.MaxRpm != null ? s.MaxRpm : 9000) || 9000;
+    const redline = Number(s.CarSettings_RedLineRPM || s.Redline || s.CarSettings_MaxRPM || s.MaxRpm || 0);
+
+    setText('speed', speed.toFixed(0));
+    setText('gear', s.Gear != null ? String(s.Gear) : 'N');
+    setText('rpm', `${rpm.toFixed(0)} rpm`);
+    setText('redline', redline > 0 ? `redline ${redline.toFixed(0)}` : '—');
+    const redPct = redline > 0 && maxRpm > 0 ? (redline / maxRpm) * 100 : 0;
+    const redEl = $('rpmRedline');
+    if (redEl) redEl.style.left = clamp(redPct, 0, 100) + '%';
+    setWidth('rpmFill', (rpm / maxRpm) * 100);
+
+    const thr = Number(s.Throttle != null ? s.Throttle : 0);
+    const brk = Number(s.Brake != null ? s.Brake : 0);
+    setText('throttleVal', thr.toFixed(0) + '%');
+    setText('brakeVal', brk.toFixed(0) + '%');
+    setWidth('throttleFill', thr);
+    setWidth('brakeFill', brk);
+
+    setText('track', s.TrackName || lmu.sessionInfo?.trackName || '—');
+    setText('session', s.SessionTypeName || lmu.sessionInfo?.session || '—');
+    setText('position', s.Position != null ? `P${s.Position}` : (p.position != null ? `P${p.position}` : '—'));
+    const fuel = s.Fuel != null ? Number(s.Fuel) : null;
+    const fuelPct = s.FuelPercent != null ? Number(s.FuelPercent) : null;
+    setText('fuel', fuel != null ? `${fuel.toFixed(1)} L${fuelPct != null ? ` · ${fuelPct.toFixed(0)}%` : ''}` : '—');
+    setText('laps', s.CompletedLaps != null ? `${s.CompletedLaps}${s.TotalLaps ? ' / ' + s.TotalLaps : ''}` : '—');
+    setText('car', s.CarModel || s.CarName || p.vehicleName || '—');
+
+    setText('currentLap', fmtTime(s.CurrentLapTime, 1, '-:--.-'));
+    setText('lastLap', fmtTime(s.LastLapTime, 3, '-:--.---'));
+    setText('bestLap', fmtTime(s.BestLapTime, 3, '-:--.---'));
+
+    const tyres = [
+      ['FL', s.TyreTemperatureFrontLeft, s.TyreWearFrontLeft, s.TyreFlatFrontLeft],
+      ['FR', s.TyreTemperatureFrontRight, s.TyreWearFrontRight, s.TyreFlatFrontRight],
+      ['RL', s.TyreTemperatureRearLeft, s.TyreWearRearLeft, s.TyreFlatRearLeft],
+      ['RR', s.TyreTemperatureRearRight, s.TyreWearRearRight, s.TyreFlatRearRight],
+    ];
+    for (const [k, t, w, flat] of tyres) {
+      setText('tyre' + k, t != null ? `${Number(t).toFixed(0)}°` : '—');
+      setText('wear' + k, flat ? 'FLAT' : (w != null ? `${Number(w).toFixed(1)}%` : '—'));
+      const card = $('card' + k);
+      if (card) card.classList.toggle('flat', !!flat);
+    }
+
+    const conn = $('conn');
+    if (conn) {
+      const ok = meta.shm_connected || meta.simhub_connected || meta.lmu_connected;
+      conn.textContent = `SHM ${meta.shm_connected ? 'ON' : 'OFF'} · SimHub ${meta.simhub_connected ? 'ON' : 'OFF'} · LMU ${meta.lmu_connected ? 'ON' : 'OFF'}`;
+      conn.style.color = ok ? 'var(--green)' : 'var(--red)';
+    }
+    setText('source', meta.source === 'shm+lmu' ? 'LMU SHM + REST' : 'SimHub WS + LMU REST');
+    setText('stamp', meta.ts || '—');
+  }
+
+  function connect() {
+    const es = new EventSource('/api/stream');
+    es.onmessage = (ev) => {
+      try { state = JSON.parse(ev.data); update(); } catch (_) {}
+    };
+    es.onerror = () => {
+      const conn = $('conn');
+      if (conn) { conn.textContent = 'reconectando…'; conn.style.color = 'var(--amber)'; }
+    };
+  }
+
+  connect();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" fill="none">
+  <!-- Silueta de un volante de F1 (solo lineas). -->
+  <path d="M 300 100 L 900 100 C 1020 100 1150 150 1160 240
+           C 1168 310 1140 380 1060 410 L 900 455
+           C 870 462 845 440 838 410 L 820 330 L 380 330 L 362 410
+           C 355 440 330 462 300 455 L 140 410
+           C 60 380 32 310 40 240 C 50 150 180 100 300 100 Z"
+        stroke="#38e1b0" stroke-width="3" stroke-linejoin="round"/>
+
+  <!-- Huecos de las empunaduras -->
+  <rect x="98" y="168" width="196" height="186" rx="46"
+        stroke="#38e1b0" stroke-width="2.4" transform="rotate(-6 196 261)"/>
+  <rect x="906" y="168" width="196" height="186" rx="46"
+        stroke="#38e1b0" stroke-width="2.4" transform="rotate(6 1004 261)"/>
+
+  <!-- Pantalla central -->
+  <rect x="452" y="142" width="296" height="156" rx="18"
+        stroke="#4aa8ff" stroke-width="2.6"/>
+  <rect x="474" y="162" width="252" height="116" rx="10"
+        stroke="#4aa8ff" stroke-width="1.4" opacity="0.55"/>
+  <path d="M 496 232 L 596 232" stroke="#4aa8ff" stroke-width="2" opacity="0.7"/>
+  <path d="M 496 254 L 664 254" stroke="#4aa8ff" stroke-width="2" opacity="0.45"/>
+
+  <!-- Mandos giratorios -->
+  <circle cx="388" cy="236" r="38" stroke="#4aa8ff" stroke-width="2.4"/>
+  <circle cx="388" cy="236" r="11" stroke="#4aa8ff" stroke-width="1.6"/>
+  <path d="M 388 198 L 388 214" stroke="#4aa8ff" stroke-width="2"/>
+  <circle cx="812" cy="236" r="38" stroke="#4aa8ff" stroke-width="2.4"/>
+  <circle cx="812" cy="236" r="11" stroke="#4aa8ff" stroke-width="1.6"/>
+  <path d="M 812 198 L 812 214" stroke="#4aa8ff" stroke-width="2"/>
+
+  <!-- Botones -->
+  <circle cx="330" cy="150" r="11" stroke="#38e1b0" stroke-width="1.8"/>
+  <circle cx="366" cy="150" r="11" stroke="#38e1b0" stroke-width="1.8"/>
+  <circle cx="834" cy="150" r="11" stroke="#38e1b0" stroke-width="1.8"/>
+  <circle cx="870" cy="150" r="11" stroke="#38e1b0" stroke-width="1.8"/>
+
+  <!-- Luces de cambio -->
+  <g stroke="#4aa8ff" stroke-width="1.6" opacity="0.8">
+    <circle cx="512" cy="120" r="4.5"/><circle cx="536" cy="120" r="4.5"/>
+    <circle cx="560" cy="120" r="4.5"/><circle cx="584" cy="120" r="4.5"/>
+    <circle cx="608" cy="120" r="4.5"/><circle cx="632" cy="120" r="4.5"/>
+    <circle cx="656" cy="120" r="4.5"/><circle cx="680" cy="120" r="4.5"/>
+  </g>
+</svg>

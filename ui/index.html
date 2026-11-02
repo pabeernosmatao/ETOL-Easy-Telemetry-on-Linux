@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ETOL</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="glow glow-a"></div>
+    <div class="glow glow-b"></div>
+    <div class="wheel" aria-hidden="true"></div>
+
+    <div class="app">
+      <div class="banner" id="banner" hidden></div>
+      <header class="topbar">
+        <div class="brand">
+          <img class="brand-icon" src="icon.png" alt="" />
+          <div class="brand-text">
+            <h1>ETOL</h1>
+            <p>Easy Telemetry On Linux</p>
+          </div>
+        </div>
+
+        <section class="messages" id="messages" aria-live="polite"></section>
+      </header>
+
+      <nav class="tabs" aria-label="Secciones">
+        <button class="tab active" data-tab="juegos">Juegos</button>
+        <button class="tab" data-tab="aplicaciones">Aplicaciones</button>
+        <button class="tab" data-tab="dispositivos">Dispositivos</button>
+        <button class="tab" data-tab="diagnostico">Diagnóstico</button>
+        <button class="tab" data-tab="opciones">Opciones</button>
+      </nav>
+
+      <main>
+        <section class="panel" data-panel="juegos">
+          <div class="section-head">
+            <h2>Juegos</h2>
+            <div class="section-head-actions">
+              <span class="hint">El puente solo lee: no escribe en el juego</span>
+              <button class="btn ghost" id="btn-display-config">
+                <span class="icon">▣</span> Configuración de pantallas
+              </button>
+            </div>
+          </div>
+          <div class="games" id="games">
+            <div class="skeleton"></div>
+            <div class="skeleton"></div>
+            <div class="skeleton"></div>
+          </div>
+        </section>
+
+        <section class="panel" data-panel="aplicaciones" hidden>
+          <section class="card">
+            <div class="panel-head">
+              <h2>Aplicaciones</h2>
+              <span class="tag" id="bottle-tag">botella</span>
+            </div>
+            <div class="rows" id="apps"></div>
+            <div class="paths" id="apps-paths"></div>
+          </section>
+        </section>
+
+        <section class="panel" data-panel="dispositivos" hidden>
+          <section class="card">
+            <div class="panel-head">
+              <h2>Pad HF8</h2>
+              <label class="switch small" title="Activar o desactivar la configuración del pad">
+                <input type="checkbox" id="opt-hf8-enabled" />
+                <span class="switch-track"><span class="switch-thumb"></span></span>
+              </label>
+            </div>
+            <div class="rows" id="hf8"></div>
+            <div class="panel-actions hf8-actions">
+              <label class="switch small" title="Configurar el pad HF8 al arrancar">
+                <input type="checkbox" id="opt-hf8" checked />
+                <span class="switch-track"><span class="switch-thumb"></span></span>
+                <span class="switch-label">Configurar al arrancar</span>
+              </label>
+              <span class="clock" id="clock">—</span>
+              <button class="btn ghost" id="btn-refresh" title="Volver a leer el estado">
+                <span class="icon">↻</span> Actualizar
+              </button>
+              <button class="btn" id="btn-detect" title="Escanea Steam, Bottles y los dispositivos">
+                <span class="icon">⌕</span> Redetectar
+              </button>
+              <button class="btn ghost" id="btn-hf8">
+                <span class="icon">⚙</span> Reconfigurar pad
+              </button>
+            </div>
+          </section>
+        </section>
+
+        <section class="panel" data-panel="diagnostico" hidden>
+          <section class="card">
+            <div class="panel-head">
+              <h2>Diagnóstico</h2>
+              <div class="chips" id="doctor-summary"></div>
+              <div class="panel-actions inline">
+                <button class="btn ghost" id="btn-fix" title="Borra solo locks que ningún proceso tiene abiertos">
+                  Limpiar locks
+                </button>
+                <button class="btn ghost warn" id="btn-port" title="Aún no se ha comprobado el puerto 8888">
+                  <span class="icon">⇄</span> Comprobar 8888
+                </button>
+                <button class="btn ghost" id="btn-doctor">
+                  <span class="icon">✚</span> Revisar
+                </button>
+              </div>
+            </div>
+            <ul class="checks" id="checks" data-no-i18n></ul>
+          </section>
+        </section>
+
+        <section class="panel" data-panel="opciones" hidden>
+          <section class="card">
+            <div class="panel-head">
+              <h2>Opciones</h2>
+            </div>
+            <div class="options">
+              <div class="option-row">
+                <div class="option-main">
+                  <div class="option-label">Idioma</div>
+                  <div class="option-help">
+                    Automático usa el idioma del sistema. Español y catalán se detectan
+                    automáticamente; para el resto se usa inglés.
+                  </div>
+                </div>
+                <div class="segmented" id="opt-language">
+                  <button class="seg" data-language="auto">Auto</button>
+                  <button class="seg" data-language="es">ES</button>
+                  <button class="seg" data-language="ca">CA</button>
+                  <button class="seg" data-language="en">EN</button>
+                </div>
+              </div>
+
+              <div class="option-row">
+                <div class="option-main">
+                  <div class="option-label">Capturar logs</div>
+                  <div class="option-help">Guarda eventos de la app y copia los logs del puente.</div>
+                </div>
+                <label class="switch small">
+                  <input type="checkbox" id="opt-logs-enabled" />
+                  <span class="switch-track"><span class="switch-thumb"></span></span>
+                </label>
+              </div>
+
+              <div class="option-row">
+                <div class="option-main">
+                  <div class="option-label">Días de retención</div>
+                  <div class="option-help">Los logs más antiguos se borran al arrancar.</div>
+                </div>
+                <div class="segmented" id="opt-logs-retention">
+                  <button class="seg" data-retention="1">1</button>
+                  <button class="seg" data-retention="3">3</button>
+                  <button class="seg" data-retention="5">5</button>
+                  <button class="seg" data-retention="7">7</button>
+                </div>
+              </div>
+
+              <div class="option-row">
+                <div class="option-main">
+                  <div class="option-label">Buscar dispositivos USB</div>
+                  <div class="option-help">Si lo desactivas, no se buscan dispositivos USB al arrancar.</div>
+                </div>
+                <label class="switch small">
+                  <input type="checkbox" id="opt-scan-usb" />
+                  <span class="switch-track"><span class="switch-thumb"></span></span>
+                </label>
+              </div>
+
+              <div class="option-row">
+                <div class="option-main">
+                  <div class="option-label">Vigilancia automática</div>
+                  <div class="option-help">
+                    Al abrir un simulador levanta su puente y las apps elegidas; al cerrarlo lo para todo.
+                    ETOL tiene que seguir abierto (puede quedarse en la bandeja).
+                  </div>
+                </div>
+                <label class="switch small" title="Vigilar simuladores mientras ETOL esté abierto">
+                  <input type="checkbox" id="opt-daemon-enabled" />
+                  <span class="switch-track"><span class="switch-thumb"></span></span>
+                </label>
+              </div>
+
+              <div class="option-row" id="daemon-games-row" hidden>
+                <div class="option-main">
+                  <div class="option-label">Apps automáticas por juego</div>
+                  <div class="option-help">
+                    Cada juego puede abrir CrewChief, SimHub, ambos o ninguno (solo el puente).
+                  </div>
+                  <div class="daemon-games" id="daemon-games"></div>
+                </div>
+              </div>
+
+              <div class="option-row">
+                <div class="option-main">
+                  <div class="option-label">Dashboards sobre el juego</div>
+                  <div class="option-help">
+                    Muestra los dashboards de SimHub por encima del simulador, incluso a
+                    pantalla completa. ETOL activa la regla de KWin solo mientras juegas y
+                    la desactiva al salir, para que no tapen el escritorio. Solo KDE/KWin.
+                  </div>
+                </div>
+                <label class="switch small" title="Poner los dashboards de SimHub en la capa Overlay mientras juegas">
+                  <input type="checkbox" id="opt-kwin-overlay" />
+                  <span class="switch-track"><span class="switch-thumb"></span></span>
+                </label>
+              </div>
+
+              <div class="option-row">
+                <div class="option-main">
+                  <div class="option-label">Carpeta de logs</div>
+                  <code class="option-path" id="opt-logs-path">—</code>
+                </div>
+                <button class="btn ghost" data-open="logs">Abrir</button>
+              </div>
+            </div>
+          </section>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <div class="footer-paths">
+          <span class="path" id="path-config">config: —</span>
+          <span class="path" id="path-env">entorno: —</span>
+        </div>
+        <div class="footer-actions">
+          <button class="link" data-open="config">abrir config</button>
+          <button class="link" data-open="logs">abrir logs</button>
+          <button class="link" id="btn-env">ver entorno</button>
+        </div>
+      </footer>
+    </div>
+
+    <dialog class="modal" id="modal">
+      <div class="modal-head">
+        <h3 id="modal-title">Entorno</h3>
+        <button class="link" id="modal-close">cerrar</button>
+      </div>
+      <pre class="modal-body" id="modal-body"></pre>
+      <div class="modal-rich" id="modal-rich" hidden></div>
+      <div class="modal-actions" id="modal-actions" hidden></div>
+    </dialog>
+
+    <dialog class="modal extras-modal display-config" id="display-config">
+      <div class="modal-head">
+        <h3>Configuración de pantallas</h3>
+        <button class="link" id="display-config-close">cerrar</button>
+      </div>
+      <div class="display-body">
+        <div class="display-row">
+          <span class="display-label">Modo</span>
+          <div class="segmented" id="display-mode">
+            <button class="seg active" data-mode="gamescope">Gamescope</button>
+            <button class="seg" data-mode="native">Sin gamescope</button>
+          </div>
+        </div>
+        <div class="display-row">
+          <span class="display-label">Pantallas</span>
+          <div class="segmented" id="display-screens">
+            <button class="seg active" data-screens="1">1 pantalla</button>
+            <button class="seg" data-screens="3">3 pantallas</button>
+          </div>
+        </div>
+        <div class="display-row">
+          <span class="display-label">Resolución</span>
+          <div class="segmented" id="display-resolution">
+            <button class="seg" data-resolution="1080p">1080p</button>
+            <button class="seg active" data-resolution="1440p">1440p</button>
+            <button class="seg" data-resolution="4K">4K</button>
+          </div>
+        </div>
+        <p class="display-note" id="display-note" data-no-i18n></p>
+        <pre class="games-tip-code" id="display-command"></pre>
+        <div class="display-actions">
+          <button class="btn ghost" id="display-reset">Restablecer</button>
+          <button class="btn" id="btn-copy-display">Copiar comando</button>
+        </div>
+
+        <section class="display-extras">
+          <h4>Extras</h4>
+          <div class="extras-grid">
+            <section class="extras-col">
+              <h4>Todas las gráficas</h4>
+              <label class="extras-option">
+                <input type="checkbox" data-extra="grab" />
+                <span><strong>Capturar el ratón</strong>
+                  <small>Evita que el puntero se escape a otro monitor (<code>--force-grab-cursor</code>).</small></span>
+              </label>
+              <label class="extras-option">
+                <input type="checkbox" data-extra="mangoapp" />
+                <span><strong>MangoHud</strong>
+                  <small>Overlay de FPS, GPU y latencia dentro de gamescope (<code>--mangoapp</code>).</small></span>
+              </label>
+              <label class="extras-option">
+                <input type="checkbox" data-extra="forcefs" />
+                <span><strong>Forzar pantalla completa interna</strong>
+                  <small>Para juegos que arrancan en ventana (<code>--force-windows-fullscreen</code>).</small></span>
+              </label>
+              <label class="extras-option">
+                <input type="checkbox" data-extra="rt" />
+                <span><strong>Prioridad en tiempo real</strong>
+                  <small>Menos microtirones; depende de rtkit (<code>--rt</code>).</small></span>
+              </label>
+              <label class="extras-option">
+                <input type="checkbox" data-extra="itm" />
+                <span><strong>HDR inverso para SDR</strong>
+                  <small>Solo con HDR activo (<code>--hdr-itm-enabled</code>).</small></span>
+              </label>
+            </section>
+            <section class="extras-col">
+              <h4>AMD</h4>
+              <label class="extras-option">
+                <input type="checkbox" data-extra="fsr4" />
+                <span><strong>FSR 4</strong>
+                  <small>RDNA 3/4 y juegos con FSR 3.1 (<code>PROTON_FSR4_UPGRADE=1</code>).</small></span>
+              </label>
+              <label class="extras-option">
+                <input type="checkbox" data-extra="antilag" />
+                <span><strong>Mesa Anti-Lag</strong>
+                  <small>Menos latencia con drivers Mesa (<code>ENABLE_LAYER_MESA_ANTI_LAG=1</code>).</small></span>
+              </label>
+              <label class="extras-option">
+                <input type="checkbox" data-extra="fsr" />
+                <span><strong>Reescalado FSR 1.0</strong>
+                  <small>Si el juego renderiza por debajo de la ventana (<code>-F fsr --sharpness 5</code>).</small></span>
+              </label>
+              <label class="extras-option">
+                <input type="checkbox" data-extra="radv" />
+                <span><strong>Forzar RADV</strong>
+                  <small>Solo si tienes también AMDVLK instalado (<code>AMD_VULKAN_ICD=RADV</code>).</small></span>
+              </label>
+            </section>
+            <section class="extras-col">
+              <h4>NVIDIA</h4>
+              <label class="extras-option">
+                <input type="checkbox" data-extra="nvapi" />
+                <span><strong>NVAPI</strong>
+                  <small>DLSS/Reflex; GE-Proton ya suele activarlo (<code>PROTON_ENABLE_NVAPI=1</code>).</small></span>
+              </label>
+              <label class="extras-option">
+                <input type="checkbox" data-extra="dlss" />
+                <span><strong>Actualizar DLSS</strong>
+                  <small>Descarga la última DLL de DLSS (<code>PROTON_DLSS_UPGRADE=1</code>).</small></span>
+              </label>
+              <label class="extras-option">
+                <input type="checkbox" data-extra="shadercache" />
+                <span><strong>Caché de shaders</strong>
+                  <small>Menos tirones al repetir escenas (<code>__GL_SHADER_DISK_CACHE=1</code>).</small></span>
+              </label>
+              <label class="extras-option">
+                <input type="checkbox" data-extra="shadercachekeep" />
+                <span><strong>Conservar caché</strong>
+                  <small>No la borra al salir (<code>__GL_SHADER_DISK_CACHE_SKIP_CLEANUP=1</code>).</small></span>
+              </label>
+              <label class="extras-option">
+                <input type="checkbox" data-extra="nis" />
+                <span><strong>Reescalado NIS</strong>
+                  <small>NVIDIA Image Scaling (<code>-F nis --sharpness 5</code>).</small></span>
+              </label>
+            </section>
+          </div>
+          <p class="extras-note">
+            Elige solo las opciones de tu tarjeta. En modo sin gamescope solo se
+            aplican las variables de AMD/NVIDIA; las opciones de gamescope se omiten.
+          </p>
+        </section>
+      </div>
+    </dialog>
+
+    <div class="toast" id="toast" data-no-i18n></div>
+
+    <script src="i18n.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,20 @@
+# Artefactos de compilacion
+/target/
+/src-tauri/target/
+/src-tauri/binaries/
+/.toolchain/
+/node_modules/
+/src-tauri/gen/
+
+# Copias de trabajo locales (no forman parte del proyecto)
+/payload/
+/config/
+/generated/
+/logs/
+
+# Python
+__pycache__/
+*.pyc
+
+# Simbolos de depuracion
+*.pdb

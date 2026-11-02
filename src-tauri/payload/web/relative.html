@@ -1,0 +1,978 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SimHub Linux — Relative</title>
+<style>
+  :root {
+    --bg: #060709;
+    --panel: #0d1014;
+    --panel2: #11151b;
+    --line: #242a33;
+    --muted: #78818f;
+    --text: #f1f4f8;
+    --green: #3ddc84;
+    --amber: #ffb300;
+    --red: #ff4d4d;
+    --cyan: #37c8ff;
+    --blue: #4da3ff;
+    --purple: #b98cff;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 50% -10%, #17202b 0%, var(--bg) 58%);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-variant-numeric: tabular-nums;
+  }
+  #app {
+    height: 100%;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: 9px;
+    padding: 11px;
+  }
+  .panel {
+    background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.012));
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    box-shadow: 0 12px 28px rgba(0,0,0,.28);
+  }
+
+  /* ---------- cabecera ---------- */
+  #top {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(190px, 1fr) auto;
+    align-items: center;
+    gap: 14px;
+    padding: 8px 13px;
+  }
+  #trackBlock { min-width: 0; }
+  .eyebrow {
+    font-size: 9px;
+    letter-spacing: .18em;
+    color: var(--muted);
+    font-weight: 700;
+  }
+  .trackLine {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+  #track { font-size: clamp(16px, 2.2vw, 26px); font-weight: 800; letter-spacing: -.02em; }
+  #session { color: var(--cyan); font-size: clamp(11px, 1.3vw, 15px); font-weight: 600; }
+  #sessionMeta {
+    color: var(--muted);
+    font-size: clamp(9px, 1vw, 13px);
+    letter-spacing: .04em;
+    white-space: nowrap;
+  }
+  #sessionMeta .k { color: #5c6674; font-size: .86em; font-weight: 700; letter-spacing: .1em; }
+  #sessionMeta b { color: #c8d0da; font-weight: 800; }
+  #sessionMeta .sep { color: #46505d; margin: 0 4px; }
+  #sub { color: var(--muted); font-size: 11px; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #sub span + span::before { content: " · "; color: #46505d; }
+  #rpmBlock { min-width: 0; }
+  #rpmHead { display: flex; align-items: baseline; gap: 8px; margin-bottom: 5px; }
+  #rpm { font-size: clamp(20px, 2.6vw, 34px); font-weight: 800; line-height: 1; }
+  #rpmHead .unit { color: var(--muted); font-size: 10px; letter-spacing: .12em; }
+  #redline { margin-left: auto; color: var(--muted); font-size: 10px; }
+  #rpmBar {
+    position: relative;
+    height: 10px;
+    border-radius: 999px;
+    background: #191e25;
+    border: 1px solid #2a313b;
+    overflow: hidden;
+  }
+  #rpmFill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 0%;
+    background: linear-gradient(90deg, var(--green), var(--amber) 72%, var(--red));
+    transition: width .05s linear;
+  }
+  #rpmRedlineMark {
+    position: absolute;
+    top: 0; bottom: 0; left: 0%;
+    width: 2px;
+    background: #fff;
+    opacity: .8;
+    box-shadow: 0 0 5px rgba(255,255,255,.7);
+  }
+  #speedBlock {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: flex-end;
+    border-left: 1px solid var(--line);
+    padding-left: 14px;
+  }
+  #gear {
+    font-size: clamp(40px, 5.2vw, 74px);
+    font-weight: 900;
+    line-height: .8;
+    color: var(--cyan);
+    min-width: 46px;
+    text-align: center;
+  }
+  #speed { font-size: clamp(28px, 3.6vw, 54px); font-weight: 800; letter-spacing: -.03em; }
+  #speedBlock .unit { color: var(--muted); font-size: 11px; display: block; text-align: right; }
+
+  /* ---------- zona principal ---------- */
+  #main {
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(160px, 205px);
+    grid-template-rows: minmax(0, 1fr);
+    gap: 9px;
+  }
+  #relativePanel {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 8px 10px 9px;
+  }
+  #relativeHead {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 0 3px 6px;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: .16em;
+    font-weight: 700;
+  }
+  #relativeHead #relativeInfo { letter-spacing: .02em; font-weight: 500; color: #5c6674; font-size: 10px; }
+  #rows { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 4px; }
+  .rel-row {
+    flex: 1 1 0;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: clamp(58px, 6vw, 92px) clamp(44px, 4vw, 62px) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    padding: 2px 10px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: #0b0e12;
+    color: var(--text);
+    font-size: clamp(14px, calc(1.6vh + 0.7vw), 28px);
+  }
+  .rel-row.ahead { border-left: 3px solid #29323d; }
+  .rel-row.behind { border-left: 3px solid #1a2028; }
+  .rel-row.player {
+    background: rgba(55,200,255,.11);
+    border-color: rgba(55,200,255,.55);
+    box-shadow: 0 0 0 1px rgba(55,200,255,.08) inset;
+  }
+  .rel-row .gap { font-weight: 800; color: #c8d0da; text-align: right; }
+  .rel-row.ahead .gap { color: var(--amber); }
+  .rel-row.behind .gap { color: #aab4c1; }
+  .rel-row.player .gap { color: var(--cyan); }
+  .rel-row .pos { color: var(--muted); font-weight: 700; text-align: center; }
+  .rel-row .name { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rel-row .num { color: #697484; font-weight: 700; margin-right: 5px; }
+  .rel-row .driver { font-weight: 650; }
+  .rel-row .cls { font-size: .72em; font-weight: 800; letter-spacing: .06em; margin-left: 7px; }
+  .rel-row.hyper .cls { color: #ff7373; }
+  .rel-row.lmp2 .cls { color: var(--blue); }
+  .rel-row.gt3 .cls { color: var(--green); }
+  .rel-row.unknown .cls { color: var(--muted); }
+  .rel-row .info {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 7px;
+    min-width: 0;
+    white-space: nowrap;
+    font-size: .70em;
+    font-weight: 700;
+    color: var(--muted);
+  }
+  .rel-row .info .k { color: #5c6674; font-size: .82em; letter-spacing: .08em; }
+  .rel-row .info b { color: #c8d0da; font-weight: 800; }
+  .rel-row .info .state,
+  .rel-row .info .tyre {
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: .9em;
+    letter-spacing: .06em;
+    line-height: 1.25;
+  }
+  .rel-row .info .state { background: #20262f; color: #c8d0da; }
+  .rel-row .info .state.pit { background: rgba(255,179,0,.16); color: var(--amber); border: 1px solid rgba(255,179,0,.35); }
+  .rel-row .info .state.out { background: rgba(55,200,255,.14); color: var(--cyan); border: 1px solid rgba(55,200,255,.35); }
+  .rel-row .info .state.garage { background: rgba(120,129,143,.14); color: #9aa4b2; border: 1px solid rgba(120,129,143,.3); }
+  .rel-row .info .tyre { background: rgba(61,220,132,.1); color: var(--green); border: 1px solid rgba(61,220,132,.35); }
+  .rel-row.player .info b { color: var(--cyan); }
+  .empty { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; }
+
+  /* ---------- columna de datos ---------- */
+  #side { min-height: 0; display: grid; grid-template-rows: repeat(6, minmax(0, 1fr)); gap: 6px; }
+  .stat {
+    min-height: 0;
+    padding: 5px 9px;
+    background: #0b0e12;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .stat .k { color: var(--muted); font-size: 9px; letter-spacing: .12em; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stat .k .accent { color: var(--amber); font-weight: 800; }
+  .stat .k .accent.hyper { color: #ff7373; }
+  .stat .k .accent.lmp2 { color: var(--blue); }
+  .stat .k .accent.gt3 { color: var(--green); }
+  .stat .k .accent.unknown { color: var(--amber); }
+  .stat .v { font-size: clamp(17px, 1.9vw, 28px); font-weight: 800; line-height: 1.05; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stat .v.small { font-size: clamp(14px, 1.5vw, 20px); }
+  .stat .v.fuelV { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
+  .stat .v.fuelV #fuel { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .stat .v.fuelV .laps { flex: 0 0 auto; color: var(--amber); font-size: .58em; font-weight: 800; letter-spacing: .02em; }
+  .stat .v.fuelV .laps.warn { color: var(--red); }
+  .stat .v.fuelV .laps.empty { color: var(--muted); }
+  #virtualEnergy { color: var(--cyan); }
+  .stat .mini { height: 5px; background: #1a2028; border-radius: 999px; overflow: hidden; margin-top: 4px; }
+  .stat .mini > div { height: 100%; width: 0%; background: linear-gradient(90deg, var(--amber), var(--green)); }
+  #energyFill { background: linear-gradient(90deg, var(--blue), var(--cyan), var(--green)); }
+  .flag-green { color: var(--green); }
+  .flag-yellow { color: var(--amber); }
+  .flag-red { color: var(--red); }
+  .flag-blue { color: var(--blue); }
+  .flag-white { color: #fff; }
+  .flag-checkered { color: #fff; }
+
+  /* ---------- pie ---------- */
+  #bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 5px 12px;
+    color: var(--muted);
+    font-size: 11px;
+  }
+  #status { font-weight: 700; letter-spacing: .04em; }
+  #status .on { color: var(--green); }
+  #status .warn { color: var(--amber); }
+  #lights { display: flex; gap: 5px; align-items: center; }
+  #lights span {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #1b2028;
+    border: 1px solid #313945;
+    box-shadow: inset 0 0 4px rgba(0,0,0,.6);
+  }
+  #lights span.red { background: #ff3030; border-color: #ff6b6b; box-shadow: 0 0 8px rgba(255,48,48,.8); }
+  #lights span.green { background: #2dff79; border-color: #8dffb5; box-shadow: 0 0 9px rgba(45,255,121,.8); }
+  #links { display: flex; gap: 12px; }
+  #links a { color: var(--muted); text-decoration: none; }
+  #links a:hover { color: var(--cyan); }
+  #stamp { white-space: nowrap; }
+  #stamp b { color: #aeb8c5; font-weight: 600; }
+
+  @media (max-width: 820px) {
+    #top { grid-template-columns: minmax(0, 1fr) auto; }
+    #rpmBlock { display: none; }
+    #sessionMeta { margin-left: 0; }
+  }
+  @media (max-width: 760px) {
+    #main { grid-template-columns: minmax(0, 1fr) 150px; }
+    #speedBlock { padding-left: 9px; }
+    #side .stat { padding: 4px 7px; }
+  }
+  @media (max-width: 560px) {
+    #app { gap: 7px; padding: 8px; }
+    #top { padding: 6px 9px; }
+    #links { display: none; }
+    #stamp { font-size: 9px; }
+    #bottom { gap: 8px; padding: 4px 8px; }
+    #relativePanel { padding: 6px 7px 7px; }
+    #relativeHead { font-size: 10px; padding-bottom: 4px; }
+    #rows { gap: 3px; }
+    #main {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: minmax(0, 1fr) auto;
+      gap: 7px;
+    }
+    #side {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-rows: repeat(2, 52px);
+      gap: 6px;
+    }
+    #side .stat { padding: 4px 7px; }
+    .stat .k { font-size: 8px; letter-spacing: .08em; }
+    .stat .v { font-size: clamp(15px, 4vw, 20px); }
+    .stat .v.small { font-size: clamp(12px, 3.2vw, 16px); }
+    .stat .v.fuelV .laps { font-size: .52em; }
+    .rel-row {
+      grid-template-columns: clamp(50px, 14vw, 64px) clamp(38px, 10vw, 48px) minmax(0, 1fr);
+      grid-template-rows: auto auto;
+      grid-template-areas:
+        "gap pos name"
+        "gap pos info";
+      align-content: center;
+      align-items: center;
+      column-gap: 8px;
+      row-gap: 1px;
+      padding: 5px 9px;
+      font-size: clamp(17px, 4.6vw, 21px);
+    }
+    .rel-row .gap { grid-area: gap; }
+    .rel-row .pos { grid-area: pos; }
+    .rel-row .name { grid-area: name; }
+    .rel-row .info { grid-area: info; justify-content: flex-start; gap: 6px; font-size: .62em; }
+  }
+  @media (min-width: 561px) and (max-width: 820px) and (min-height: 700px) {
+    #main {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: minmax(0, 1fr) auto;
+      gap: 7px;
+    }
+    #side {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-rows: repeat(2, 52px);
+      gap: 6px;
+    }
+    #side .stat { padding: 4px 7px; }
+    .rel-row {
+      grid-template-columns: clamp(50px, 14vw, 64px) clamp(38px, 10vw, 48px) minmax(0, 1fr);
+      grid-template-rows: auto auto;
+      grid-template-areas:
+        "gap pos name"
+        "gap pos info";
+      align-content: center;
+      align-items: center;
+      column-gap: 8px;
+      row-gap: 1px;
+      padding: 5px 9px;
+    }
+    .rel-row .gap { grid-area: gap; }
+    .rel-row .pos { grid-area: pos; }
+    .rel-row .name { grid-area: name; }
+    .rel-row .info { grid-area: info; justify-content: flex-start; gap: 6px; font-size: .62em; }
+  }
+  @media (max-height: 470px) {
+    #side .stat { padding: 4px 9px; }
+    .stat .v { flex: 0 0 auto; }
+    .stat .mini { margin-top: 3px; }
+  }
+  @media (max-height: 420px) {
+    #app { gap: 6px; padding: 7px; }
+    #top { padding: 5px 9px; }
+    #bottom { padding: 3px 9px; }
+    #side { gap: 4px; }
+    #side .stat { padding: 3px 8px; }
+    .stat .k { font-size: 8px; }
+    .stat .v { font-size: clamp(15px, 1.8vw, 22px); line-height: 1; }
+    .stat .v.small { font-size: clamp(12px, 1.4vw, 17px); }
+    .stat .mini { height: 3px; margin-top: 2px; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="top" class="panel">
+    <div id="trackBlock">
+      <div class="eyebrow">LMU NATIVE · RELATIVE</div>
+      <div class="trackLine">
+        <span id="track">—</span><span id="session">—</span>
+        <span id="sessionMeta" title="Tiempo restante de sesión y mejor vuelta de sesión"><span class="k">REST</span> <b id="sessionLeft">—</b><span class="sep">·</span><span class="k">SB</span> <b id="sessionBest">—</b></span>
+      </div>
+      <div id="sub"><span id="car">—</span><span id="lapInfo">—</span></div>
+    </div>
+    <div id="rpmBlock">
+      <div id="rpmHead"><span id="rpm">0</span><span class="unit">RPM</span><span id="redline">RL —</span></div>
+      <div id="rpmBar"><div id="rpmFill"></div><div id="rpmRedlineMark"></div></div>
+    </div>
+    <div id="speedBlock">
+      <div id="gear">N</div>
+      <div><span id="speed">0</span><span class="unit">km/h</span></div>
+    </div>
+  </header>
+
+  <main id="main">
+    <section id="relativePanel" class="panel">
+      <div id="relativeHead"><span>RELATIVE</span><span id="relativeInfo">—</span></div>
+      <div id="rows"></div>
+    </section>
+
+    <aside id="side">
+      <div class="stat">
+        <div class="k">POS · <span class="accent unknown" id="carClass">—</span></div>
+        <div class="v" id="position">—</div>
+      </div>
+      <div class="stat">
+        <div class="k">FUEL</div>
+        <div class="v fuelV"><span id="fuel">—</span><span class="laps empty" id="fuelLaps">— LAPS</span></div>
+        <div class="mini"><div id="fuelFill"></div></div>
+      </div>
+      <div class="stat">
+        <div class="k">VIRTUAL ENERGY</div>
+        <div class="v" id="virtualEnergy">—</div>
+        <div class="mini"><div id="energyFill"></div></div>
+      </div>
+      <div class="stat"><div class="k">BEST</div><div class="v small" id="best">—</div></div>
+      <div class="stat"><div class="k">LAST</div><div class="v small" id="last">—</div></div>
+      <div class="stat"><div class="k">FLAG</div><div class="v small" id="flag">—</div></div>
+    </aside>
+  </main>
+
+  <footer id="bottom" class="panel">
+    <div id="status">conectando…</div>
+    <div id="links"><a href="/">Telemetría</a><a href="/djson">Dash Studio</a></div>
+    <div id="lights"></div>
+    <div id="stamp">—</div>
+  </footer>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+
+  let state = { simhub: {}, lmu: {}, meta: {} };
+  let vehicles = [];
+  let lastRows = '';
+  let restBySlot = new Map();
+  let restLoading = false;
+  const pitMemory = new Map();
+
+  const FUEL_CACHE_KEY = 'simhublinux.relative.fuelPerLap.v1';
+  const MAX_FUEL_PER_LAP = 25; // litros/vuelta: descarta saltos de datos o repostajes
+  let fuelCache = {};
+  try {
+    fuelCache = JSON.parse(localStorage.getItem(FUEL_CACHE_KEY) || '{}') || {};
+  } catch (_) {
+    fuelCache = {};
+  }
+  const fuelTracker = {
+    key: '',
+    lastLap: null,
+    lapStartFuel: null,
+    samples: [],
+    observedLaps: 0,
+    cached: 0,
+  };
+
+  function saveFuelCache() {
+    try {
+      localStorage.setItem(FUEL_CACHE_KEY, JSON.stringify(fuelCache));
+    } catch (_) {
+      // sin localStorage: la estimación sigue viva en memoria
+    }
+  }
+
+  function resetFuelTracker(key) {
+    fuelTracker.key = key;
+    fuelTracker.lastLap = null;
+    fuelTracker.lapStartFuel = null;
+    fuelTracker.samples = [];
+    fuelTracker.observedLaps = 0;
+    fuelTracker.cached = Number(fuelCache[key]) || 0;
+  }
+
+  function fuelLapsRemaining(s) {
+    const fuel = Number(s.Fuel);
+    const laps = Number(s.CompletedLaps);
+    const key = `${s.TrackName || ''}|${s.CarName || ''}`;
+    if (fuelTracker.key !== key) resetFuelTracker(key);
+    if (!isFinite(fuel) || !isFinite(laps)) return null;
+
+    if (fuelTracker.lastLap == null) {
+      fuelTracker.lastLap = laps;
+      fuelTracker.lapStartFuel = fuel;
+      // Si la página se abre al inicio de vuelta (o en garaje), la primera
+      // medición ya es válida; si se abre a mitad de vuelta, se descarta.
+      const intoLap = Number(s.CurrentLapTime);
+      fuelTracker.observedLaps = (isFinite(intoLap) && intoLap >= 0 && intoLap < 8) ? 1 : 0;
+    } else if (laps < fuelTracker.lastLap) {
+      fuelTracker.lastLap = laps;
+      fuelTracker.lapStartFuel = fuel;
+      fuelTracker.samples = [];
+      fuelTracker.observedLaps = 0;
+    } else if (laps > fuelTracker.lastLap) {
+      const delta = laps - fuelTracker.lastLap;
+      const used = fuelTracker.lapStartFuel - fuel;
+      // El primer corte tras cargar la página puede ser una vuelta parcial.
+      if (fuelTracker.observedLaps > 0 && used > 0.05) {
+        const perLap = used / delta;
+        if (perLap > 0.05 && perLap < MAX_FUEL_PER_LAP) {
+          fuelTracker.samples.push(perLap);
+          if (fuelTracker.samples.length > 5) fuelTracker.samples.shift();
+          const avg = fuelTracker.samples.reduce((a, b) => a + b, 0) / fuelTracker.samples.length;
+          fuelCache[key] = Math.round(avg * 1000) / 1000;
+          saveFuelCache();
+        }
+      }
+      fuelTracker.observedLaps += delta;
+      fuelTracker.lastLap = laps;
+      fuelTracker.lapStartFuel = fuel;
+    }
+
+    const samples = fuelTracker.samples.length
+      ? fuelTracker.samples
+      : (fuelTracker.cached > 0 ? [fuelTracker.cached] : []);
+    if (!samples.length) return null;
+    const avg = samples.reduce((a, b) => a + b, 0) / samples.length;
+    if (!(avg > 0.05)) return null;
+    return fuel / avg;
+  }
+
+  function num(v, d = 0) {
+    const n = Number(v);
+    return isFinite(n) ? n.toFixed(d) : '—';
+  }
+
+  function fmtTime(v, dec, placeholder) {
+    if (v == null) return placeholder;
+    let t = v;
+    if (typeof t === 'string') {
+      const s = t.trim();
+      let m = s.match(/^(-)?(\d+):(\d+):(\d+(?:\.\d+)?)$/);
+      if (m) t = (m[1] ? -1 : 1) * (parseInt(m[2], 10) * 3600 + parseInt(m[3], 10) * 60 + parseFloat(m[4]));
+      else {
+        m = s.match(/^(-)?(\d+):(\d+(?:\.\d+)?)$/);
+        if (m) t = (m[1] ? -1 : 1) * (parseInt(m[2], 10) * 60 + parseFloat(m[3]));
+        else t = parseFloat(s);
+      }
+    }
+    t = Number(t);
+    if (!isFinite(t) || t <= 0) return placeholder;
+    const m = Math.floor(t / 60);
+    const s = t - m * 60;
+    return `${m}:${s < 10 ? '0' : ''}${s.toFixed(dec)}`;
+  }
+
+  function fmtDuration(v) {
+    const n = Number(v);
+    if (!isFinite(n)) return '—';
+    const t = Math.max(0, n);
+    const h = Math.floor(t / 3600);
+    const m = Math.floor((t % 3600) / 60);
+    const sec = Math.floor(t % 60);
+    if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+    return `${m}:${String(sec).padStart(2, '0')}`;
+  }
+
+  function timeSeconds(v) {
+    if (v == null) return null;
+    let t = v;
+    if (typeof t === 'string') {
+      const raw = t.trim();
+      let m = raw.match(/^(-)?(\d+):(\d+):(\d+(?:\.\d+)?)$/);
+      if (m) t = (m[1] ? -1 : 1) * (parseInt(m[2], 10) * 3600 + parseInt(m[3], 10) * 60 + parseFloat(m[4]));
+      else {
+        m = raw.match(/^(-)?(\d+):(\d+(?:\.\d+)?)$/);
+        if (m) t = (m[1] ? -1 : 1) * (parseInt(m[2], 10) * 60 + parseFloat(m[3]));
+        else t = parseFloat(raw);
+      }
+    }
+    t = Number(t);
+    return isFinite(t) && t > 0 ? t : null;
+  }
+
+  function parseCarNumber(car) {
+    const m = String(car || '').match(/#\s*(\d+)/);
+    return m ? '#' + m[1] : '';
+  }
+
+  function classKey(c) {
+    const s = String(c || '').toLowerCase();
+    if (s.includes('hyper') || s.includes('lmdh') || s.includes('lmh')) return 'hyper';
+    if (s.includes('lmp2') || s.includes('lmp')) return 'lmp2';
+    if (s.includes('gt3') || s.includes('gt')) return 'gt3';
+    return 'unknown';
+  }
+
+  function classAbbr(c) {
+    const s = String(c || '');
+    if (!s) return '—';
+    if (classKey(s) === 'hyper') return 'HY';
+    return s.toUpperCase().slice(0, 4);
+  }
+
+  function flagInfo() {
+    const p = (state.lmu && state.lmu.player) || {};
+    const si = (state.lmu && state.lmu.sessionInfo) || {};
+    let f = String(p.flag || '').toUpperCase();
+    if (!f || f === 'NONE') {
+      const y = String(si.yellowFlagState || '').toUpperCase();
+      if (y && y !== 'NONE') f = y;
+      else f = 'GREEN';
+    }
+    if (f.includes('CHECK')) return { text: 'CHEQUERED', cls: 'flag-checkered' };
+    if (f.includes('YELLOW')) return { text: 'YELLOW', cls: 'flag-yellow' };
+    if (f.includes('RED')) return { text: 'RED', cls: 'flag-red' };
+    if (f.includes('BLUE')) return { text: 'BLUE', cls: 'flag-blue' };
+    if (f.includes('WHITE')) return { text: 'WHITE', cls: 'flag-white' };
+    if (f.includes('GREEN')) return { text: 'GREEN', cls: 'flag-green' };
+    return { text: f || '—', cls: '' };
+  }
+
+  function wrapDelta(d, length) {
+    if (!isFinite(d) || !isFinite(length) || length <= 0) return d;
+    return ((d + length / 2) % length + length) % length - length / 2;
+  }
+
+  function addCell(row, cls, text) {
+    const el = document.createElement('div');
+    el.className = cls;
+    el.textContent = text;
+    row.appendChild(el);
+    return el;
+  }
+
+  function restFor(v) {
+    return restBySlot.get(String(v.id)) || null;
+  }
+
+  function inferOutLap(v) {
+    const id = String(v.id);
+    const prev = pitMemory.get(id);
+    const nowIn = !!(v.inPits || v.inGarageStall);
+    let out = false;
+    if (prev && prev.inPits && !nowIn) out = true;
+    if (prev && prev.outLap && Number(v.laps) > prev.lap) out = false;
+    pitMemory.set(id, { inPits: nowIn, outLap: out, lap: Number(v.laps) || 0 });
+    return out;
+  }
+
+  function statusFor(v, player) {
+    const p = state.lmu.player || {};
+    if (player) {
+      if (p.inGarageStall || p.inGarage) return { text: 'GARAGE', cls: 'garage' };
+      if (p.pitting || p.inPits || state.simhub.InPits) return { text: 'BOX', cls: 'pit' };
+    } else {
+      if (v.inGarageStall) return { text: 'GARAGE', cls: 'garage' };
+      if (v.inPits) return { text: 'BOX', cls: 'pit' };
+    }
+
+    const r = restFor(v);
+    if (r) {
+      const pitState = String(r.pitState || '').toUpperCase();
+      if (r.pitting || pitState === 'ENTERING' || pitState === 'STOPPED' || pitState === 'EXITING') {
+        return { text: 'BOX', cls: 'pit' };
+      }
+      if (String(r.countLapFlag || '').toUpperCase() === 'COUNT_LAP_ONLY') {
+        return { text: 'OUT', cls: 'out' };
+      }
+    } else if (inferOutLap(v)) {
+      return { text: 'OUT', cls: 'out' };
+    }
+    return null;
+  }
+
+  function lastLapFor(v, player) {
+    if (player) {
+      const s = state.simhub || {};
+      const p = state.lmu.player || {};
+      const sLast = timeSeconds(s.LastLapTime);
+      const pLast = timeSeconds(p.lastLapTime);
+      if (sLast != null) return sLast;
+      if (pLast != null) return pLast;
+    }
+    return v ? v.lastLap : null;
+  }
+
+  function tyreCode(name) {
+    const raw = String(name || '').trim();
+    if (!raw) return '';
+    const s = raw.toLowerCase();
+    if (s.includes('soft')) return 'S';
+    if (s.includes('medium') || s === 'med') return 'M';
+    if (s.includes('hard')) return 'H';
+    if (s.includes('inter')) return 'I';
+    if (s.includes('wet')) return 'W';
+    return raw.slice(0, 3).toUpperCase();
+  }
+
+  function tyreFor(v, player) {
+    const s = state.simhub || {};
+    const p = state.lmu.player || {};
+    let front = '';
+    let rear = '';
+    if (player) {
+      front = s.TyreCompoundFront || p.frontTireCompoundName || '';
+      rear = s.TyreCompoundRear || p.rearTireCompoundName || '';
+    } else if (v) {
+      front = v.frontTyreCompoundName || v.tyreCompound || v.tyre || '';
+      rear = v.rearTyreCompoundName || '';
+    }
+    const fc = tyreCode(front);
+    const rc = tyreCode(rear);
+    if (fc && rc && fc !== rc) return `${fc}/${rc}`;
+    return fc || rc;
+  }
+
+  function renderRow(v, player = false) {
+    const el = document.createElement('div');
+    el.className = 'rel-row ' + classKey(player ? (state.simhub.CarClass || (state.lmu.player || {}).carClass) : v.class);
+    if (player) el.classList.add('player');
+    else el.classList.add(v.d > 0 ? 'ahead' : 'behind');
+
+    const gap = player ? '—' : (v.gap > 0 ? '+' : '') + (Math.abs(v.gap) >= 100 ? v.gap.toFixed(0) : v.gap.toFixed(1));
+    addCell(el, 'gap', gap);
+    addCell(el, 'pos', player ? 'YOU' : (v.place ? 'P' + v.place : '—'));
+
+    const name = document.createElement('div');
+    name.className = 'name';
+    const carNo = parseCarNumber(player ? (state.simhub.CarName || (state.lmu.player || {}).vehicleName) : v.car);
+    if (carNo) {
+      const n = document.createElement('span');
+      n.className = 'num';
+      n.textContent = carNo;
+      name.appendChild(n);
+    }
+    const driver = document.createElement('span');
+    driver.className = 'driver';
+    driver.textContent = player ? (state.simhub.PlayerName || (state.lmu.player || {}).driverName || 'YOU') : (v.name || '—');
+    name.appendChild(driver);
+    const cls = document.createElement('span');
+    cls.className = 'cls';
+    cls.textContent = classAbbr(player ? (state.simhub.CarClass || (state.lmu.player || {}).carClass) : v.class);
+    name.appendChild(cls);
+    el.appendChild(name);
+
+    const info = document.createElement('div');
+    info.className = 'info';
+    const last = document.createElement('span');
+    last.className = 'last';
+    last.title = 'Última vuelta';
+    const lk = document.createElement('span');
+    lk.className = 'k';
+    lk.textContent = 'LAST';
+    const lv = document.createElement('b');
+    lv.textContent = fmtTime(lastLapFor(v, player), 3, '—');
+    last.append(lk, document.createTextNode(' '), lv);
+    info.appendChild(last);
+
+    const st = statusFor(v, player);
+    if (st) {
+      const badge = document.createElement('span');
+      badge.className = 'state ' + st.cls;
+      badge.textContent = st.text;
+      info.appendChild(badge);
+    }
+
+    const tyre = tyreFor(v, player);
+    if (tyre) {
+      const badge = document.createElement('span');
+      badge.className = 'tyre';
+      badge.textContent = tyre;
+      badge.title = `Compuesto ${tyre}`;
+      info.appendChild(badge);
+    }
+    el.appendChild(info);
+    return el;
+  }
+
+  function renderRows() {
+    const s = state.simhub || {};
+    const p = (state.lmu && state.lmu.player) || {};
+    const si = (state.lmu && state.lmu.sessionInfo) || {};
+    const L = Number(s.TrackLength || si.lapDistance || 0) || 13623.9678;
+    const playerDist = Number(s.LapDistance != null ? s.LapDistance : p.lapDistance);
+    const estLap = Number(p.estimatedLapTime || s.SessionBestTime || 210) || 210;
+    const speed = L / estLap;
+    const playerPos = Number(s.Position != null ? s.Position : p.position) || 0;
+
+    const rows = [];
+    for (const v of vehicles) {
+      if (!v || v.isPlayer || v.inGarageStall) continue;
+      const dist = Number(v.lapDist);
+      if (!isFinite(dist)) continue;
+      const d = wrapDelta(dist - playerDist, L);
+      rows.push(Object.assign({}, v, { d, gap: d / speed }));
+    }
+
+    const visible = 4;
+    const ahead = rows.filter((r) => r.d > 0).sort((a, b) => a.d - b.d).slice(0, visible).sort((a, b) => b.d - a.d);
+    const behind = rows.filter((r) => r.d < 0).sort((a, b) => Math.abs(a.d) - Math.abs(b.d)).slice(0, visible);
+    const player = {
+      id: p.slotID != null ? p.slotID : (p.id != null ? p.id : s.CarId),
+      isPlayer: true,
+      place: playerPos,
+      class: s.CarClass || p.carClass,
+      name: s.PlayerName || p.driverName,
+      car: s.CarName || p.vehicleName,
+      laps: Number(s.CompletedLaps != null ? s.CompletedLaps : p.lapsCompleted) || 0,
+      inPits: !!(p.pitting || p.inPits || s.InPits),
+      inGarageStall: !!(p.inGarageStall || p.inGarage),
+      lastLap: lastLapFor(null, true),
+    };
+
+    const restSig = (id) => {
+      const r = restBySlot.get(String(id));
+      return r ? `${r.countLapFlag || ''}:${r.pitState || ''}:${r.pitting ? 1 : 0}` : '';
+    };
+    const sigRow = (r) => `${r.id}:${r.place}:${r.d.toFixed(0)}:${r.inPits ? 1 : 0}:${r.inGarageStall ? 1 : 0}:${Number(r.lastLap || 0).toFixed(1)}:${restSig(r.id)}`;
+    const playerState = `${playerPos}:${p.pitting ? 1 : 0}:${p.inPits ? 1 : 0}:${p.inGarageStall ? 1 : 0}:${s.InPits ? 1 : 0}:${Number(player.lastLap || 0).toFixed(1)}:${restSig(player.id)}:${s.TyreCompoundFront || ''}:${s.TyreCompoundRear || ''}`;
+    const signature = [visible, ahead.map(sigRow).join('|'), playerState, behind.map(sigRow).join('|')].join('/');
+    if (signature === lastRows) return;
+    lastRows = signature;
+
+    const box = $('rows');
+    box.textContent = '';
+    if (!ahead.length && !behind.length) {
+      const empty = document.createElement('div');
+      empty.className = 'empty';
+      empty.textContent = 'Sin coches en relative';
+      box.appendChild(empty);
+      return;
+    }
+    for (const r of ahead) box.appendChild(renderRow(r));
+    box.appendChild(renderRow(player, true));
+    for (const r of behind) box.appendChild(renderRow(r));
+  }
+
+  function update() {
+    const s = state.simhub || {};
+    const lmu = state.lmu || {};
+    const p = lmu.player || {};
+    const si = lmu.sessionInfo || {};
+    const m = state.meta || {};
+
+    $('track').textContent = s.TrackName || si.trackName || '—';
+    $('session').textContent = s.SessionTypeName || si.session || '—';
+    let sessionLeft = Number(si.timeRemainingInGamePhase);
+    if (!isFinite(sessionLeft)) {
+      const maxTime = Number(si.maxTime);
+      const eventTime = Number(si.currentEventTime);
+      if (isFinite(maxTime) && isFinite(eventTime)) sessionLeft = maxTime - eventTime;
+    }
+    $('sessionLeft').textContent = fmtDuration(sessionLeft);
+    $('sessionBest').textContent = fmtTime(s.SessionBestTime, 3, '—');
+    $('car').textContent = s.CarName || p.vehicleName || '—';
+    $('lapInfo').textContent = `LAP ${s.CompletedLaps != null ? s.CompletedLaps : 0} · ${fmtTime(s.CurrentLapTime, 1, '-:--.-')}`;
+
+    const rpm = Number(s.Rpms) || 0;
+    const maxRpm = Number(s.MaxRpm || s.CarSettings_MaxRPM) || 9000;
+    const redline = Number(s.CarSettings_RedLineRPM || s.Redline) || maxRpm * 0.95;
+    $('rpm').textContent = rpm.toFixed(0);
+    $('redline').textContent = `RL ${redline.toFixed(0)}`;
+    $('rpmFill').style.width = Math.max(0, Math.min(100, (rpm / maxRpm) * 100)) + '%';
+    $('rpmRedlineMark').style.left = Math.max(0, Math.min(100, (redline / maxRpm) * 100)) + '%';
+
+    $('gear').textContent = s.Gear != null ? String(s.Gear) : 'N';
+    $('speed').textContent = num(s.SpeedKmh, 0);
+
+    const playerClass = s.CarClass || p.carClass || '';
+    $('position').textContent = s.Position != null ? 'P' + s.Position : (p.position ? 'P' + p.position : '—');
+    $('carClass').textContent = playerClass || '—';
+    $('carClass').className = 'accent ' + classKey(playerClass);
+    $('fuel').textContent = s.Fuel != null ? `${Number(s.Fuel).toFixed(1)} L` : '—';
+    $('fuelFill').style.width = Math.max(0, Math.min(100, Number(s.FuelPercent) || 0)) + '%';
+
+    const lapsLeft = fuelLapsRemaining(s);
+    const lapsText = lapsLeft != null ? `${lapsLeft >= 100 ? lapsLeft.toFixed(0) : lapsLeft.toFixed(1)} LAPS` : '— LAPS';
+    $('fuelLaps').textContent = lapsText;
+    $('fuelLaps').className = 'laps' + (lapsLeft == null ? ' empty' : (lapsLeft < 2 ? ' warn' : ''));
+
+    const veRaw = s.VirtualEnergy != null ? Number(s.VirtualEnergy) : NaN;
+    const vePct = isFinite(veRaw) ? (veRaw <= 1.5 ? veRaw * 100 : veRaw) : null;
+    $('virtualEnergy').textContent = vePct != null ? `${vePct.toFixed(1)}%` : '—';
+    $('energyFill').style.width = vePct != null ? Math.max(0, Math.min(100, vePct)) + '%' : '0%';
+
+    $('best').textContent = fmtTime(s.BestLapTime, 3, '-:--.---');
+    $('last').textContent = fmtTime(s.LastLapTime, 3, '-:--.---');
+
+    const fi = flagInfo();
+    $('flag').textContent = fi.text;
+    $('flag').className = 'v small ' + fi.cls;
+
+    const src = m.shm_connected ? 'SHM' : (m.simhub_connected ? 'SIMHUB' : 'SIN DATOS');
+    const srcOk = m.shm_connected || m.simhub_connected;
+    $('status').innerHTML = `<span class="${srcOk ? 'on' : 'warn'}">${src} ${srcOk ? 'ON' : 'OFF'}</span> · LMU ${m.lmu_connected ? 'ON' : 'OFF'}`;
+    $('stamp').textContent = new Date().toLocaleTimeString('es-ES');
+
+    const laps = Number(s.CompletedLaps) || 0;
+    $('relativeInfo').textContent = `${vehicles.length} CARS · ${laps} LAP${laps === 1 ? '' : 'S'}`;
+
+    const red = Number(si.numRedLights) || 5;
+    const start = Number(si.startLightFrame) || 0;
+    const green = start > red;
+    const lights = $('lights');
+    lights.textContent = '';
+    for (let i = 0; i < 5; i++) {
+      const el = document.createElement('span');
+      if (green) el.className = 'green';
+      else if (i < Math.min(start, red)) el.className = 'red';
+      lights.appendChild(el);
+    }
+
+    renderRows();
+  }
+
+  async function loadStandings() {
+    try {
+      const res = await fetch('/api/standings', { cache: 'no-store' });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        vehicles = data;
+        lastRows = '';
+        update();
+      }
+    } catch (_) {
+      // se reintenta en el siguiente ciclo
+    }
+  }
+
+  async function loadRestStandings() {
+    if (restLoading) return;
+    restLoading = true;
+    try {
+      const res = await fetch('/api/lmu/rest/watch/standings', { cache: 'no-store' });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!Array.isArray(data)) return;
+      const map = new Map();
+      for (const car of data) {
+        if (car && car.slotID != null) map.set(String(car.slotID), car);
+      }
+      restBySlot = map;
+      lastRows = '';
+    } catch (_) {
+      // LMU REST es opcional: el relative sigue con SHM
+      restBySlot = new Map();
+    } finally {
+      restLoading = false;
+    }
+  }
+
+  function connect() {
+    const es = new EventSource('/api/stream');
+    es.onmessage = (ev) => {
+      try {
+        state = JSON.parse(ev.data);
+        update();
+      } catch (_) {
+        // frame corrupto
+      }
+    };
+    es.onerror = () => {
+      $('status').textContent = 'reconectando…';
+    };
+  }
+
+  loadStandings();
+  loadRestStandings();
+  setInterval(loadStandings, 1000);
+  setInterval(loadRestStandings, 2000);
+  connect();
+})();
+</script>
+</body>
+</html>
