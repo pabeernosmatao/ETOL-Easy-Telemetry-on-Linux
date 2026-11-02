@@ -10,7 +10,7 @@ el AppImage final.
 
 ![Panel de telemetría](docs/captura.png)
 
-## Estado (v0.2.0)
+## Estado (v0.3.0)
 
 Funciona y está probado en este equipo:
 
@@ -76,7 +76,7 @@ El AppImage lleva el CLI en `usr/bin/etol`, así que no hay que instalar
 nada aparte. Desde la terminal:
 
 ```bash
-./ETOL_0.2.0_amd64.AppImage --appimage-extract
+./ETOL_0.3.0_amd64.AppImage --appimage-extract
 ./squashfs-root/usr/bin/etol --version
 ./squashfs-root/usr/bin/etol doctor
 ```
