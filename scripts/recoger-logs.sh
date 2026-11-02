@@ -6,11 +6,11 @@
 #   ./scripts/recoger-logs.sh
 #   ./scripts/recoger-logs.sh --gui
 #   ./scripts/recoger-logs.sh --juego lmu
-#   ./scripts/recoger-logs.sh /ruta/ETOL_0.3.0_amd64.AppImage
+#   ./scripts/recoger-logs.sh /ruta/ETOL-0.3.0-linux-x86_64-portable.AppImage
 #
 #   --gui            abre la aplicacion para que reproduzcas el fallo
 #   --juego ID       arranca puente + CrewChief + SimHub de ID
-#                    (lmu, ams2 o acevo), espera y recoge los logs
+#                    (lmu, ams2, acevo, assetto, rf2, dirt2, ets2, beamng), espera y recoge los logs
 #   --espera N       segundos de espera con --juego (defecto: 60)
 #   --help           muestra esta ayuda
 #
@@ -32,11 +32,11 @@ Uso, desde la carpeta donde esta el AppImage:
   ./scripts/recoger-logs.sh
   ./scripts/recoger-logs.sh --gui
   ./scripts/recoger-logs.sh --juego lmu
-  ./scripts/recoger-logs.sh /ruta/ETOL_0.3.0_amd64.AppImage
+  ./scripts/recoger-logs.sh /ruta/ETOL-0.3.0-linux-x86_64-portable.AppImage
 
   --gui            abre la aplicacion para que reproduzcas el fallo
   --juego ID       arranca puente + CrewChief + SimHub de ID
-                   (lmu, ams2 o acevo), espera y recoge los logs
+                   (lmu, ams2, acevo, assetto, rf2, dirt2, ets2, beamng), espera y recoge los logs
   --espera N       segundos de espera con --juego (defecto: 60)
   --help           muestra esta ayuda
 
@@ -72,7 +72,7 @@ if [[ -z "$APP" ]]; then
   )
   if [[ ${#candidatos[@]} -eq 0 ]]; then
     echo "ERROR: no encuentro ningun ETOL*.AppImage en $PWD" >&2
-    echo "Pasa la ruta como argumento: $0 /ruta/ETOL_0.3.0_amd64.AppImage" >&2
+    echo "Pasa la ruta como argumento: $0 /ruta/ETOL-0.3.0-linux-x86_64-portable.AppImage" >&2
     exit 1
   fi
   APP="${candidatos[0]}"
