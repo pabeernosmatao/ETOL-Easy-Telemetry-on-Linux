@@ -67,6 +67,14 @@ The two installers are interactive (they are Windows installers), so you click
 | **Euro Truck Simulator 2** | native Linux, `/dev/shm` | SimHub | installs the SCS plugin |
 | **BeamNG.drive** | native Linux, OutGauge UDP | SimHub | |
 
+## Supported hardware
+
+| Device | Type | Connection | What ETOL does |
+|---|---|---|---|
+| **HF8 / ForceFeel** | haptic pad | USB `04d8:ee96` | detects it, links its COM port inside the Bottles bottle and writes the Windows keys SimHub needs |
+
+Planned: support for **DC2/DC3 pedals** (not implemented yet).
+
 ## How to use it
 
 1. **Detect.** ETOL finds Steam, Bottles, SimHub and the HF8 pad.

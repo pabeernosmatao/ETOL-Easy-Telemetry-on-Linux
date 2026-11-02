@@ -65,6 +65,14 @@ pulsa «Siguiente» un par de veces; todo lo demás es automático.
 | **Euro Truck Simulator 2** | Linux nativo, `/dev/shm` | SimHub | instala el plugin SCS |
 | **BeamNG.drive** | Linux nativo, OutGauge UDP | SimHub | |
 
+## Hardware soportado
+
+| Dispositivo | Tipo | Conexión | Qué hace ETOL |
+|---|---|---|---|
+| **HF8 / ForceFeel** | pad háptico | USB `04d8:ee96` | lo detecta, enlaza su puerto COM dentro de la botella de Bottles y escribe las claves de Windows que necesita SimHub |
+
+Pendiente: soporte para **pedales DC2/DC3** (todavía no está implementado).
+
 ## Cómo se usa
 
 1. **Detectar.** ETOL encuentra Steam, Bottles, SimHub y el pad HF8.
