@@ -37,6 +37,7 @@ done
 
 have_flatpak || die "no se encontró flatpak; ejecuta antes 01-instalar-bottles-flatpak.sh"
 
+progress 5 "Comprobando el estado de Bottles"
 step "Estado actual"
 USER=0
 SYSTEM=0
@@ -85,8 +86,10 @@ if [[ "$SYSTEM" == 1 && "$USER" == 0 ]]; then
 
   La copia de sistema no se borra en este paso.
 EOF
+  progress 20 "Descargando la copia de usuario de Bottles (puede tardar)"
   ensure_flathub_user
   flatpak install --user -y flathub "$ETOL_BOTTLES_ID"
+  progress 75 "Copia de usuario instalada"
   flatpak_user_installed || die "no se pudo instalar la copia de usuario."
   info "copia de usuario instalada."
 fi
@@ -110,9 +113,12 @@ if [[ "$SYSTEM" == 1 ]]; then
 EOF
 fi
 
+progress 85 "Aplicando permisos"
 apply_bottles_permissions
+progress 95 "Comprobando permisos"
 print_permissions
 
+progress 100 "Listo"
 step "Listo"
 info "Bottles Flatpak queda en modo usuario y con los permisos de ETOL."
 info "Cierra Bottles si estaba abierto y vuelve a abrirlo."

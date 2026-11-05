@@ -130,6 +130,9 @@ npm install                       # CLI de Tauri (una vez)
 
 `amd64` y `x86_64` son la misma arquitectura; el sufijo lo pone Tauri.
 
+La bandeja usa `ksni` (StatusNotifierItem por D-Bus), no `libappindicator`. Eso
+sube el mínimo de Rust a **1.80** y añade `zbus`/`tokio` a las dependencias.
+
 ## Configuración y logs
 
 - Configuración: `~/.config/etol/config/config.toml`

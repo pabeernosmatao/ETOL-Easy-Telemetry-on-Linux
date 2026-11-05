@@ -2,7 +2,7 @@
 
 **English** · [Español](README.es.md)
 
-[![Version](https://img.shields.io/badge/version-0.3.1-38e1b0)](https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux/releases)
+[![Version](https://img.shields.io/badge/version-0.3.3-38e1b0)](https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux/releases)
 [![License](https://img.shields.io/badge/license-MIT-4aa8ff)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Linux%20x86__64-8ea3b9)](#requirements)
 [![Tauri](https://img.shields.io/badge/Tauri-2-24c8db)](https://tauri.app)
@@ -46,7 +46,7 @@ stack:
 2. **Creates the `simhub` bottle** with a 64-bit Windows 11 prefix and a Proton
    runner (it downloads the runner if needed).
 3. **Prepares the prefix** with the libraries SimHub and CrewChief need:
-   `dotnet48`, `vcrun2019`, `vcrun2022`, `d3dcompiler_43`, `d3dx9` and
+   `dotnet48`, `vcrun2022`, `d3dcompiler_43`, `d3dx9` and
    `corefonts`, installed through winetricks.
 4. **Downloads and opens the installers**: the latest CrewChief (MSI) and
    SimHub (ZIP), and tells you exactly which boxes to leave unchecked.
@@ -87,8 +87,8 @@ Planned: support for **DC2/DC3 pedals** (not implemented yet).
 Download the AppImage from the latest release and make it executable:
 
 ```bash
-chmod +x ETOL-0.3.1-linux-x86_64-portable.AppImage
-./ETOL-0.3.1-linux-x86_64-portable.AppImage
+chmod +x ETOL-0.3.3-linux-x86_64-portable.AppImage
+./ETOL-0.3.3-linux-x86_64-portable.AppImage
 ```
 
 Two builds are published. Both are **x86_64** (`amd64` is just Debian's name
@@ -96,8 +96,8 @@ for the same architecture); the difference is whether WebKit is bundled:
 
 | Build | Size | WebKit | glibc | When to use |
 |---|---|---|---|---|
-| `ETOL-0.3.1-linux-x86_64-portable.AppImage` | ~6 MB | system | 2.39+ | Ubuntu 26.04, Fedora, Arch, CachyOS. Needs `libwebkit2gtk-4.1` |
-| `ETOL-0.3.1-linux-x86_64-full.AppImage` | ~111 MB | bundled | 2.44+ | Everything included; current rolling and desktop distros |
+| `ETOL-0.3.3-linux-x86_64-portable.AppImage` | ~6 MB | system | 2.39+ | Ubuntu 26.04, Fedora, Arch, CachyOS. Needs `libwebkit2gtk-4.1` |
+| `ETOL-0.3.3-linux-x86_64-full.AppImage` | ~111 MB | bundled | 2.44+ | Everything included; current rolling and desktop distros |
 
 The portable build needs `libwebkit2gtk-4.1` and `libgtk-3`:
 
@@ -110,7 +110,7 @@ sudo pacman -S webkit2gtk-4.1 gtk3                 # Arch/CachyOS
 Without FUSE2:
 
 ```bash
-./ETOL-0.3.1-linux-x86_64-portable.AppImage --appimage-extract-and-run
+./ETOL-0.3.3-linux-x86_64-portable.AppImage --appimage-extract-and-run
 ```
 
 ## Requirements
@@ -122,7 +122,8 @@ Without FUSE2:
   is optional. ETOL can install and prepare both (see above).
 - **KDE Plasma** for dashboards above the game.
 - The **HF8** pad is optional.
-- Optional: `libayatana-appindicator` / `libappindicator-gtk3` for the tray icon.
+- A desktop with **StatusNotifierItem** support for the tray icon (Plasma, a
+  niri bar with a tray module, or GNOME with the AppIndicator extension).
   Without it ETOL works the same, only the tray icon is missing.
 
 ## The window
@@ -134,10 +135,25 @@ Without FUSE2:
 - **Diagnostics**: checks with the exact fix next to them.
 - **Options**: language, automatic watchdog, dashboards, logs and USB.
 
+## Desktop support
+
+Everything except the overlay and the tray icon works on any desktop:
+
+| Feature | KDE Plasma | GNOME | niri / other Wayland |
+|---|---|---|---|
+| App, detection, bridges, SimHub/CrewChief | Yes | Yes | Yes |
+| Dashboards over the game | **Yes** (KWin rule, no gamescope) | No | No |
+| Tray icon | Native | With the AppIndicator extension | With a bar that has a tray module |
+| Close to tray | Yes | With the extension | With the bar |
+
+The overlay is a KWin rule that places the SimHub window above the simulator.
+Plasma does not need gamescope for it. GNOME and niri do not implement that
+rule, so there ETOL provides telemetry and apps but no overlay.
+
 ## Documentation
 
 - [`docs/TECNICO.md`](docs/TECNICO.md): CLI, configuration, detection, building.
-- [`docs/guia-reinstalacion.html`](docs/guia-reinstalacion.html): reinstall from scratch (Spanish).
+- [`docs/guia-reinstalacion.html`](docs/guia-reinstalacion.html): user guide (Spanish).
 - [`THIRD-PARTY.md`](THIRD-PARTY.md): licenses of the bundled components.
 
 ## License

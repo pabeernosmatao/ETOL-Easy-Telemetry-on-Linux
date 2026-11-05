@@ -11,7 +11,7 @@
 #   2. Descarga el último GE-Proton (GitHub) y lo registra como runner.
 #   3. Crea la botella `simhub` (win64, win11) con ese runner.
 #   4. Instala las dependencias que necesitan SimHub y CrewChief:
-#      dotnet48, vcrun2019, vcrun2022, d3dcompiler_43, d3dx9 y fuentes.
+#      dotnet48, vcrun2022, d3dcompiler_43, d3dx9 y fuentes.
 #   5. Descarga la última versión de CrewChief (MSI) y de SimHub (ZIP) y lanza
 #      sus instaladores dentro de la botella.
 #
@@ -82,16 +82,22 @@ trap cleanup EXIT
 
 win_path() { printf 'Z:%s' "${1//\//\\}"; }
 
+# Ultima etiqueta de una release usando la redireccion de GitHub.
+# Evita api.github.com, que devuelve 403 cuando se agota el limite por IP.
+github_latest_tag() {
+  local repo="$1" url
+  url="$(curl -fsSL -A "$UA" -o /dev/null -w '%{url_effective}' --max-time 30 \
+    "https://github.com/$repo/releases/latest" 2>/dev/null)" || return 1
+  printf '%s\n' "$url" | sed -n 's#.*/releases/tag/\([^/]*\)$#\1#p'
+}
+
 api_latest_runner() {
-  # Sin python3: la etiqueta basta para construir la URL del tar.gz.
-  curl -fsSL --max-time 30 \
-    'https://api.github.com/repos/GloriousEggroll/proton-ge-custom/releases/latest' \
-    | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' \
-    | head -n1
+  github_latest_tag GloriousEggroll/proton-ge-custom
 }
 
 resolve_runner() {
   local tag url
+  progress 10 "Buscando la última versión de GE-Proton"
   if [[ -n "$RUNNER" ]]; then
     # Nombre ya elegido: si existe, se usa; si no, se busca esa etiqueta.
     if [[ -x "$ETOL_BOTTLES_DATA/runners/$RUNNER/files/bin/wine" ]]; then
@@ -128,6 +134,7 @@ Comprueba la conexión (o pasa una versión con --runner, por ejemplo --runner g
   fi
 
   step "Descargando runner $tag"
+  progress 20 "Descargando GE-Proton (puede tardar)"
   info "$url"
   mkdir -p "$ETOL_BOTTLES_DATA/runners"
   TMP_DIR="$(mktemp -d "$ETOL_BOTTLES_DATA/runners/.etol-runner-XXXXXX")"
@@ -145,6 +152,7 @@ Comprueba la conexión (o pasa una versión con --runner, por ejemplo --runner g
   TMP_DIR=""
   RUNNER_DIR="$ETOL_BOTTLES_DATA/runners/$RUNNER"
   [[ -x "$RUNNER_DIR/files/bin/wine" ]] || die "el runner no quedó bien instalado."
+  progress 40 "Runner GE-Proton instalado"
   info "runner instalado en $RUNNER_DIR"
 }
 
@@ -172,16 +180,19 @@ create_bottle() {
     return 0
   fi
   step "Creando la botella $BOTTLE"
+  progress 45 "Creando la botella $BOTTLE"
   flatpak run --command=bottles-cli "$ETOL_BOTTLES_ID" new \
     --bottle-name "$BOTTLE" \
     --environment application \
     --arch win64 \
     --runner "$RUNNER"
   wait_for_prefix || die "la botella se creó pero el prefijo no está listo."
+  progress 50 "Prefijo creado"
   info "prefijo listo en $BOTTLE_DIR"
 }
 
 configure_bottle() {
+  progress 52 "Configurando la botella (Windows 11)"
   step "Configurando la botella"
   flatpak run --command=bottles-cli "$ETOL_BOTTLES_ID" edit \
     -b "$BOTTLE" --win win11 >/dev/null 2>&1 || warn "no se pudo fijar Windows 11."
@@ -191,8 +202,9 @@ configure_bottle() {
 install_dependencies() {
   [[ "$WITH_DEPS" == 1 ]] || { info "dependencias omitidas (--sin-dependencias)."; return 0; }
   step "Instalando dependencias (puede tardar)"
+  progress 55 "Instalando dependencias con winetricks (puede tardar)"
   cat <<'EOF'
-  dotnet48 · vcrun2019 · vcrun2022 · d3dcompiler_43 · d3dx9 · corefonts
+  dotnet48 · vcrun2022 · d3dcompiler_43 · d3dx9 · corefonts
 
   winetricks descarga los paquetes de Microsoft y los instala en el prefijo.
   Si alguna ventana pide confirmación, acéptala.
@@ -205,9 +217,13 @@ EOF
   if [[ -x "$wine" ]]; then
     envargs+=("--env=WINE=$wine" "--env=WINELOADER=$wine" "--env=WINESERVER=$RUNNER_DIR/files/bin/wineserver")
   fi
-  flatpak run "${envargs[@]}" --command=winetricks "$ETOL_BOTTLES_ID" -q \
-    dotnet48 vcrun2019 vcrun2022 d3dcompiler_43 d3dx9 corefonts \
+  # vcrun2022 (2015-2022) ya cubre vcrun2019. Instalar las dos hace que
+  # winetricks aborte con "vcrun2022 conflicts with vcrun2019"; --force
+  # permite actualizar la que ya estuviera puesta en una botella anterior.
+  flatpak run "${envargs[@]}" --command=winetricks "$ETOL_BOTTLES_ID" -q --force \
+    dotnet48 vcrun2022 d3dcompiler_43 d3dx9 corefonts \
     || die "winetricks falló; revisa el log y vuelve a ejecutar el script."
+  progress 80 "Dependencias instaladas"
   info "dependencias instaladas."
 }
 
@@ -251,6 +267,7 @@ crewchief_installer() {
   [[ -n "$url" ]] || die "no se pudo averiguar la URL del instalador de CrewChief.
 Pasa una URL manualmente: CREWCHIEF_URL=https://… ./03-preparar-prefijo-simhub.sh"
 
+  progress 82 "Descargando CrewChief"
   step "Descargando CrewChief ${version:-}"
   info "$url"
   curl -fL --progress-bar "$url" -o "$out" || die "no se pudo descargar CrewChief."
@@ -260,20 +277,26 @@ Pasa una URL manualmente: CREWCHIEF_URL=https://… ./03-preparar-prefijo-simhub
 }
 
 simhub_installer() {
-  local json tag url zip outdir
+  local page tag url zip outdir
   SIMHUB_SETUP=""
-  json="$(curl -fsSL --max-time 30 \
-    'https://api.github.com/repos/SHWotever/SimHub/releases/latest')" \
-    || die "no se pudo consultar la última versión de SimHub."
-  tag="$(printf '%s' "$json" \
-    | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1)"
-  url="$(printf '%s' "$json" \
-    | sed -n 's/.*"browser_download_url"[[:space:]]*:[[:space:]]*"\([^"]*\.zip\)".*/\1/p' | head -n1)"
-  [[ -n "$tag" && -n "$url" ]] || die "respuesta inesperada de GitHub al buscar SimHub."
+  tag="$(github_latest_tag SHWotever/SimHub)" \
+    || die "no se pudo consultar la última versión de SimHub (GitHub no responde)."
+  [[ -n "$tag" ]] || die "respuesta inesperada de GitHub al buscar SimHub."
+  # La pagina de assets no usa la API y no tiene limite de peticiones.
+  page="$(curl -fsSL -A "$UA" --max-time 30 \
+    "https://github.com/SHWotever/SimHub/releases/expanded_assets/$tag" 2>/dev/null || true)"
+  url="$(printf '%s' "$page" | grep -oE 'href="[^"]+/releases/download/[^"]+\.zip"' | head -n1 \
+    | sed 's/^href="//; s/"$//')"
+  if [[ -z "$url" ]]; then
+    url="https://github.com/SHWotever/SimHub/releases/download/$tag/SimHub.$tag.zip"
+  elif [[ "$url" != http* ]]; then
+    url="https://github.com$url"
+  fi
 
   zip="$DOWNLOADS/SimHub-$tag.zip"
   outdir="$DOWNLOADS/simhub-$tag"
   mkdir -p "$DOWNLOADS"
+  progress 90 "Descargando SimHub"
   if [[ ! -s "$zip" ]]; then
     step "Descargando SimHub $tag"
     info "$url"
@@ -350,7 +373,7 @@ if [[ "$DRY" == 1 ]]; then
   step "Simulación"
   info "runner: ${RUNNER:-el último GE-Proton}"
   info "botella: $BOTTLE (win64, win11) en $BOTTLE_DIR"
-  info "dependencias: dotnet48 vcrun2019 vcrun2022 d3dcompiler_43 d3dx9 corefonts"
+  info "dependencias: dotnet48 vcrun2022 d3dcompiler_43 d3dx9 corefonts"
   info "CrewChief: se descargará el MSI más reciente."
   info "SimHub: se descargará el ZIP más reciente de GitHub."
   info "instaladores: se lanzarán dentro de la botella salvo --sin-instaladores."
@@ -370,6 +393,7 @@ simhub_installer
 [[ -n "$CREW_MSI" && -n "$SIMHUB_SETUP" ]] || die "no se pudieron preparar los instaladores."
 
 if [[ "$WITH_INSTALLERS" == 1 ]]; then
+  progress 96 "Abriendo los instaladores de CrewChief y SimHub"
   launch_crewchief_installer "$CREW_MSI"
   launch_simhub_installer "$SIMHUB_SETUP"
 else
@@ -381,6 +405,7 @@ fi
 
 check_installed
 
+progress 100 "Listo"
 step "Listo"
 cat <<EOF
   Botella: $BOTTLE_DIR

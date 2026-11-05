@@ -62,15 +62,13 @@ estas bibliotecas; la variante `-linux-x86_64` usa las del sistema.
 | GTK 3, GLib, GObject, Pango, GDK-Pixbuf | LGPL-2.1-or-later |
 | libsoup 3 | LGPL-2.1-or-later |
 | glibc | LGPL-2.1-or-later |
-| Ayatana AppIndicator (`libayatana-appindicator3`) | LGPL-3.0 |
-| libappindicator clásica (`libappindicator3`) | GPL-3.0 (según la distribución) |
 | Fuentes y utilidades de linuxdeploy | MIT y otras licencias libres |
 
-El icono de bandeja se carga **en tiempo de ejecución** con `dlopen` (no está
-enlazado al ejecutable) y es opcional: si la biblioteca no está, ETOL registra
-un aviso y la ventana funciona igual. La variante portable no incluye esa
-biblioteca; la toma del sistema si existe. El AppImage completo puede incluir
-la copia que el empaquetador de Tauri encuentre en la máquina de compilación.
+La bandeja se implementa con **StatusNotifierItem sobre D-Bus** (crate `ksni`,
+licencia Unlicense). ETOL no enlaza ni empaqueta `libappindicator`; el icono lo
+pinta el propio escritorio si tiene un host SNI (Plasma, barras de niri con
+bandeja, GNOME con la extensión AppIndicator). Si no lo hay, ETOL registra un
+aviso y la ventana funciona igual.
 
 Las licencias completas de cada paquete están en el propio sistema
 (`/usr/share/doc/<paquete>/copyright`) o en el repositorio del proyecto.

@@ -450,7 +450,7 @@ function renderGames(snapshot) {
           <dl class="meta">${metas.join("")}
           </dl>
 
-          <div class="game-actions">
+          <div class="game-actions${usesSim && !usesCrew ? " solo-simhub" : ""}">
             <button class="btn ${running ? "danger" : "blue"}" data-game="${game.id}"
               data-mode="${running ? "stop" : "todo"}">
               ${running ? "Parar" : "Lanzar"}
@@ -778,8 +778,8 @@ function setupDialog(kind) {
         registrarlo como runner de Bottles.</li>
         <li>Crear la botella <code>simhub</code> (64 bits, Windows 11).</li>
         <li>Instalar las dependencias: <code>dotnet48</code>,
-        <code>vcrun2019</code>, <code>vcrun2022</code>,
-        <code>d3dcompiler_43</code>, <code>d3dx9</code> y fuentes.</li>
+        <code>vcrun2022</code>, <code>d3dcompiler_43</code>,
+        <code>d3dx9</code> y fuentes.</li>
         <li>Descargar la última versión de <strong>CrewChief</strong> (MSI) y de
         <strong>SimHub</strong> (ZIP de GitHub) y abrir sus instaladores.</li>
       </ol>
@@ -884,14 +884,32 @@ async function runSetup(kind) {
   openModal({
     title: BANNERS[kind].title,
     html: `<div class="setup-state" id="setup-state">${info.running}</div>
+      <div class="setup-progress" aria-hidden="true"><span id="setup-bar"></span></div>
+      <p class="setup-stage" id="setup-stage">Preparando…</p>
       <pre class="setup-log" id="setup-log" hidden></pre>`,
     actions: [{ label: "Cerrar", onClick: () => $("#modal").close() }],
   });
   const closeButton = $("#modal-actions").querySelector("button");
   if (closeButton) closeButton.disabled = true;
+  const bar = $("#setup-bar");
+  const stage = $("#setup-stage");
+
+  // El script deja su avance en un fichero; se consulta mientras corre.
+  const timer = setInterval(async () => {
+    try {
+      const progress = await call("setup_progress", { key });
+      if (progress?.stage) stage.textContent = progress.stage;
+      if (typeof progress?.percent === "number") {
+        bar.style.width = `${progress.percent}%`;
+      }
+    } catch {
+      // La ventana puede haberse cerrado o el comando haber terminado.
+    }
+  }, 900);
 
   try {
     const result = await call("run_setup_script", { key });
+    clearInterval(timer);
     const log = $("#setup-log");
     log.textContent = result.output || "(sin salida)";
     log.hidden = false;
@@ -900,6 +918,12 @@ async function runSetup(kind) {
     stateBox.textContent = result.ok
       ? translateValue(info.done)
       : `El script terminó con errores${result.code != null ? ` (código ${result.code})` : ""}. Revisa la salida.`;
+    if (result.ok) {
+      bar.style.width = "100%";
+      stage.textContent = translateValue(info.done);
+    } else {
+      stage.textContent = "El script se detuvo; revisa la salida de abajo.";
+    }
     if (closeButton) closeButton.disabled = false;
     if (result.ok) {
       toast(info.toast, "ok");
@@ -907,11 +931,13 @@ async function runSetup(kind) {
       await applyBootstrap(payload);
     }
   } catch (error) {
+    clearInterval(timer);
     const stateBox = $("#setup-state");
     if (stateBox) {
       stateBox.className = "setup-state bad";
       stateBox.textContent = String(error?.message ?? error);
     }
+    if (stage) stage.textContent = "No se pudo ejecutar el script.";
     if (closeButton) closeButton.disabled = false;
     fail(error);
   }
@@ -1824,6 +1850,14 @@ $("#btn-display-config").addEventListener("click", () => {
   renderDisplayConfig();
   const dialog = $("#display-config");
   if (dialog && !dialog.open) dialog.showModal();
+});
+
+$("#btn-guide").addEventListener("click", async () => {
+  try {
+    await call("open_guide");
+  } catch (error) {
+    fail(error);
+  }
 });
 
 $("#display-config-close").addEventListener("click", () => {

@@ -13,6 +13,18 @@ info() { printf '  %s\n' "$*"; }
 warn() { printf 'AVISO: %s\n' "$*" >&2; }
 die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 
+# Escribe el progreso (0-100) y el texto de la etapa para la barra de ETOL.
+# La interfaz pasa ETOL_PROGRESS_FILE; si no existe, no hace nada.
+progress() {
+  local percent="$1"; shift
+  local text="${*:-}"
+  [[ -n "${ETOL_PROGRESS_FILE:-}" ]] || return 0
+  [[ "$percent" =~ ^[0-9]+$ ]] || return 0
+  printf '%s|%s\n' "$percent" "$text" > "$ETOL_PROGRESS_FILE.tmp" 2>/dev/null || return 0
+  mv -f "$ETOL_PROGRESS_FILE.tmp" "$ETOL_PROGRESS_FILE" 2>/dev/null || true
+  return 0
+}
+
 have_flatpak() {
   command -v flatpak >/dev/null 2>&1
 }

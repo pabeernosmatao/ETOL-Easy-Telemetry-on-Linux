@@ -12,8 +12,7 @@ use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
-use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
-use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+use ksni::blocking::TrayMethods;
 use tauri::Manager;
 use etol::config::{self, Config};
 use etol::daemon::{self, Action};
@@ -501,14 +500,324 @@ async fn open_path(which: String) -> Result<String, String> {
     .await
 }
 
+/// Abre la guía de uso incluida en el payload con el navegador del sistema.
+#[tauri::command]
+async fn open_guide() -> Result<(), String> {
+    blocking(move || {
+        let guide = etol::payload::dest().join("guia.html");
+        if !guide.is_file() {
+            bail!("no existe la guía en {}", guide.display());
+        }
+        let mut command = Command::new("xdg-open");
+        command.arg(&guide).stdin(Stdio::null());
+        launch::clean_child_env(&mut command);
+        command
+            .spawn()
+            .with_context(|| format!("no se pudo abrir {}", guide.display()))?;
+        Ok(())
+    })
+    .await
+}
+
 // ---------------------------------------------------------------------------
 // Bandeja del sistema
 // ---------------------------------------------------------------------------
 
 /// Estado de la bandeja. `key` evita reconstruir el menu en cada refresco.
 struct TrayState {
-    ready: bool,
+    ready: AtomicBool,
     key: Mutex<String>,
+}
+
+/// Juego que aparece en el menu de la bandeja.
+struct TrayGame {
+    id: String,
+    name: String,
+}
+
+/// Bandeja StatusNotifierItem por D-Bus. No usa libappindicator y funciona en
+/// cualquier escritorio que tenga un host SNI (Plasma, niri con barra, GNOME
+/// con la extension AppIndicator).
+struct NativeTray {
+    app: tauri::AppHandle,
+    games: Vec<TrayGame>,
+}
+
+static NATIVE_TRAY: OnceLock<Mutex<Option<ksni::blocking::Handle<NativeTray>>>> = OnceLock::new();
+
+fn native_tray() -> &'static Mutex<Option<ksni::blocking::Handle<NativeTray>>> {
+    NATIVE_TRAY.get_or_init(|| Mutex::new(None))
+}
+
+fn tray_icon() -> Vec<ksni::Icon> {
+    static ICON: OnceLock<Vec<ksni::Icon>> = OnceLock::new();
+    ICON.get_or_init(|| {
+        let Ok(image) = tauri::image::Image::from_bytes(include_bytes!("../icons/32x32.png")) else {
+            return Vec::new();
+        };
+        let mut data = image.rgba().to_vec();
+        for pixel in data.chunks_exact_mut(4) {
+            pixel.rotate_right(1); // RGBA -> ARGB
+        }
+        vec![ksni::Icon {
+            width: image.width() as i32,
+            height: image.height() as i32,
+            data,
+        }]
+    })
+    .clone()
+}
+
+fn menu_item<F>(label: &'static str, ca: &'static str, en: &'static str, activate: F) -> ksni::MenuItem<NativeTray>
+where
+    F: Fn(&mut NativeTray) + Send + 'static,
+{
+    ksni::MenuItem::Standard(ksni::menu::StandardItem {
+        label: i18n::t(label, ca, en).to_string(),
+        activate: Box::new(activate),
+        ..Default::default()
+    })
+}
+
+fn tray_app_item(
+    label: &'static str,
+    ca: &'static str,
+    en: &'static str,
+    kind: AppKind,
+    start: bool,
+) -> ksni::MenuItem<NativeTray> {
+    menu_item(label, ca, en, move |_| {
+        std::thread::spawn(move || {
+            let cfg = Config::load().unwrap_or_else(|_| detect::detect());
+            let result = if start {
+                launch::start_app(&cfg, kind).map(|_| ())
+            } else {
+                let report = launch::stop_app(&cfg, kind);
+                if report.closed {
+                    Ok(())
+                } else {
+                    Err(anyhow!("no se pudo cerrar {}", kind.name()))
+                }
+            };
+            if let Err(error) = result {
+                eprintln!("bandeja: {}: {error:#}", kind.name());
+            }
+        });
+    })
+}
+
+impl ksni::Tray for NativeTray {
+    fn id(&self) -> String {
+        "etol".into()
+    }
+
+    fn title(&self) -> String {
+        "ETOL".into()
+    }
+
+    fn tool_tip(&self) -> ksni::ToolTip {
+        ksni::ToolTip {
+            title: "ETOL".into(),
+            description: i18n::t(
+                "Telemetría para simuladores",
+                "Telemetria per a simuladors",
+                "Telemetry for simulators",
+            )
+            .to_string(),
+            ..Default::default()
+        }
+    }
+
+    fn icon_pixmap(&self) -> Vec<ksni::Icon> {
+        tray_icon()
+    }
+
+    fn activate(&mut self, _x: i32, _y: i32) {
+        show_main(&self.app);
+    }
+
+    fn menu(&self) -> Vec<ksni::MenuItem<Self>> {
+        use ksni::menu::{MenuItem, StandardItem, SubMenu};
+
+        let mut items: Vec<MenuItem<Self>> = Vec::new();
+        let app = self.app.clone();
+        items.push(
+            StandardItem {
+                label: i18n::t("Mostrar ventana", "Mostra la finestra", "Show window").to_string(),
+                activate: Box::new(move |_| show_main(&app)),
+                ..Default::default()
+            }
+            .into(),
+        );
+        items.push(MenuItem::Separator);
+
+        if self.games.is_empty() {
+            items.push(
+                StandardItem {
+                    label: i18n::t(
+                        "No hay simuladores instalados",
+                        "No hi ha simuladors instal·lats",
+                        "No simulators installed",
+                    )
+                    .to_string(),
+                    enabled: false,
+                    ..Default::default()
+                }
+                .into(),
+            );
+        } else {
+            for game in &self.games {
+                let launch_id = game.id.clone();
+                let stop_id = game.id.clone();
+                let launch = menu_item("Lanzar", "Llança", "Launch", move |_| {
+                    let id = launch_id.clone();
+                    std::thread::spawn(move || {
+                        if let Err(error) = tray_launch(&id) {
+                            eprintln!("bandeja: no se pudo arrancar {id}: {error:#}");
+                        }
+                    });
+                });
+                let stop = menu_item("Parar todo", "Atura-ho tot", "Stop everything", move |_| {
+                    let id = stop_id.clone();
+                    std::thread::spawn(move || {
+                        if let Err(error) = tray_stop(&id) {
+                            eprintln!("bandeja: no se pudo parar {id}: {error:#}");
+                        }
+                    });
+                });
+                items.push(
+                    SubMenu {
+                        label: game.name.clone(),
+                        submenu: vec![launch, stop],
+                        ..Default::default()
+                    }
+                    .into(),
+                );
+            }
+        }
+
+        items.push(MenuItem::Separator);
+        items.push(
+            SubMenu {
+                label: i18n::t("Aplicaciones", "Aplicacions", "Applications").to_string(),
+                submenu: vec![
+                    tray_app_item(
+                        "Abrir CrewChief",
+                        "Obre CrewChief",
+                        "Open CrewChief",
+                        AppKind::CrewChief,
+                        true,
+                    ),
+                    tray_app_item(
+                        "Cerrar CrewChief",
+                        "Tanca CrewChief",
+                        "Close CrewChief",
+                        AppKind::CrewChief,
+                        false,
+                    ),
+                    tray_app_item(
+                        "Abrir SimHub",
+                        "Obre SimHub",
+                        "Open SimHub",
+                        AppKind::SimHub,
+                        true,
+                    ),
+                    tray_app_item(
+                        "Cerrar SimHub",
+                        "Tanca SimHub",
+                        "Close SimHub",
+                        AppKind::SimHub,
+                        false,
+                    ),
+                ],
+                ..Default::default()
+            }
+            .into(),
+        );
+
+        items.push(MenuItem::Separator);
+        let quit_app = self.app.clone();
+        items.push(
+            StandardItem {
+                label: i18n::t("Salir", "Sortir", "Quit").to_string(),
+                activate: Box::new(move |_| {
+                    QUITTING.store(true, Ordering::Relaxed);
+                    let app = quit_app.clone();
+                    std::thread::spawn(move || {
+                        cleanup_before_exit();
+                        release_single_instance();
+                        logs::info("quit", "saliendo de ETOL");
+                        app.exit(0);
+                    });
+                }),
+                ..Default::default()
+            }
+            .into(),
+        );
+
+        items
+    }
+}
+
+fn tray_games(cfg: &Config) -> Vec<TrayGame> {
+    detect::GAMES
+        .iter()
+        .filter_map(|def| {
+            let game = cfg.games.get(def.id)?;
+            game.installed.then(|| TrayGame {
+                id: def.id.to_string(),
+                name: game.name.clone(),
+            })
+        })
+        .collect()
+}
+
+/// Registra la bandeja nativa. Devuelve `false` si el escritorio no tiene un
+/// host StatusNotifier (sin extension en GNOME, sin barra con bandeja, etc.).
+fn spawn_native_tray(app: &tauri::AppHandle, cfg: &Config) -> bool {
+    let tray = NativeTray {
+        app: app.clone(),
+        games: tray_games(cfg),
+    };
+    match tray.spawn() {
+        Ok(handle) => {
+            *native_tray().lock().unwrap_or_else(|error| error.into_inner()) = Some(handle);
+            true
+        }
+        Err(error) => {
+            eprintln!("aviso: no se pudo crear la bandeja: {error}");
+            logs::warn("gui", format!("bandeja no disponible: {error}"));
+            false
+        }
+    }
+}
+
+/// Si la barra del escritorio arranca después que ETOL (habitual en niri),
+/// reintenta registrar la bandeja durante un minuto.
+fn retry_native_tray(app: tauri::AppHandle) {
+    std::thread::spawn(move || {
+        for _ in 0..12 {
+            std::thread::sleep(Duration::from_secs(5));
+            let cfg = Config::load().unwrap_or_else(|_| detect::detect());
+            let tray = NativeTray {
+                app: app.clone(),
+                games: tray_games(&cfg),
+            };
+            if let Ok(handle) = tray.spawn() {
+                *native_tray().lock().unwrap_or_else(|error| error.into_inner()) = Some(handle);
+                if let Some(state) = app.try_state::<TrayState>() {
+                    state.ready.store(true, Ordering::Relaxed);
+                    if let Ok(mut key) = state.key.lock() {
+                        key.clear();
+                    }
+                }
+                logs::info("gui", "bandeja: disponible tras reintentar");
+                refresh_tray(&app);
+                return;
+            }
+        }
+        logs::warn("gui", "bandeja: el escritorio no ofrece StatusNotifier");
+    });
 }
 
 fn show_main(app: &tauri::AppHandle) {
@@ -823,118 +1132,12 @@ fn tray_key(cfg: &Config) -> String {
         .join("|")
 }
 
-/// Construye el menu de la bandeja mostrando solo los juegos instalados.
-fn build_menu(app: &tauri::AppHandle, cfg: &Config) -> tauri::Result<Menu<tauri::Wry>> {
-    let show = MenuItem::with_id(
-        app,
-        "show",
-        i18n::t("Mostrar ventana", "Mostra la finestra", "Show window"),
-        true,
-        None::<&str>,
-    )?;
-    let quit = MenuItem::with_id(
-        app,
-        "quit",
-        i18n::t("Salir", "Sortir", "Quit"),
-        true,
-        None::<&str>,
-    )?;
-
-    let menu = Menu::new(app)?;
-    menu.append(&show)?;
-    menu.append(&PredefinedMenuItem::separator(app)?)?;
-
-    let installed: Vec<_> = detect::GAMES
-        .iter()
-        .filter_map(|def| {
-            let game = cfg.games.get(def.id)?;
-            game.installed.then_some((def, game))
-        })
-        .collect();
-
-    if installed.is_empty() {
-        let empty = MenuItem::with_id(
-            app,
-            "no-games",
-            i18n::t(
-                "No hay simuladores instalados",
-                "No hi ha simuladors instal·lats",
-                "No simulators installed",
-            ),
-            false,
-            None::<&str>,
-        )?;
-        menu.append(&empty)?;
-    } else {
-        for (def, game) in installed {
-            let start = MenuItem::with_id(
-                app,
-                format!("launch:{}", def.id),
-                i18n::t("Lanzar", "Llança", "Launch"),
-                true,
-                None::<&str>,
-            )?;
-            let stop = MenuItem::with_id(
-                app,
-                format!("stop:{}", def.id),
-                i18n::t("Parar todo", "Atura-ho tot", "Stop everything"),
-                true,
-                None::<&str>,
-            )?;
-            let submenu =
-                Submenu::with_items(app, game.name.clone(), true, &[&start, &stop])?;
-            menu.append(&submenu)?;
-        }
-    }
-
-    let crew_start = MenuItem::with_id(
-        app,
-        "app:crewchief:start",
-        i18n::t("Abrir CrewChief", "Obre CrewChief", "Open CrewChief"),
-        true,
-        None::<&str>,
-    )?;
-    let crew_stop = MenuItem::with_id(
-        app,
-        "app:crewchief:stop",
-        i18n::t("Cerrar CrewChief", "Tanca CrewChief", "Close CrewChief"),
-        true,
-        None::<&str>,
-    )?;
-    let sim_start = MenuItem::with_id(
-        app,
-        "app:simhub:start",
-        i18n::t("Abrir SimHub", "Obre SimHub", "Open SimHub"),
-        true,
-        None::<&str>,
-    )?;
-    let sim_stop = MenuItem::with_id(
-        app,
-        "app:simhub:stop",
-        i18n::t("Cerrar SimHub", "Tanca SimHub", "Close SimHub"),
-        true,
-        None::<&str>,
-    )?;
-    let apps_menu = Submenu::with_items(
-        app,
-        i18n::t("Aplicaciones", "Aplicacions", "Applications"),
-        true,
-        &[&crew_start, &crew_stop, &sim_start, &sim_stop],
-    )?;
-    menu.append(&apps_menu)?;
-
-    menu.append(&PredefinedMenuItem::separator(app)?)?;
-    menu.append(&quit)?;
-
-    Ok(menu)
-}
-
 /// Reconstruye el menu si cambio el conjunto de juegos instalados.
 fn refresh_tray(app: &tauri::AppHandle) {
     let Some(state) = app.try_state::<TrayState>() else {
         return;
     };
-    if !state.ready {
+    if !state.ready.load(Ordering::Relaxed) {
         return;
     }
 
@@ -948,99 +1151,14 @@ fn refresh_tray(app: &tauri::AppHandle) {
         return;
     }
 
-    let Some(tray) = app.tray_by_id("etol") else {
+    let games = tray_games(&cfg);
+    let guard = native_tray().lock().unwrap_or_else(|error| error.into_inner());
+    let Some(handle) = guard.as_ref() else {
         return;
     };
-    match build_menu(app, &cfg) {
-        Ok(menu) => {
-            if tray.set_menu(Some(menu)).is_ok() {
-                *current = key;
-            }
-        }
-        Err(error) => eprintln!("bandeja: no se pudo reconstruir el menu: {error}"),
+    if handle.update(|tray| tray.games = games).is_some() {
+        *current = key;
     }
-}
-
-/// Crea el icono de bandeja: mostrar ventana, un submenu por juego instalado
-/// y salir.
-fn build_tray(app: &tauri::AppHandle, cfg: &Config) -> tauri::Result<()> {
-    let menu = build_menu(app, cfg)?;
-    let icon = tauri::image::Image::from_bytes(include_bytes!("../icons/32x32.png"))?;
-
-    TrayIconBuilder::with_id("etol")
-        .icon(icon)
-        .tooltip("ETOL")
-        .menu(&menu)
-        .show_menu_on_left_click(true)
-        .on_menu_event(|app, event| {
-            let id = event.id().as_ref();
-            match id {
-                "show" => show_main(app),
-                "quit" => {
-                    QUITTING.store(true, Ordering::Relaxed);
-                    let app = app.clone();
-                    std::thread::spawn(move || {
-                        cleanup_before_exit();
-                        release_single_instance();
-                        logs::info("quit", "saliendo de ETOL");
-                        app.exit(0);
-                    });
-                }
-                other => {
-                    if let Some(game) = other.strip_prefix("launch:") {
-                        let game = game.to_string();
-                        std::thread::spawn(move || {
-                            if let Err(error) = tray_launch(&game) {
-                                eprintln!("bandeja: no se pudo arrancar {game}: {error:#}");
-                            }
-                        });
-                    } else if let Some(game) = other.strip_prefix("stop:") {
-                        let game = game.to_string();
-                        std::thread::spawn(move || {
-                            if let Err(error) = tray_stop(&game) {
-                                eprintln!("bandeja: no se pudo parar {game}: {error:#}");
-                            }
-                        });
-                    } else if let Some(rest) = other.strip_prefix("app:") {
-                        let mut parts = rest.splitn(2, ':');
-                        let kind = parts.next().unwrap_or("").to_string();
-                        let action = parts.next().unwrap_or("").to_string();
-                        std::thread::spawn(move || {
-                            let Some(kind) = AppKind::parse(&kind) else {
-                                return;
-                            };
-                            let cfg = Config::load().unwrap_or_else(|_| detect::detect());
-                            let result = if action == "start" {
-                                launch::start_app(&cfg, kind).map(|_| ())
-                            } else {
-                                let report = launch::stop_app(&cfg, kind);
-                                if report.closed {
-                                    Ok(())
-                                } else {
-                                    Err(anyhow!("no se pudo cerrar {}", kind.name()))
-                                }
-                            };
-                            if let Err(error) = result {
-                                eprintln!("bandeja: {}: {error:#}", kind.name());
-                            }
-                        });
-                    }
-                }
-            }
-        })
-        .on_tray_icon_event(|tray, event| {
-            if let TrayIconEvent::Click {
-                button: MouseButton::Left,
-                button_state: MouseButtonState::Up,
-                ..
-            } = event
-            {
-                show_main(tray.app_handle());
-            }
-        })
-        .build(app)?;
-
-    Ok(())
 }
 
 #[derive(Serialize)]
@@ -1075,6 +1193,27 @@ async fn script_preview(key: String) -> Result<ScriptPreview, String> {
     .await
 }
 
+#[derive(Serialize)]
+struct SetupProgress {
+    percent: u8,
+    stage: String,
+}
+
+/// Lee el progreso que el script deja en `logs/setup-<clave>.progress`.
+#[tauri::command]
+fn setup_progress(key: String) -> SetupProgress {
+    let path = logs::dir().join(format!("setup-{key}.progress"));
+    let text = std::fs::read_to_string(path).unwrap_or_default();
+    let (percent, stage) = text
+        .split_once('|')
+        .map(|(value, stage)| (value.trim().parse::<u8>().unwrap_or(0).min(100), stage.trim()))
+        .unwrap_or((0, ""));
+    SetupProgress {
+        percent,
+        stage: stage.to_string(),
+    }
+}
+
 /// Guarda la salida de un script en `logs/` para poder revisarla después.
 fn save_script_output(kind: &str, key: &str, text: &str) {
     if text.trim().is_empty() {
@@ -1105,31 +1244,6 @@ fn script_error_summary(text: &str) -> String {
     summary
 }
 
-/// Crea el icono de bandeja sin que un fallo (o un pánico de libappindicator)
-/// impida abrir la ventana. En sistemas sin libayatana-appindicator3 el crate
-/// que usa Tauri hace `panic!` en vez de devolver un error.
-fn try_build_tray(app: &tauri::AppHandle, cfg: &Config) -> bool {
-    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| build_tray(app, cfg))) {
-        Ok(Ok(())) => true,
-        Ok(Err(error)) => {
-            eprintln!("aviso: no se pudo crear el icono de bandeja: {error}");
-            logs::warn("gui", format!("bandeja no disponible: {error}"));
-            false
-        }
-        Err(_) => {
-            eprintln!(
-                "aviso: la bandeja del sistema no esta disponible \
-                 (falta libappindicator3); la ventana funciona igual."
-            );
-            logs::warn(
-                "gui",
-                "bandeja no disponible: falta libayatana-appindicator3 o libappindicator3",
-            );
-            false
-        }
-    }
-}
-
 /// Ejecuta un script de sistema y devuelve su salida completa.
 ///
 /// Los instaladores abren su propia ventana; el comando espera a que el
@@ -1143,10 +1257,13 @@ async fn run_setup_script(key: String) -> Result<ScriptRun, String> {
             "setup",
             format!("ejecutando {} ({key})", path.display()),
         );
+        let progress = logs::dir().join(format!("setup-{key}.progress"));
+        let _ = std::fs::remove_file(&progress);
         let mut command = Command::new("bash");
         command
             .arg(&path)
-            .stdin(std::process::Stdio::null());
+            .stdin(std::process::Stdio::null())
+            .env("ETOL_PROGRESS_FILE", &progress);
         launch::clean_child_env(&mut command);
         let output = command
             .output()
@@ -1349,15 +1466,18 @@ fn main() {
             logs::info("gui", "configuracion cargada");
             logs::capture_run(&cfg.bridge.run_base);
             let key = tray_key(&cfg);
-            let ready = try_build_tray(app.handle(), &cfg);
+            let ready = spawn_native_tray(app.handle(), &cfg);
             logs::info(
                 "gui",
                 format!("bandeja: {}", if ready { "disponible" } else { "no disponible" }),
             );
             app.manage(TrayState {
-                ready,
+                ready: AtomicBool::new(ready),
                 key: Mutex::new(if ready { key } else { String::new() }),
             });
+            if !ready {
+                retry_native_tray(app.handle().clone());
+            }
 
             spawn_daemon(app.handle().clone());
             Ok(())
@@ -1367,7 +1487,7 @@ fn main() {
                 let has_tray = window
                     .app_handle()
                     .try_state::<TrayState>()
-                    .map(|state| state.ready)
+                    .map(|state| state.ready.load(Ordering::Relaxed))
                     .unwrap_or(false);
                 if has_tray {
                     api.prevent_close();
@@ -1391,8 +1511,10 @@ fn main() {
             configure_hf8,
             env_preview,
             open_path,
+            open_guide,
             script_preview,
             run_setup_script,
+            setup_progress,
             configure_game,
             port_check_plan,
             open_port_check,

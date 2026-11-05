@@ -46,6 +46,7 @@ EOF
   exit 1
 fi
 
+progress 5 "Comprobando Bottles Flatpak"
 step "Comprobando Bottles Flatpak"
 if flatpak_user_installed; then
   info "Bottles ya está instalado para este usuario."
@@ -67,11 +68,14 @@ if [[ "$DRY" == 1 ]]; then
   exit 0
 fi
 
+progress 10 "Añadiendo el repositorio flathub"
 ensure_flathub_user
 
 if [[ "$INSTALL" == 1 ]]; then
   step "Instalando Bottles (usuario)"
+  progress 20 "Descargando Bottles (puede tardar)"
   flatpak install --user -y flathub "$ETOL_BOTTLES_ID"
+  progress 80 "Bottles instalado; aplicando permisos"
   info "instalado."
 else
   info "no hace falta instalar."
@@ -79,9 +83,12 @@ fi
 
 flatpak_user_installed || die "la instalación no dejó Bottles disponible para el usuario."
 
+progress 88 "Aplicando permisos"
 apply_bottles_permissions
+progress 95 "Comprobando permisos"
 print_permissions
 
+progress 100 "Listo"
 step "Listo"
 info "Bottles Flatpak está instalado en modo usuario."
 info "Si Bottles estaba abierto, ciérralo y vuelve a abrirlo para que tome los permisos."

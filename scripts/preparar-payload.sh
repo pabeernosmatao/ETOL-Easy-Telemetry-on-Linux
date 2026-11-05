@@ -149,6 +149,9 @@ fi
 if [[ -f "$ROOT/LICENSE" ]]; then
   install -m 644 "$ROOT/LICENSE" "$DEST/LICENSE"
 fi
+if [[ -f "$ROOT/docs/guia-reinstalacion.html" ]]; then
+  install -m 644 "$ROOT/docs/guia-reinstalacion.html" "$DEST/guia.html"
+fi
 if [[ -f "$ROOT/THIRD-PARTY.md" ]]; then
   install -m 644 "$ROOT/THIRD-PARTY.md" "$DEST/THIRD-PARTY.md"
 fi

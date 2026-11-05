@@ -1,8 +1,8 @@
 [package]
 name = "etol"
-version = "0.3.1"
+version = "0.3.3"
 edition = "2021"
-rust-version = "1.77"
+rust-version = "1.80"
 description = "ETOL · Easy Telemetry On Linux: detector, configurador y lanzador de la pila de telemetria para simuladores"
 license = "MIT"
 

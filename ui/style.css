@@ -439,6 +439,16 @@ h2 {
   gap: 16px;
 }
 
+.games-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+.games-footer .btn {
+  font-size: 12px;
+}
+
 .game {
   position: relative;
   background: linear-gradient(165deg, var(--card) 0%, var(--card-2) 100%);
@@ -669,6 +679,13 @@ h2 {
 
 .game-actions .btn.app-btn {
   flex: 0 1 auto;
+}
+
+/* Juegos que solo usan SimHub: Lanzar y SimHub a la mitad. */
+.game-actions.solo-simhub .btn,
+.game-actions.solo-simhub .btn.app-btn {
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 /* Azul de reposo: botones de apps paradas y «Lanzar». */
@@ -1080,6 +1097,36 @@ h2 {
 
 .setup-state.bad {
   color: var(--danger);
+}
+
+.setup-progress {
+  height: 8px;
+  margin: 12px 0 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.setup-progress span {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #4aa8ff, #38e1b0, #4aa8ff);
+  background-size: 200% 100%;
+  transition: width 0.45s ease;
+  animation: setup-shine 1.6s linear infinite;
+}
+
+@keyframes setup-shine {
+  from { background-position: 0 0; }
+  to { background-position: 200% 0; }
+}
+
+.setup-stage {
+  margin: 0;
+  font-size: 12px;
+  color: var(--dim);
 }
 
 .setup-log {

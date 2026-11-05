@@ -1,6 +1,11 @@
 /* Traducciones de la interfaz. Las claves son el texto en español. */
 const I18N = {
   ca: {
+    "Guía de uso": "Guia d'ús",
+    "Abrir la guía de uso completa": "Obre la guia d'ús completa",
+    "Preparando…": "Preparant…",
+    "El script se detuvo; revisa la salida de abajo.": "L'script s'ha aturat; revisa la sortida de sota.",
+    "No se pudo ejecutar el script.": "No s'ha pogut executar l'script.",
     "Juegos": "Jocs",
     "Aplicaciones": "Aplicacions",
     "Dispositivos": "Dispositius",
@@ -192,6 +197,11 @@ const I18N = {
     "todo correcto": "tot correcte",
   },
   en: {
+    "Guía de uso": "User guide",
+    "Abrir la guía de uso completa": "Open the full user guide",
+    "Preparando…": "Preparing…",
+    "El script se detuvo; revisa la salida de abajo.": "The script stopped; check the output below.",
+    "No se pudo ejecutar el script.": "Could not run the script.",
     "Juegos": "Games",
     "Aplicaciones": "Applications",
     "Dispositivos": "Devices",
