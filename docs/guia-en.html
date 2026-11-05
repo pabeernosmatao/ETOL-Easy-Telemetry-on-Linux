@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ETOL · User guide</title>
+<style>
+  :root {
+    --bg: #070a0f;
+    --panel: #101722;
+    --panel-2: #0c1219;
+    --line: #1d2937;
+    --line-soft: #16202b;
+    --text: #e8f0f9;
+    --muted: #8ea3b9;
+    --dim: #5c7189;
+    --accent: #38e1b0;
+    --accent-2: #4aa8ff;
+    --warn: #ffb24a;
+    --danger: #ff5f7e;
+    --mono: ui-monospace, "JetBrains Mono", "Cascadia Code", "SFMono-Regular", Menlo, monospace;
+    --sans: Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(1200px 600px at 15% -10%, rgba(56, 225, 176, 0.10), transparent 60%),
+      radial-gradient(1000px 500px at 100% 0%, rgba(74, 168, 255, 0.09), transparent 55%),
+      var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent-2); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    font-family: var(--mono);
+    font-size: 0.92em;
+    background: #0a1018;
+    border: 1px solid var(--line-soft);
+    border-radius: 6px;
+    padding: 1px 6px;
+    color: #b9cbdd;
+  }
+  pre {
+    margin: 14px 0 0;
+    padding: 14px 16px;
+    background: #070c12;
+    border: 1px solid var(--line-soft);
+    border-radius: 12px;
+    overflow: auto;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.55;
+    color: #b9cbdd;
+  }
+  pre code { background: none; border: 0; padding: 0; }
+
+  .wrap { width: min(980px, calc(100% - 40px)); margin: 0 auto; }
+
+  .hero { padding: 64px 0 28px; }
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    font-size: 15px;
+  }
+  .brand svg { width: 38px; height: 38px; }
+  .badge {
+    display: inline-block;
+    margin-left: 10px;
+    padding: 3px 10px;
+    border: 1px solid rgba(56, 225, 176, 0.35);
+    border-radius: 999px;
+    color: var(--accent);
+    font-size: 12px;
+    vertical-align: 2px;
+  }
+  h1 {
+    margin: 22px 0 10px;
+    font-size: clamp(34px, 6vw, 54px);
+    line-height: 1.08;
+    letter-spacing: -0.03em;
+  }
+  h1 .grad {
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .lead { margin: 0; max-width: 760px; color: var(--muted); font-size: 18px; }
+
+  .langs { margin: 10px 0 0; font-size: 13px; color: var(--dim); }
+  .langs strong { color: var(--text); }
+  .toc {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 10px;
+    margin-top: 30px;
+  }
+  .toc a {
+    display: block;
+    padding: 12px 14px;
+    background: linear-gradient(165deg, var(--panel), var(--panel-2));
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    color: var(--text);
+    font-size: 14px;
+  }
+  .toc a span { display: block; color: var(--dim); font-size: 12px; margin-top: 2px; }
+  .toc a:hover { border-color: rgba(56, 225, 176, 0.4); text-decoration: none; }
+
+  main { padding-bottom: 40px; }
+  section {
+    margin: 18px 0;
+    padding: 26px 28px;
+    background: linear-gradient(165deg, var(--panel), var(--panel-2));
+    border: 1px solid var(--line);
+    border-radius: 18px;
+  }
+  h2 {
+    margin: 0 0 6px;
+    font-size: 23px;
+    letter-spacing: -0.01em;
+  }
+  h2 .num { color: var(--dim); font-weight: 500; margin-right: 8px; }
+  h3 { margin: 22px 0 8px; font-size: 16px; }
+  p { margin: 10px 0; color: #c3d2e2; }
+  ul, ol { margin: 10px 0; padding-left: 22px; color: #c3d2e2; }
+  li { margin: 5px 0; }
+  .muted { color: var(--muted); }
+  .small { font-size: 13px; }
+
+  .note, .warn, .ok {
+    margin: 14px 0;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: #0a1119;
+    font-size: 14px;
+  }
+  .note { border-left: 3px solid var(--accent-2); }
+  .warn { border-left: 3px solid var(--warn); }
+  .ok { border-left: 3px solid var(--accent); }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 14px;
+  }
+  th, td {
+    text-align: left;
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--line-soft);
+    vertical-align: top;
+  }
+  th { color: var(--muted); font-weight: 600; font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.04em; }
+  td.yes { color: var(--accent); }
+  td.no { color: var(--danger); }
+  td.maybe { color: var(--warn); }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px;
+    margin-top: 14px;
+  }
+  .mini {
+    padding: 14px 16px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #0a1119;
+  }
+  .mini h4 { margin: 0 0 6px; font-size: 14px; }
+  .mini p { margin: 0; font-size: 13.5px; color: var(--muted); }
+
+  .steps { counter-reset: step; list-style: none; padding-left: 0; }
+  .steps > li {
+    position: relative;
+    padding-left: 44px;
+    margin: 16px 0;
+  }
+  .steps > li::before {
+    counter-increment: step;
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    border: 1px solid rgba(56, 225, 176, 0.4);
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  footer {
+    padding: 20px 0 50px;
+    color: var(--dim);
+    font-size: 13px;
+  }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 14px; justify-content: space-between; }
+
+  @media (max-width: 640px) {
+    section { padding: 20px 18px; }
+    .hero { padding-top: 44px; }
+  }
+  @media print {
+    body { background: #fff; color: #111; }
+    .toc, footer { display: none; }
+    section { background: #fff; border-color: #ddd; break-inside: avoid; }
+    p, li, td, th { color: #222; }
+    a { color: #0645ad; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="brand">
+      <svg viewBox="0 0 64 64" aria-hidden="true">
+        <defs>
+          <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#38e1b0"/>
+            <stop offset="1" stop-color="#4aa8ff"/>
+          </linearGradient>
+        </defs>
+        <circle cx="32" cy="32" r="29" fill="none" stroke="url(#g)" stroke-width="3"/>
+        <path d="M12 34h8l4-12 6 24 5-18 3 8h14" fill="none" stroke="url(#g)"
+              stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span>ETOL</span>
+      <span class="badge">version 0.3.4</span>
+    </div>
+    <h1>User <span class="grad">guide</span></h1>
+    <p class="lead">
+      Everything ETOL does, how to set up SimHub and CrewChief from scratch and
+      how to get the most out of each simulator. No fighting Wine or Proton.
+    </p>
+    <p class="langs">Language: <a href="guia-es.html">Español</a> · <a href="guia-ca.html">Català</a> · <strong>English</strong></p>
+
+    <nav class="toc" aria-label="Contents">
+      <a href="#primeros-pasos">Getting started<span>Requirements and first launch</span></a>
+      <a href="#ventana">The window<span>What each tab is for</span></a>
+      <a href="#juegos">Games tab<span>Cards, gear and buttons</span></a>
+      <a href="#jugar">Playing<span>Watchdog and manual launch</span></a>
+      <a href="#instalacion">From scratch<span>Bottles, SimHub and CrewChief</span></a>
+      <a href="#simuladores">Simulators<span>Telemetry and apps</span></a>
+      <a href="#escritorio">Desktop<span>What works on each one</span></a>
+      <a href="#hf8">HF8 pad<span>Optional hardware</span></a>
+      <a href="#bandeja">Tray<span>Icon and menu</span></a>
+      <a href="#logs">Logs<span>Diagnostics and capture</span></a>
+      <a href="#problemas">Problems<span>Quick fixes</span></a>
+      <a href="#archivos">Files<span>Where everything lives</span></a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+<section id="primeros-pasos">
+  <h2><span class="num">01</span>Getting started</h2>
+  <p>ETOL is a single application: it detects your Steam simulators, prepares
+  SimHub (and CrewChief if you want it) inside a Bottles bottle and launches
+  everything with one click. It never modifies your games.</p>
+
+  <h3>What you need</h3>
+  <ul>
+    <li>Linux x86_64 with <strong>glibc 2.39 or newer</strong>.</li>
+    <li><code>python3</code> (the telemetry bridges) and <code>curl</code> (downloads).</li>
+    <li><strong>Steam</strong> with the games installed.</li>
+    <li><strong>Bottles</strong> with a bottle that has SimHub. If you do not
+        have one, ETOL creates and prepares it for you.</li>
+    <li>Optional: the <strong>HF8</strong> pad and KDE Plasma for the dashboards
+        above the game.</li>
+  </ul>
+
+  <h3>Opening the AppImage</h3>
+  <pre><code>chmod +x ETOL-0.3.4-linux-x86_64-portable.AppImage
+./ETOL-0.3.4-linux-x86_64-portable.AppImage</code></pre>
+  <p class="small muted">The <strong>portable</strong> build uses the system
+  WebKit and needs <code>libwebkit2gtk-4.1</code> and <code>libgtk-3</code>. The
+  <strong>full</strong> build bundles everything and needs glibc 2.44 or newer.</p>
+
+  <h3>The first launch</h3>
+  <p>On first start ETOL checks what is missing and shows a banner at the top:</p>
+  <div class="grid-2">
+    <div class="mini">
+      <h4>Bottles Flatpak is missing</h4>
+      <p>Click the banner and accept. ETOL installs Bottles for your user and
+      gives it the minimum permissions (home, host-etc, Steam libraries and
+      HF8).</p>
+    </div>
+    <div class="mini">
+      <h4>The SimHub bottle is missing</h4>
+      <p>ETOL downloads GE-Proton, creates the <code>simhub</code> bottle,
+      installs the dependencies and opens the CrewChief and SimHub installers.</p>
+    </div>
+  </div>
+  <div class="note">
+    During installation a window opens with a <strong>progress bar</strong> and
+    the current step: checking Bottles, downloading GE-Proton, creating the
+    bottle, winetricks, CrewChief, SimHub… The Windows installers are
+    interactive: click “Next” and uncheck what step 05 says.
+  </div>
+</section>
+
+<section id="ventana">
+  <h2><span class="num">02</span>The window</h2>
+  <p>The tabs are at the top. Everything important happens in
+  <strong>Games</strong>, but the rest tells you whether the whole chain is
+  healthy.</p>
+  <table>
+    <thead><tr><th>Tab</th><th>What it is for</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Games</strong></td><td>One card per installed simulator: state, port, prefix, launch/app buttons and the configuration gear.</td></tr>
+      <tr><td><strong>Applications</strong></td><td>SimHub and CrewChief with their processes, the selected bottle and the paths.</td></tr>
+      <tr><td><strong>Devices</strong></td><td>The HF8 pad, its COM port and the link inside the bottle.</td></tr>
+      <tr><td><strong>Diagnostics</strong></td><td>Checks with the exact fix next to them: payload, permissions, scripts, ports, Python…</td></tr>
+      <tr><td><strong>Options</strong></td><td>Language, automatic watchdog, per-game apps, dashboards, logs, USB and display configuration.</td></tr>
+    </tbody>
+  </table>
+  <div class="note">
+    The default language is <strong>Automatic</strong>: it uses Spanish or
+    Catalan if the system is in those languages and English for everything else.
+    You can pin it in Options.
+  </div>
+</section>
+
+<section id="juegos">
+  <h2><span class="num">03</span>The Games tab</h2>
+  <p>Each installed simulator has its own card. The data on the left tells you
+  whether everything is ready:</p>
+  <ul>
+    <li><strong>Port</strong>: free, busy, or in use by the running bridge.</li>
+    <li><strong>Prefix</strong>: the game's Proton prefix, or the plugin on
+        native Linux games.</li>
+    <li><strong>Launch</strong>: the lock ETOL uses to know the bridge is
+        running.</li>
+  </ul>
+
+  <h3>The gear</h3>
+  <p>The gear in the corner configures that game: copies plugins, adjusts
+  SimHub, CrewChief and the bridges. It turns <strong>red</strong> when the game
+  has never been configured or when ETOL sees something wrong (missing plugin,
+  wrong SimHub mode…). Click it once per game; when it finishes, the gear is no
+  longer red.</p>
+
+  <h3>The buttons</h3>
+  <ul>
+    <li><strong>Launch</strong>: starts the bridge and the game's apps. If it is
+        already running, it becomes <strong>Stop</strong>.</li>
+    <li><strong>CrewChief</strong> / <strong>SimHub</strong>: open or close only
+        that application. The coloured dot shows whether it is running.</li>
+  </ul>
+  <div class="ok">
+    On games that only use SimHub (Euro Truck Simulator 2 and BeamNG.drive) the
+    two buttons take <strong>half the width each</strong>: Launch and SimHub.
+  </div>
+</section>
+
+<section id="jugar">
+  <h2><span class="num">04</span>Playing</h2>
+
+  <h3>Automatic watchdog (recommended)</h3>
+  <p>With the watchdog on (Options → Automatic watchdog, enabled by default)
+  you only have to open the simulator. ETOL detects it, starts its bridge and
+  opens the selected apps. When you close the game it stops everything. If you
+  switch games, it switches too.</p>
+
+  <h3>Manual launch</h3>
+  <p>If you prefer to control it yourself, disable the watchdog and use the
+  card buttons or the tray menu. <strong>Launch</strong> does the same as the
+  watchdog, but whenever you want.</p>
+
+  <div class="note">
+    ETOL must stay open to watch. You can leave it in the tray: closing the
+    window keeps it in the background and the icon brings it back.
+  </div>
+
+  <h3>What happens when you quit</h3>
+  <p>When you exit ETOL (tray → Quit, Alt+F4 or closing the window if there is
+  no tray) it stops the bridges, closes the apps it opened and disables the KWin
+  rule used by the dashboards.</p>
+</section>
+
+<section id="instalacion">
+  <h2><span class="num">05</span>Bottles, SimHub and CrewChief from scratch</h2>
+  <p>You do not need anything installed beforehand. If you accept the first
+  screen's banners, ETOL does this whole stack:</p>
+
+  <ol class="steps">
+    <li>
+      <strong>Installs Bottles</strong> as a user Flatpak if it is missing. It
+      does not use <code>sudo</code> and does not touch the rest of the system.
+    </li>
+    <li>
+      <strong>Creates the <code>simhub</code> bottle</strong> with a 64-bit
+      Windows 11 prefix and a Proton runner (GE-Proton). If it already exists,
+      it is reused.
+    </li>
+    <li>
+      <strong>Prepares the prefix</strong> with <code>dotnet48</code>,
+      <code>vcrun2022</code>, <code>d3dcompiler_43</code>, <code>d3dx9</code> and
+      <code>corefonts</code> through winetricks. It can take several minutes.
+    </li>
+    <li>
+      <strong>Downloads and opens the installers</strong>: CrewChief (MSI) and
+      SimHub (ZIP). They are Windows installers, so you have to click “Next”.
+      <div class="warn">
+        In <strong>CrewChief</strong>, when it finishes <strong>do not check</strong>
+        “Run CrewChiefV4”. In <strong>SimHub</strong>, uncheck
+        <em>Install .NET Runtime</em>, <em>Install USB Display Drivers</em> and
+        <em>Install Visual C++ Redistributables</em>, and do not run it at the
+        end.
+      </div>
+    </li>
+  </ol>
+
+  <p>When it finishes, ETOL detects again and the game cards are ready to
+  configure. If something fails, the diagnostics and logs say which step and
+  why.</p>
+</section>
+
+<section id="simuladores">
+  <h2><span class="num">06</span>Supported simulators</h2>
+  <table>
+    <thead><tr><th>Game</th><th>Telemetry</th><th>Apps</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Le Mans Ultimate</strong></td><td>shared memory</td><td>SimHub + CrewChief</td><td></td></tr>
+      <tr><td><strong>Automobilista 2</strong></td><td>shared memory</td><td>SimHub + CrewChief</td><td></td></tr>
+      <tr><td><strong>Assetto Corsa EVO</strong></td><td>shared memory</td><td>SimHub + CrewChief</td><td></td></tr>
+      <tr><td><strong>Assetto Corsa</strong></td><td>shared memory</td><td>SimHub + CrewChief</td><td></td></tr>
+      <tr><td><strong>rFactor 2</strong></td><td>shared memory</td><td>SimHub + CrewChief</td><td>bundles the SMMP plugin</td></tr>
+      <tr><td><strong>DiRT Rally 2.0</strong></td><td>UDP (relay 20777)</td><td>SimHub + CrewChief</td><td><code>extradata=3</code></td></tr>
+      <tr><td><strong>Euro Truck Simulator 2</strong></td><td>native Linux, <code>/dev/shm</code></td><td>SimHub</td><td>installs the SCS plugin</td></tr>
+      <tr><td><strong>BeamNG.drive</strong></td><td>native Linux, OutGauge UDP</td><td>SimHub</td><td></td></tr>
+    </tbody>
+  </table>
+  <p class="small muted">The bridges are read-only: they read the game telemetry
+  and publish it for SimHub. They never write into the game.</p>
+</section>
+
+<section id="escritorio">
+  <h2><span class="num">07</span>Desktop: what works on each one</h2>
+  <p>The application, detection, bridges and SimHub/CrewChief work on any
+  desktop. What depends on the desktop are the dashboards above the game and
+  the tray icon.</p>
+  <table>
+    <thead><tr><th>Feature</th><th>KDE Plasma</th><th>GNOME</th><th>niri / other Wayland</th></tr></thead>
+    <tbody>
+      <tr><td>App, detection and telemetry</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="yes">Yes</td></tr>
+      <tr><td>Dashboards over the game</td><td class="yes">Yes, with a KWin rule</td><td class="no">No</td><td class="no">No</td></tr>
+      <tr><td>Is gamescope needed?</td><td class="yes">No: works with or without gamescope</td><td class="maybe">Not applicable</td><td class="maybe">Not applicable</td></tr>
+      <tr><td>Tray icon</td><td class="yes">Native</td><td class="maybe">With the AppIndicator extension</td><td class="maybe">With a bar that has a tray module</td></tr>
+      <tr><td>Close to tray</td><td class="yes">Yes</td><td class="maybe">With the extension</td><td class="maybe">With the bar</td></tr>
+    </tbody>
+  </table>
+  <div class="note">
+    The dashboards over the game are a <strong>KWin rule</strong> that places the
+    SimHub window above the simulator. On Plasma it works <strong>with or
+    without gamescope</strong>; gamescope is not required. GNOME and niri do not
+    implement that rule, so there ETOL provides telemetry and apps but no
+    overlay.
+  </div>
+  <p class="small muted">On GNOME, without the “AppIndicator and
+  KStatusNotifierItem Support” extension there is no tray: ETOL opens anyway and
+  logs it. On niri, the icon is drawn by the bar (Waybar, Noctalia…); if the bar
+  starts after ETOL, it retries registering for a minute.</p>
+</section>
+
+<section id="hf8">
+  <h2><span class="num">08</span>HF8 pad (optional)</h2>
+  <p>The HF8 (ForceFeel) is a USB haptic pad. ETOL detects it, links its COM
+  port inside the Bottles bottle and writes the keys SimHub needs. It is not
+  mandatory: without it ETOL works the same and the diagnostics only show a
+  warning.</p>
+  <p>In <strong>Devices</strong> you can enable or disable it, see the port and
+  reconfigure it if you change USB.</p>
+</section>
+
+<section id="bandeja">
+  <h2><span class="num">09</span>The tray</h2>
+  <p>ETOL uses <strong>StatusNotifierItem</strong> (the Linux tray standard), so
+  the icon is drawn by your desktop: Plasma natively, the niri bar if it has a
+  tray module, or GNOME with the AppIndicator extension.</p>
+  <p>The icon menu has:</p>
+  <ul>
+    <li><strong>Show window</strong> (or left click on the icon).</li>
+    <li>One submenu per simulator with <strong>Launch</strong> and <strong>Stop everything</strong>.</li>
+    <li><strong>Applications</strong>: open or close CrewChief and SimHub.</li>
+    <li><strong>Quit</strong>: stops everything and closes ETOL.</li>
+  </ul>
+  <p>If there is no tray host, ETOL opens anyway and logs it. In that case,
+  closing the window quits the application (it does not stay hidden with no
+  icon).</p>
+</section>
+
+<section id="logs">
+  <h2><span class="num">10</span>Logs and diagnostics</h2>
+  <p>In <strong>Diagnostics</strong> you have the checks with the fix next to
+  them. In <strong>Options</strong> you can enable log capture and choose how
+  many days to keep.</p>
+  <p>The logs live in <code>~/.config/etol/logs/</code>:</p>
+  <ul>
+    <li><code>etol-YYYY-MM-DD.log</code>: app events.</li>
+    <li><code>setup-*.log</code> and <code>config-*.log</code>: full output of
+        installations and configurations.</li>
+    <li><code>run-YYYY-MM-DD/</code>: copy of the bridge and SimHub/CrewChief
+        logs.</li>
+  </ul>
+  <p>If something fails, the most useful thing is to send the whole logs
+  folder. The <code>recoger-logs.sh</code> script in the repository packs it
+  into a <code>.tar.gz</code>.</p>
+</section>
+
+<section id="problemas">
+  <h2><span class="num">11</span>Common problems</h2>
+
+  <h3>No simulator appears</h3>
+  <p>Check that Steam has them installed and click <strong>Detect again</strong>.
+  ETOL reads all Steam libraries, including those on other disks, but it needs
+  permission to access them.</p>
+
+  <h3>The gear stays red</h3>
+  <p>That game has not been configured or ETOL sees something wrong. Click the
+  gear and read the result; the diagnostics show what is missing (plugin,
+  SimHub mode, prefix…).</p>
+
+  <h3>SimHub does not start</h3>
+  <p>Check <strong>Applications</strong> and the diagnostics. If the bottle does
+  not have SimHub, run the prefix preparation again.</p>
+
+  <h3>There is no tray icon</h3>
+  <p>Your desktop has no StatusNotifier host. On GNOME install the AppIndicator
+  extension; on niri add a tray module to the bar. ETOL works the same without
+  the icon.</p>
+
+  <h3>The AppImage does not start</h3>
+  <p>The portable build needs <code>libwebkit2gtk-4.1</code> and
+  <code>libgtk-3</code>. If your glibc is 2.44 or newer, try the
+  <strong>full</strong> build. Without FUSE2:
+  <code>./ETOL-*.AppImage --appimage-extract-and-run</code>.</p>
+
+  <h3>The dashboards do not appear above the game</h3>
+  <p>That feature is exclusive to KDE Plasma (KWin rule). It is not available
+  on GNOME or niri. On Plasma gamescope is not needed: it works with or without
+  it.</p>
+
+  <h3>I want to start over</h3>
+  <p>Close ETOL and delete <code>~/.config/etol</code> (configuration and
+  payload). Bottles bottles and games are not touched. On the next start ETOL
+  detects and prepares whatever is missing.</p>
+</section>
+
+<section id="archivos">
+  <h2><span class="num">12</span>Where everything lives</h2>
+  <table>
+    <thead><tr><th>What</th><th>Where</th></tr></thead>
+    <tbody>
+      <tr><td>Configuration</td><td><code>~/.config/etol/config.toml</code></td></tr>
+      <tr><td>Installed scripts and bridges</td><td><code>~/.config/etol/payload/</code></td></tr>
+      <tr><td>Logs</td><td><code>~/.config/etol/logs/</code></td></tr>
+      <tr><td>Generated environment</td><td><code>~/.config/etol/generated/entorno.sh</code></td></tr>
+      <tr><td>Bottles, runners and prefixes</td><td><code>~/.var/app/com.usebottles.bottles/</code></td></tr>
+      <tr><td>Installer downloads</td><td><code>~/Descargas/ETOL/</code></td></tr>
+    </tbody>
+  </table>
+  <p class="small muted">ETOL does not store anything inside the Steam folder
+  or the games, except the plugins the user asks to install (SCS in ETS2 and
+  SMMP in rFactor 2) and the configuration files each game expects.</p>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>ETOL · Easy Telemetry On Linux · 0.3.4 · MIT</span>
+    <span>
+      <a href="https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux">GitHub</a> ·
+      <a href="https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux/blob/main/README.md">README</a> ·
+      <a href="https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux/blob/main/THIRD-PARTY.md">Licenses</a>
+    </span>
+  </div>
+</footer>
+
+</body>
+</html>

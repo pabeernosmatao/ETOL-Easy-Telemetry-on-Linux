@@ -149,9 +149,12 @@ fi
 if [[ -f "$ROOT/LICENSE" ]]; then
   install -m 644 "$ROOT/LICENSE" "$DEST/LICENSE"
 fi
-if [[ -f "$ROOT/docs/guia-reinstalacion.html" ]]; then
-  install -m 644 "$ROOT/docs/guia-reinstalacion.html" "$DEST/guia.html"
-fi
+# Guía de uso en los tres idiomas de la interfaz.
+for lang in es ca en; do
+  if [[ -f "$ROOT/docs/guia-$lang.html" ]]; then
+    install -m 644 "$ROOT/docs/guia-$lang.html" "$DEST/guia-$lang.html"
+  fi
+done
 if [[ -f "$ROOT/THIRD-PARTY.md" ]]; then
   install -m 644 "$ROOT/THIRD-PARTY.md" "$DEST/THIRD-PARTY.md"
 fi

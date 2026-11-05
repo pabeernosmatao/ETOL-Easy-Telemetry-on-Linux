@@ -1,8 +1,8 @@
 # ETOL · Easy Telemetry On Linux
 
-**English** · [Español](README.es.md)
+**English** · [Español](README.es.md) · [User guide](docs/GUIDE.md)
 
-[![Version](https://img.shields.io/badge/version-0.3.3-38e1b0)](https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux/releases)
+[![Version](https://img.shields.io/badge/version-0.3.4-38e1b0)](https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux/releases)
 [![License](https://img.shields.io/badge/license-MIT-4aa8ff)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Linux%20x86__64-8ea3b9)](#requirements)
 [![Tauri](https://img.shields.io/badge/Tauri-2-24c8db)](https://tauri.app)
@@ -87,8 +87,8 @@ Planned: support for **DC2/DC3 pedals** (not implemented yet).
 Download the AppImage from the latest release and make it executable:
 
 ```bash
-chmod +x ETOL-0.3.3-linux-x86_64-portable.AppImage
-./ETOL-0.3.3-linux-x86_64-portable.AppImage
+chmod +x ETOL-0.3.4-linux-x86_64-portable.AppImage
+./ETOL-0.3.4-linux-x86_64-portable.AppImage
 ```
 
 Two builds are published. Both are **x86_64** (`amd64` is just Debian's name
@@ -96,8 +96,8 @@ for the same architecture); the difference is whether WebKit is bundled:
 
 | Build | Size | WebKit | glibc | When to use |
 |---|---|---|---|---|
-| `ETOL-0.3.3-linux-x86_64-portable.AppImage` | ~6 MB | system | 2.39+ | Ubuntu 26.04, Fedora, Arch, CachyOS. Needs `libwebkit2gtk-4.1` |
-| `ETOL-0.3.3-linux-x86_64-full.AppImage` | ~111 MB | bundled | 2.44+ | Everything included; current rolling and desktop distros |
+| `ETOL-0.3.4-linux-x86_64-portable.AppImage` | ~6 MB | system | 2.39+ | Ubuntu 26.04, Fedora, Arch, CachyOS. Needs `libwebkit2gtk-4.1` |
+| `ETOL-0.3.4-linux-x86_64-full.AppImage` | ~111 MB | bundled | 2.44+ | Everything included; current rolling and desktop distros |
 
 The portable build needs `libwebkit2gtk-4.1` and `libgtk-3`:
 
@@ -110,7 +110,7 @@ sudo pacman -S webkit2gtk-4.1 gtk3                 # Arch/CachyOS
 Without FUSE2:
 
 ```bash
-./ETOL-0.3.3-linux-x86_64-portable.AppImage --appimage-extract-and-run
+./ETOL-0.3.4-linux-x86_64-portable.AppImage --appimage-extract-and-run
 ```
 
 ## Requirements
@@ -147,13 +147,15 @@ Everything except the overlay and the tray icon works on any desktop:
 | Close to tray | Yes | With the extension | With the bar |
 
 The overlay is a KWin rule that places the SimHub window above the simulator.
-Plasma does not need gamescope for it. GNOME and niri do not implement that
-rule, so there ETOL provides telemetry and apps but no overlay.
+On Plasma it works **with or without gamescope**; gamescope is not required.
+GNOME and niri do not implement that rule, so there ETOL provides telemetry and
+apps but no overlay.
 
 ## Documentation
 
 - [`docs/TECNICO.md`](docs/TECNICO.md): CLI, configuration, detection, building.
-- [`docs/guia-reinstalacion.html`](docs/guia-reinstalacion.html): user guide (Spanish).
+- [`docs/GUIDE.md`](docs/GUIDE.md): user guide (Markdown, English).
+- [`docs/guia-en.html`](docs/guia-en.html): the same guide as HTML.
 - [`THIRD-PARTY.md`](THIRD-PARTY.md): licenses of the bundled components.
 
 ## License

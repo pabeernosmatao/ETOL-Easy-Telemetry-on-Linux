@@ -500,11 +500,16 @@ async fn open_path(which: String) -> Result<String, String> {
     .await
 }
 
-/// Abre la guía de uso incluida en el payload con el navegador del sistema.
+/// Abre la guía de uso incluida en el payload, en el idioma de la interfaz.
 #[tauri::command]
 async fn open_guide() -> Result<(), String> {
     blocking(move || {
-        let guide = etol::payload::dest().join("guia.html");
+        let lang = i18n::code(i18n::current());
+        let base = etol::payload::dest();
+        let mut guide = base.join(format!("guia-{lang}.html"));
+        if !guide.is_file() {
+            guide = base.join("guia-es.html");
+        }
         if !guide.is_file() {
             bail!("no existe la guía en {}", guide.display());
         }

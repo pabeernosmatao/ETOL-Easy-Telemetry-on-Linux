@@ -96,6 +96,8 @@
   }
   .lead { margin: 0; max-width: 760px; color: var(--muted); font-size: 18px; }
 
+  .langs { margin: 10px 0 0; font-size: 13px; color: var(--dim); }
+  .langs strong { color: var(--text); }
   .toc {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
@@ -250,13 +252,14 @@
               stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
       <span>ETOL</span>
-      <span class="badge">versión 0.3.3</span>
+      <span class="badge">versión 0.3.4</span>
     </div>
     <h1>Guía de <span class="grad">uso</span></h1>
     <p class="lead">
       Todo lo que hace ETOL, cómo preparar SimHub y CrewChief desde cero y cómo
       sacarle partido a cada simulador. Sin pelearte con Wine ni con Proton.
     </p>
+    <p class="langs">Idioma: <strong>Español</strong> · <a href="guia-ca.html">Català</a> · <a href="guia-en.html">English</a></p>
 
     <nav class="toc" aria-label="Índice">
       <a href="#primeros-pasos">Lo primero<span>Requisitos y primer arranque</span></a>
@@ -295,8 +298,8 @@
   </ul>
 
   <h3>Abrir el AppImage</h3>
-  <pre><code>chmod +x ETOL-0.3.3-linux-x86_64-portable.AppImage
-./ETOL-0.3.3-linux-x86_64-portable.AppImage</code></pre>
+  <pre><code>chmod +x ETOL-0.3.4-linux-x86_64-portable.AppImage
+./ETOL-0.3.4-linux-x86_64-portable.AppImage</code></pre>
   <p class="small muted">La variante <strong>portable</strong> usa el WebKit del
   sistema y necesita <code>libwebkit2gtk-4.1</code> y <code>libgtk-3</code>. La
   variante <strong>full</strong> lo lleva todo dentro y pide glibc 2.44 o
@@ -467,16 +470,17 @@
     <tbody>
       <tr><td>App, detección y telemetría</td><td class="yes">Sí</td><td class="yes">Sí</td><td class="yes">Sí</td></tr>
       <tr><td>Dashboards sobre el juego</td><td class="yes">Sí, con regla de KWin</td><td class="no">No</td><td class="no">No</td></tr>
-      <tr><td>¿Hace falta gamescope?</td><td class="yes">No</td><td class="maybe">No aplica</td><td class="maybe">No aplica</td></tr>
+      <tr><td>¿Hace falta gamescope?</td><td class="yes">No: funciona con o sin gamescope</td><td class="maybe">No aplica</td><td class="maybe">No aplica</td></tr>
       <tr><td>Icono de bandeja</td><td class="yes">Nativo</td><td class="maybe">Con la extensión AppIndicator</td><td class="maybe">Con una barra que tenga bandeja</td></tr>
       <tr><td>Cerrar a la bandeja</td><td class="yes">Sí</td><td class="maybe">Con la extensión</td><td class="maybe">Con la barra</td></tr>
     </tbody>
   </table>
   <div class="note">
     Los dashboards sobre el juego son una <strong>regla de KWin</strong> que
-    coloca la ventana de SimHub encima del simulador. En Plasma funciona sin
-    gamescope. GNOME y niri no implementan esa regla, así que en ellos ETOL
-    ofrece telemetría y apps, pero no el overlay.
+    coloca la ventana de SimHub encima del simulador. En Plasma funciona
+    <strong>con o sin gamescope</strong>; no es necesario usar gamescope. GNOME y
+    niri no implementan esa regla, así que en ellos ETOL ofrece telemetría y
+    apps, pero no el overlay.
   </div>
   <p class="small muted">En GNOME, sin la extensión «AppIndicator and
   KStatusNotifierItem Support» no hay bandeja: ETOL abre igual y lo avisa en el
@@ -587,7 +591,7 @@
 
 <footer>
   <div class="wrap">
-    <span>ETOL · Easy Telemetry On Linux · 0.3.3 · MIT</span>
+    <span>ETOL · Easy Telemetry On Linux · 0.3.4 · MIT</span>
     <span>
       <a href="https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux">GitHub</a> ·
       <a href="https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux/blob/main/README.es.md">README</a> ·

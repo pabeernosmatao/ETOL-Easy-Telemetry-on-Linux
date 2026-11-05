@@ -190,7 +190,7 @@ def appimage() -> str:
     try:
         version = json.loads((raiz / "src-tauri/tauri.conf.json").read_text())["version"]
     except Exception:
-        version = "0.3.3"
+        version = "0.3.4"
     return str(HOME / f".local/bin/ETOL-{version}-linux-x86_64-portable.AppImage")
 
 
