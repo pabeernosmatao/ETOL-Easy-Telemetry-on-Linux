@@ -54,8 +54,18 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+need() {
+  command -v "$1" >/dev/null 2>&1 && return 0
+  die "falta «$1» en el sistema. Instálalo antes de continuar (${2:-usa el gestor de paquetes de tu distribución})."
+}
+
 have_flatpak || die "no se encontró flatpak."
 flatpak_user_installed || die "Bottles no está instalado para el usuario. Ejecuta 01-instalar-bottles-flatpak.sh"
+
+need curl "Arch/CachyOS: sudo pacman -S curl · Ubuntu: sudo apt install curl · Fedora: sudo dnf install curl"
+need tar "Arch/CachyOS: sudo pacman -S tar · Ubuntu: sudo apt install tar · Fedora: sudo dnf install tar"
+need unzip "Arch/CachyOS: sudo pacman -S unzip · Ubuntu: sudo apt install unzip · Fedora: sudo dnf install unzip"
+need file "Arch/CachyOS: sudo pacman -S file · Ubuntu: sudo apt install file · Fedora: sudo dnf install file"
 
 RUNNER_DIR=""
 BOTTLE_DIR="$ETOL_BOTTLES_DATA/bottles/$BOTTLE"
@@ -73,18 +83,11 @@ trap cleanup EXIT
 win_path() { printf 'Z:%s' "${1//\//\\}"; }
 
 api_latest_runner() {
+  # Sin python3: la etiqueta basta para construir la URL del tar.gz.
   curl -fsSL --max-time 30 \
     'https://api.github.com/repos/GloriousEggroll/proton-ge-custom/releases/latest' \
-    | python3 -c '
-import json, sys
-d = json.load(sys.stdin)
-tag = d.get("tag_name") or ""
-for a in d.get("assets", []):
-    if a.get("name", "").endswith("-x86_64.tar.gz"):
-        print(tag)
-        print(a["browser_download_url"])
-        break
-'
+    | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' \
+    | head -n1
 }
 
 resolve_runner() {
@@ -98,8 +101,7 @@ resolve_runner() {
     fi
     tag="${RUNNER/#ge-proton/GE-Proton}"
   else
-    local pair
-    if ! pair="$(api_latest_runner)"; then
+    if ! tag="$(api_latest_runner)" || [[ -z "$tag" ]]; then
       # Sin red: usa el runner instalado más reciente, si hay alguno.
       local installed
       installed="$(find "$ETOL_BOTTLES_DATA/runners" -maxdepth 1 -type d -name 'ge-proton*' 2>/dev/null | sort -V | tail -1)"
@@ -109,11 +111,9 @@ resolve_runner() {
         RUNNER_DIR="$installed"
         return 0
       fi
-      die "no se pudo consultar la última versión de GE-Proton y no hay ningún runner instalado."
+      die "no se pudo consultar la última versión de GE-Proton y no hay ningún runner instalado.
+Comprueba la conexión (o pasa una versión con --runner, por ejemplo --runner ge-proton11-11)."
     fi
-    tag="$(printf '%s\n' "$pair" | sed -n '1p')"
-    url="$(printf '%s\n' "$pair" | sed -n '2p')"
-    [[ -n "$tag" && -n "$url" ]] || die "respuesta inesperada de GitHub al buscar GE-Proton."
     RUNNER="$(printf '%s' "$tag" | tr '[:upper:]' '[:lower:]')"
   fi
 
@@ -265,14 +265,10 @@ simhub_installer() {
   json="$(curl -fsSL --max-time 30 \
     'https://api.github.com/repos/SHWotever/SimHub/releases/latest')" \
     || die "no se pudo consultar la última versión de SimHub."
-  tag="$(printf '%s' "$json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("tag_name",""))')"
-  url="$(printf '%s' "$json" | python3 -c '
-import json, sys
-d = json.load(sys.stdin)
-for a in d.get("assets", []):
-    if a.get("name", "").lower().endswith(".zip"):
-        print(a["browser_download_url"]); break
-')"
+  tag="$(printf '%s' "$json" \
+    | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1)"
+  url="$(printf '%s' "$json" \
+    | sed -n 's/.*"browser_download_url"[[:space:]]*:[[:space:]]*"\([^"]*\.zip\)".*/\1/p' | head -n1)"
   [[ -n "$tag" && -n "$url" ]] || die "respuesta inesperada de GitHub al buscar SimHub."
 
   zip="$DOWNLOADS/SimHub-$tag.zip"

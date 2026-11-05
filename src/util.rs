@@ -45,6 +45,14 @@ pub fn is_executable(path: &Path) -> bool {
         .unwrap_or(false)
 }
 
+/// Busca un ejecutable por nombre en `PATH`.
+pub fn which(name: &str) -> Option<PathBuf> {
+    let path = std::env::var_os("PATH")?;
+    std::env::split_paths(&path)
+        .map(|dir| dir.join(name))
+        .find(|candidate| is_executable(candidate))
+}
+
 /// Busca un fichero por nombre dentro de un arbol, con profundidad limitada.
 /// Devuelve la primera coincidencia (sin orden garantizado).
 pub fn find_file(root: &Path, name: &str, max_depth: usize) -> Option<PathBuf> {

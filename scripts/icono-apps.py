@@ -190,8 +190,8 @@ def appimage() -> str:
     try:
         version = json.loads((raiz / "src-tauri/tauri.conf.json").read_text())["version"]
     except Exception:
-        version = "0.3.0"
-    return str(HOME / f".local/bin/ETOL_{version}_amd64.AppImage")
+        version = "0.3.1"
+    return str(HOME / f".local/bin/ETOL-{version}-linux-x86_64-portable.AppImage")
 
 
 def instalar(icono: Image.Image) -> None:

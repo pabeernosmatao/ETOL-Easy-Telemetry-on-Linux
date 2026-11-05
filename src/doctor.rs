@@ -96,6 +96,29 @@ pub fn run(cfg: &Config) -> Vec<Check> {
         checks.push(ok("Logs", "captura desactivada en Opciones"));
     }
 
+    // --- Dependencias externas ---
+    match util::which("python3") {
+        Some(path) => checks.push(ok("Python", path.display().to_string())),
+        None => checks.push(fail(
+            "Python",
+            "no se encontró python3; los puentes de telemetría lo necesitan",
+            Some(
+                "Arch/CachyOS: sudo pacman -S python · Ubuntu: sudo apt install python3 · Fedora: sudo dnf install python3"
+                    .to_string(),
+            ),
+        )),
+    }
+    if util::which("curl").is_none() {
+        checks.push(warn(
+            "curl",
+            "no se encontró curl; la preparación del prefijo lo necesita para descargar los instaladores",
+            Some(
+                "Arch/CachyOS: sudo pacman -S curl · Ubuntu: sudo apt install curl · Fedora: sudo dnf install curl"
+                    .to_string(),
+            ),
+        ));
+    }
+
     // --- Carpeta de scripts ---
     match cfg.app_dir() {
         Some(dir) if dir.is_dir() => checks.push(ok("Carpeta de scripts", dir.display().to_string())),

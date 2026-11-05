@@ -39,6 +39,8 @@ const DAEMON_BRIDGE_TIMEOUT: Duration = Duration::from_secs(25);
 
 /// Se activa al salir para que el vigilante no reabra nada mientras se limpia.
 static QUITTING: AtomicBool = AtomicBool::new(false);
+/// La limpieza de salida solo debe ejecutarse una vez.
+static CLEANED: AtomicBool = AtomicBool::new(false);
 
 /// Estado compartido del vigilante (hilo de fondo, comandos y bandeja).
 fn watcher() -> &'static Arc<Mutex<daemon::Watcher>> {
@@ -766,6 +768,10 @@ fn spawn_daemon(app: tauri::AppHandle) {
 
 /// Para los puentes y cierra SimHub/CrewChief antes de salir de la app.
 fn cleanup_before_exit() {
+    if CLEANED.swap(true, Ordering::SeqCst) {
+        return;
+    }
+    QUITTING.store(true, Ordering::Relaxed);
     // La regla de overlays no debe quedar activa sin ETOL.
     kwin::disable_if_exists();
 
@@ -1069,6 +1075,61 @@ async fn script_preview(key: String) -> Result<ScriptPreview, String> {
     .await
 }
 
+/// Guarda la salida de un script en `logs/` para poder revisarla después.
+fn save_script_output(kind: &str, key: &str, text: &str) {
+    if text.trim().is_empty() {
+        return;
+    }
+    let path = logs::dir().join(format!("{kind}-{key}.log"));
+    match std::fs::write(&path, text) {
+        Ok(()) => logs::info(kind, format!("{key}: salida en {}", path.display())),
+        Err(error) => logs::warn(
+            kind,
+            format!("{key}: no se pudo guardar la salida: {error}"),
+        ),
+    }
+}
+
+/// Resumen legible de las últimas líneas de un script fallido.
+fn script_error_summary(text: &str) -> String {
+    let lines: Vec<&str> = text
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .collect();
+    let start = lines.len().saturating_sub(8);
+    let mut summary = lines[start..].join(" | ");
+    if summary.chars().count() > 700 {
+        summary = summary.chars().take(700).collect::<String>() + "…";
+    }
+    summary
+}
+
+/// Crea el icono de bandeja sin que un fallo (o un pánico de libappindicator)
+/// impida abrir la ventana. En sistemas sin libayatana-appindicator3 el crate
+/// que usa Tauri hace `panic!` en vez de devolver un error.
+fn try_build_tray(app: &tauri::AppHandle, cfg: &Config) -> bool {
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| build_tray(app, cfg))) {
+        Ok(Ok(())) => true,
+        Ok(Err(error)) => {
+            eprintln!("aviso: no se pudo crear el icono de bandeja: {error}");
+            logs::warn("gui", format!("bandeja no disponible: {error}"));
+            false
+        }
+        Err(_) => {
+            eprintln!(
+                "aviso: la bandeja del sistema no esta disponible \
+                 (falta libappindicator3); la ventana funciona igual."
+            );
+            logs::warn(
+                "gui",
+                "bandeja no disponible: falta libayatana-appindicator3 o libappindicator3",
+            );
+            false
+        }
+    }
+}
+
 /// Ejecuta un script de sistema y devuelve su salida completa.
 ///
 /// Los instaladores abren su propia ventana; el comando espera a que el
@@ -1082,18 +1143,28 @@ async fn run_setup_script(key: String) -> Result<ScriptRun, String> {
             "setup",
             format!("ejecutando {} ({key})", path.display()),
         );
-        let output = Command::new("bash")
+        let mut command = Command::new("bash");
+        command
             .arg(&path)
-            .stdin(std::process::Stdio::null())
+            .stdin(std::process::Stdio::null());
+        launch::clean_child_env(&mut command);
+        let output = command
             .output()
             .with_context(|| format!("no se pudo ejecutar {}", path.display()))?;
         let mut text = String::from_utf8_lossy(&output.stdout).to_string();
         text.push_str(&String::from_utf8_lossy(&output.stderr));
         let ok = output.status.success();
+        save_script_output("setup", &key, &text);
         logs::info(
             "setup",
             format!("{key}: {}", if ok { "ok" } else { "error" }),
         );
+        if !ok {
+            let summary = script_error_summary(&text);
+            if !summary.is_empty() {
+                logs::error("setup", format!("{key}: {summary}"));
+            }
+        }
         Ok(ScriptRun {
             ok,
             code: output.status.code(),
@@ -1139,6 +1210,7 @@ async fn configure_game(game: String) -> Result<GameConfigRun, String> {
         for (key, value) in launch::env_for(&cfg, &game) {
             command.env(key, value);
         }
+        launch::clean_child_env(&mut command);
 
         let output = command
             .output()
@@ -1146,6 +1218,7 @@ async fn configure_game(game: String) -> Result<GameConfigRun, String> {
         let mut text = String::from_utf8_lossy(&output.stdout).to_string();
         text.push_str(&String::from_utf8_lossy(&output.stderr));
         let ok = output.status.success();
+        save_script_output("config", &game, &text);
         if ok {
             // El engranaje deja de estar rojo en cuanto la configuracion pasa.
             status::mark_configured(&game);
@@ -1154,6 +1227,12 @@ async fn configure_game(game: String) -> Result<GameConfigRun, String> {
             "config",
             format!("{game}: {}", if ok { "ok" } else { "error" }),
         );
+        if !ok {
+            let summary = script_error_summary(&text);
+            if !summary.is_empty() {
+                logs::error("config", format!("{game}: {summary}"));
+            }
+        }
         Ok(GameConfigRun {
             ok,
             code: output.status.code(),
@@ -1230,6 +1309,15 @@ fn release_single_instance() {
 fn main() {
     etol::sanitize_env();
     logs::init();
+
+    // Cualquier panico (incluido el de libappindicator al crear la bandeja)
+    // queda registrado en el log diario, no solo en la terminal.
+    let previous_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        logs::error("panic", info.to_string());
+        previous_hook(info);
+    }));
+
     if !acquire_single_instance() {
         eprintln!("ETOL ya esta abierto: usando la ventana existente.");
         logs::info("gui", "segunda instancia ignorada");
@@ -1254,16 +1342,18 @@ fn main() {
                 }
             }
 
-            let cfg = Config::load().unwrap_or_else(|_| detect::detect());
+            let cfg = Config::load().unwrap_or_else(|error| {
+                logs::warn("gui", format!("configuracion no valida ({error}); redetecto"));
+                detect::detect()
+            });
+            logs::info("gui", "configuracion cargada");
             logs::capture_run(&cfg.bridge.run_base);
             let key = tray_key(&cfg);
-            let ready = match build_tray(app.handle(), &cfg) {
-                Ok(()) => true,
-                Err(error) => {
-                    eprintln!("aviso: no se pudo crear el icono de bandeja: {error}");
-                    false
-                }
-            };
+            let ready = try_build_tray(app.handle(), &cfg);
+            logs::info(
+                "gui",
+                format!("bandeja: {}", if ready { "disponible" } else { "no disponible" }),
+            );
             app.manage(TrayState {
                 ready,
                 key: Mutex::new(if ready { key } else { String::new() }),
@@ -1308,7 +1398,14 @@ fn main() {
             open_port_check,
             port_check_result
         ])
-        .run(tauri::generate_context!())
-        .expect("error al iniciar la interfaz de etol");
+        .build(tauri::generate_context!())
+        .expect("error al iniciar la interfaz de etol")
+        .run(|_app, event| {
+            // Alt+F4, cierre de sesion o salida desde la bandeja: en todos los
+            // casos se paran los puentes y se desactiva la regla de KWin.
+            if matches!(event, tauri::RunEvent::Exit) {
+                cleanup_before_exit();
+            }
+        });
     release_single_instance();
 }

@@ -79,6 +79,7 @@ fi
 # 3. Copia del AppDir sin las librerias empaquetadas.
 LITE="$TMP/AppDir"
 cp -a "$APPDIR" "$LITE"
+
 rm -f "$LITE"/usr/lib/*.so*
 rm -rf "$LITE"/usr/lib/webkit2gtk-4.1 \
        "$LITE"/usr/lib/girepository-1.0 \
