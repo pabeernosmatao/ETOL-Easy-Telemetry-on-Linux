@@ -6,7 +6,7 @@
 #   ./scripts/recoger-logs.sh
 #   ./scripts/recoger-logs.sh --gui
 #   ./scripts/recoger-logs.sh --juego lmu
-#   ./scripts/recoger-logs.sh /ruta/ETOL-0.3.4-linux-x86_64-portable.AppImage
+#   ./scripts/recoger-logs.sh /ruta/ETOL-0.3.7-linux-x86_64-portable.AppImage
 #
 #   --gui            abre la aplicacion para que reproduzcas el fallo
 #   --juego ID       arranca puente + CrewChief + SimHub de ID
@@ -32,7 +32,7 @@ Uso, desde la carpeta donde esta el AppImage:
   ./scripts/recoger-logs.sh
   ./scripts/recoger-logs.sh --gui
   ./scripts/recoger-logs.sh --juego lmu
-  ./scripts/recoger-logs.sh /ruta/ETOL-0.3.4-linux-x86_64-portable.AppImage
+  ./scripts/recoger-logs.sh /ruta/ETOL-0.3.7-linux-x86_64-portable.AppImage
 
   --gui            abre la aplicacion para que reproduzcas el fallo
   --juego ID       arranca puente + CrewChief + SimHub de ID
@@ -72,7 +72,7 @@ if [[ -z "$APP" ]]; then
   )
   if [[ ${#candidatos[@]} -eq 0 ]]; then
     echo "ERROR: no encuentro ningun ETOL*.AppImage en $PWD" >&2
-    echo "Pasa la ruta como argumento: $0 /ruta/ETOL-0.3.4-linux-x86_64-portable.AppImage" >&2
+    echo "Pasa la ruta como argumento: $0 /ruta/ETOL-0.3.7-linux-x86_64-portable.AppImage" >&2
     exit 1
   fi
   APP="${candidatos[0]}"

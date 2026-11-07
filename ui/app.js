@@ -257,6 +257,12 @@ const GAME_SETUP = {
       <code>Bin64/Plugins</code>, enlaza la biblioteca de Steam de la botella,
       deja CrewChief en RF2 y activa el lector de RF2 en SimHub.`,
   },
+  r3e: {
+    html: `Deja CrewChief en RaceRoom (<code>RACE_ROOM</code>), añade
+      <code>RACE_ROOM</code> a la lista de juegos y activa la entrada
+      <code>RRRE</code> de SimHub. El puente copia el mapping <code>$R3E</code>
+      al prefijo de Bottles; no toca el juego.`,
+  },
   ets2: {
     html: `Instala el plugin SCS del juego y deja SimHub listo para leer la telemetría por el puente de memoria compartida. Es la versión nativa de Linux y no usa CrewChief.`,
   },
@@ -307,8 +313,13 @@ async function applyGameConfig(gameId) {
     const badge = result.ok
       ? '<span class="chip ok">Configuración aplicada</span>'
       : '<span class="chip bad">Error</span>';
+    const warnings = Array.isArray(result.warnings) ? result.warnings : [];
+    const warningHtml = warnings
+      .map((warning) => `<p class="setup-warning">${esc(warning)}</p>`)
+      .join("");
     rich.innerHTML = `
       <p>${badge}</p>
+      ${warningHtml}
       <pre class="config-output">${esc(result.output || "(sin salida)")}</pre>
       <p class="setup-note">${esc(result.script)}</p>`;
 
@@ -1261,6 +1272,9 @@ function showPayloadBanner(info) {
 
 async function applyBootstrap(payload) {
   state.config = payload.config;
+  const version = payload.version ? `v${payload.version}` : "v…";
+  const versionNode = document.getElementById("app-version");
+  if (versionNode) versionNode.textContent = version;
   state.lang = payload.language || "es";
   state.paths = { config: payload.config_path, env: payload.env_path };
   state.logsPath = payload.logs_path ?? state.logsPath;

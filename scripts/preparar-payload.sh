@@ -28,9 +28,33 @@ find_src() {
   return 1
 }
 
-if ! SRC="$(find_src)"; then
-  echo "aviso: no encuentro Simhub_Linux_APP; el AppImage se compilara sin scripts incluidos" >&2
+# Identificador de contenido: si cambia, el AppImage refresca la copia.
+write_payload_id() {
+  [[ -d "$DEST" ]] || return 0
+  local id
+  id="$(
+    cd "$DEST"
+    find . -type f ! -name '.payload-id' -print0 \
+      | sort -z \
+      | xargs -0 sha256sum \
+      | sha256sum \
+      | awk '{print $1}'
+  )"
+  printf '%s\n' "$id" > "$DEST/.payload-id"
+  echo "payload listo: $(du -sh "$DEST" | cut -f1), id ${id:0:12}"
+}
+
+if [[ "${ETOL_KEEP_PAYLOAD:-0}" == "1" ]]; then
+  echo "payload: se conserva el existente (ETOL_KEEP_PAYLOAD=1)"
   mkdir -p "$DEST"
+  write_payload_id
+  exit 0
+fi
+
+if ! SRC="$(find_src)"; then
+  echo "aviso: no encuentro Simhub_Linux_APP; se usa el payload ya preparado en src-tauri/payload" >&2
+  mkdir -p "$DEST"
+  write_payload_id
   exit 0
 fi
 
@@ -51,6 +75,30 @@ tar -C "$SRC" \
 if [[ -f "$ROOT/vendor/lmu_shm_mirror.exe" ]]; then
   install -m 755 "$ROOT/vendor/lmu_shm_mirror.exe" "$DEST/bridge/lmu_shm_mirror.exe"
   echo "puente LMU: binario con tamanos SMMP de CrewChief"
+fi
+if [[ -f "$ROOT/vendor/lmu_shm_sender.exe" ]]; then
+  install -m 755 "$ROOT/vendor/lmu_shm_sender.exe" "$DEST/bridge/lmu_shm_sender.exe"
+  echo "puente LMU: emisor crudo (compatible con el SDK actual)"
+fi
+
+# RaceRoom: espejo crudo del mapping $R3E + scripts propios.
+if [[ -d "$ROOT/scripts/juegos/r3e" ]]; then
+  cp -a "$ROOT/scripts/juegos/r3e/." "$DEST/"
+  rm -f "$DEST/bridge/r3e_shm_mirror.cpp" "$DEST/bridge/build_mirror.sh"
+  echo "payload: scripts de RaceRoom"
+fi
+if [[ -f "$ROOT/vendor/r3e_shm_mirror.exe" ]]; then
+  install -m 755 "$ROOT/vendor/r3e_shm_mirror.exe" "$DEST/bridge/r3e_shm_mirror.exe"
+fi
+if [[ -f "$ROOT/vendor/r3e_process_stub.exe" ]]; then
+  install -m 755 "$ROOT/vendor/r3e_process_stub.exe" "$DEST/bridge/r3e_process_stub.exe"
+fi
+
+# Le Mans Ultimate: activa el plugin SMMP en el juego (SimHub/CrewChief lo
+# esperan para darlo por configurado).
+if [[ -d "$ROOT/scripts/juegos/lmu" ]]; then
+  cp -a "$ROOT/scripts/juegos/lmu/." "$DEST/bridge/"
+  echo "payload: scripts de Le Mans Ultimate"
 fi
 
 # Assetto Corsa: scripts propios de ETOL (el arbol de SIMHUB_LINUX no se toca).
@@ -166,15 +214,4 @@ python3 "$ROOT/scripts/parchear-payload.py" "$DEST"
 find "$DEST" -type f \( -name '*.sh' -o -name '*.exe' -o -name '*.py' \) -exec chmod 755 {} +
 find "$DEST" -type d -exec chmod 755 {} +
 
-# Identificador de contenido: si cambia, el AppImage refresca la copia.
-ID="$(
-  cd "$DEST"
-  find . -type f ! -name '.payload-id' -print0 \
-    | sort -z \
-    | xargs -0 sha256sum \
-    | sha256sum \
-    | awk '{print $1}'
-)"
-printf '%s\n' "$ID" > "$DEST/.payload-id"
-
-echo "payload listo: $(du -sh "$DEST" | cut -f1), id ${ID:0:12}"
+write_payload_id

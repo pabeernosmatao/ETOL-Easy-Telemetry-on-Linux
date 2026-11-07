@@ -102,6 +102,32 @@ def configure_simhub() -> None:
         save_json(game_path, games)
         CHANGES.append("SimHub: LMU marcado como juego preferente (OrderEx=1)")
 
+    if not games["LMU"].get("LauncherSetting"):
+        games["LMU"]["LauncherSetting"] = json.dumps({
+            "SteamLauncherMode": 0,
+            "UseDefault": True,
+            "UseCustom": False,
+            "UseEpic": False,
+            "CustomPath": None,
+            "CustomArguments": None,
+            "SelectedSteamStartupOption": None,
+        }, indent=2)
+        save_json(game_path, games)
+        CHANGES.append("SimHub: LMU con lanzador por defecto")
+
+    if not games["LMU"].get("LauncherSetting"):
+        games["LMU"]["LauncherSetting"] = json.dumps({
+            "SteamLauncherMode": 0,
+            "UseDefault": True,
+            "UseCustom": False,
+            "UseEpic": False,
+            "CustomPath": None,
+            "CustomArguments": None,
+            "SelectedSteamStartupOption": None,
+        }, indent=2)
+        save_json(game_path, games)
+        CHANGES.append("SimHub: LMU con lanzador por defecto")
+
 
 def set_xml_setting(text: str, name: str, value: str) -> tuple[str, bool]:
     pattern = re.compile(
@@ -146,6 +172,8 @@ def configure_crewchief_profile() -> None:
     desired = {
         "last_game_definition": "LMU",
         "enable_lmu_rf2_plugin_dll_check": False,
+        "enable_automatic_plugin_update": False,
+        "lmu_install_path": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Le Mans Ultimate",
         "use_legacy_rf2_shared_memory_filenames": False,
         "enable_auto_detect": False,
         # Arranca CrewChief al abrir la app. Sin esto, el proceso queda en la
@@ -195,6 +223,9 @@ def configure_crewchief_user_config() -> None:
         "lmu_install_path",
         "enable_auto_detect",
         "run_immediately",
+        "enable_lmu_rf2_plugin_dll_check",
+        "enable_automatic_plugin_update",
+        "lmu_enable_pit_manager",
     ):
         match = re.search(
             r'<setting\s+name="' + re.escape(name) + r'"\s+serializeAs="String">\s*'
@@ -228,7 +259,12 @@ def configure_crewchief_user_config() -> None:
 
 
 def configure_simhub_plugins(enable_lmu: bool) -> None:
-    """Activa o desactiva el plugin LMU de SimHub."""
+    """Activa o desactiva el plugin LMU de SimHub.
+
+    SimHub 9.x usa `doX.doX_LMU_SessionDataPlugin`; las versiones antiguas
+    usaban `LMU_SessionDataPlugin.LMU_SessionDataPlugin`. Se activa el que
+    exista, sin tocar los demas plugins del juego.
+    """
     path = (
         BOTTLE
         / "drive_c/Program Files (x86)/SimHub/PluginsData/PluginsActivation.json"
@@ -238,18 +274,51 @@ def configure_simhub_plugins(enable_lmu: bool) -> None:
     data = load_json(path, None)
     if not isinstance(data, list):
         return
+    primary = "doX.doX_LMU_SessionDataPlugin"
+    legacy = "LMU_SessionDataPlugin.LMU_SessionDataPlugin"
+    names = {
+        entry.get("ClassName")
+        for entry in data
+        if isinstance(entry, dict)
+    }
+    target = primary if primary in names else legacy if legacy in names else ""
+    if not target:
+        return
     changed = False
     for entry in data:
-        if not isinstance(entry, dict):
+        if not isinstance(entry, dict) or entry.get("ClassName") != target:
             continue
-        if entry.get("ClassName") == "LMU_SessionDataPlugin.LMU_SessionDataPlugin":
-            if entry.get("IsEnabled") is not enable_lmu:
-                entry["IsEnabled"] = enable_lmu
-                changed = True
+        if entry.get("IsEnabled") is not enable_lmu:
+            entry["IsEnabled"] = enable_lmu
+            changed = True
     if changed:
         save_json(path, data)
         estado = "activado" if enable_lmu else "desactivado"
-        CHANGES.append(f"SimHub: LMU SessionDataPlugin {estado}")
+        CHANGES.append(f"SimHub: {target.split('.')[-1]} {estado}")
+
+
+def fix_limit_available_games() -> None:
+    """Restaura la lista de juegos de CrewChief si quedo con uno solo.
+
+    Una lista vacia significa "todos". ETOL pudo escribir un unico juego
+    (por ejemplo ASSETTO_EVO) y CrewChief solo mostraba ese. Se limpia.
+    """
+    profiles = BOTTLE / "drive_c/users/steamuser/Documents/CrewChiefV4/Profiles"
+    if not profiles.exists():
+        return
+    for path in sorted(profiles.glob("*.json")):
+        data = load_json(path, None)
+        if not isinstance(data, dict):
+            continue
+        user_settings = data.get("userSettings")
+        if not isinstance(user_settings, dict):
+            continue
+        raw = str(user_settings.get("limit_available_games", "")).strip()
+        available = [item.strip() for item in raw.split(",") if item.strip()]
+        if len(available) == 1:
+            user_settings["limit_available_games"] = ""
+            save_json(path, data)
+            CHANGES.append(f"CrewChief: lista de juegos restaurada en {path.name}")
 
 
 def configure_crewchief() -> None:
@@ -263,11 +332,10 @@ def configure_crewchief() -> None:
     original = text
     desired = {
         "last_game_definition": "LMU",
-        "lmu_install_path": "Z:" + os.environ.get(
-            "LMU_MIRROR_RUN_DIR", "/tmp/etol/lmu_mirror"
-        ).replace("/", "\\"),
+        "lmu_install_path": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Le Mans Ultimate",
         "use_legacy_rf2_shared_memory_filenames": "False",
         "enable_lmu_rf2_plugin_dll_check": "False",
+        "enable_automatic_plugin_update": "False",
         "enable_auto_detect": "False",
         "run_immediately": "True",
     }
@@ -288,7 +356,9 @@ def configure_crewchief() -> None:
     )
     if m:
         games = [x.strip() for x in m.group(2).split(",") if x.strip()]
-        if "LMU" not in games:
+        if games == ["LMU"]:
+            text = text[:m.start(2)] + "" + text[m.end(2):]
+        elif games and "LMU" not in games:
             games.append("LMU")
             text = text[:m.start(2)] + ",".join(games) + text[m.end(2):]
 
@@ -302,6 +372,8 @@ def configure_crewchief() -> None:
     configure_crewchief_profile()
 
     configure_crewchief_user_config()
+
+    fix_limit_available_games()
 
 
 def main() -> int:

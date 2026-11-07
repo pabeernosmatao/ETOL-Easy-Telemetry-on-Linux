@@ -97,7 +97,26 @@ pub fn env_for(cfg: &Config, game_id: &str) -> Vec<(String, String)> {
         if let Some(path) = &game.proton {
             env.push((format!("{upper}_PROTON"), path.display().to_string()));
         }
-    } else if let Some(path) = &game.wine {
+    } else if let Some(path) = game.wine.as_ref().or_else(|| {
+        let native = crate::detect::game_def(game_id)
+            .map(|def| def.native)
+            .unwrap_or(false);
+        if native {
+            None
+        } else {
+            cfg.apps.wine.as_ref()
+        }
+    }) {
+        // Si Steam no expone el Proton del juego (p. ej. AC EVO con un runner
+        // que no aparece en compatibilitytools.d), el lanzador necesita algo.
+        // El wine de Bottles sirve para configurar; el puente avisara si no
+        // puede leer la memoria del juego. Los juegos nativos no usan wine.
+        if game.wine.is_none() {
+            crate::logs::warn(
+                "launch",
+                format!("{game_id}: sin wine de Steam; uso el wine de Bottles"),
+            );
+        }
         env.push((format!("{upper}_WINE"), path.display().to_string()));
     }
 

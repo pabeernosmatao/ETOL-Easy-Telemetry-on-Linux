@@ -13,6 +13,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 EXE="$HERE/lmu_shm_mirror.exe"
+RAW_EXE="$HERE/lmu_shm_sender.exe"
 STUB_SRC="$HERE/lmu_process_stub.exe"
 
 RUN_DIR="${LMU_MIRROR_RUN_DIR:-/tmp/etol/lmu_mirror}"
@@ -31,6 +32,20 @@ if [[ -z "$LMU_PFX" ]]; then
   exit 1
 fi
 LMU_WINE="$LMU_PROTON/files/bin/wine"
+
+LMU_GAME_DIR="${LMU_GAME_DIR:-}"
+if [[ -z "$LMU_GAME_DIR" ]]; then
+  _lmu_lib="${LMU_PFX%/steamapps/compatdata/*}"
+  if [[ "$_lmu_lib" != "$LMU_PFX" ]]; then
+    LMU_GAME_DIR="$_lmu_lib/steamapps/common/Le Mans Ultimate"
+  fi
+fi
+if [[ -n "$LMU_GAME_DIR" && -d "$LMU_GAME_DIR" ]]; then
+  mkdir -p "$RUN_DIR/Plugins" "$RUN_DIR/UserData/player"
+  cp -f "$LMU_GAME_DIR/Plugins/"*.dll "$RUN_DIR/Plugins/" 2>/dev/null || true
+  cp -f "$LMU_GAME_DIR/UserData/player/CustomPluginVariables.JSON" \
+        "$RUN_DIR/UserData/player/CustomPluginVariables.JSON" 2>/dev/null || true
+fi
 
 LMU_GAME_DIR="${LMU_GAME_DIR:-}"
 if [[ -z "$LMU_GAME_DIR" ]]; then
@@ -133,6 +148,14 @@ while true; do
   if [[ -z "$(mirror_pid sender)" ]]; then
     start_mirror sender "$LMU_PFX" "$LMU_WINE" \
       --sender --udp "127.0.0.1:$PORT" --hz "$HZ" --smmp-hz "$SMMP_HZ"
+    sleep 1
+  fi
+  if [[ -x "$RAW_EXE" ]] && ! pgrep -f -- 'lmu_shm_sender\.exe' >/dev/null 2>&1; then
+    setsid env WINEPREFIX="$LMU_PFX" WINEDEBUG=-all "$LMU_WINE" "$RAW_EXE" \
+      --sender --udp "127.0.0.1:$PORT" --hz "$HZ" --smmp-hz "$SMMP_HZ" \
+      >>"$RUN_DIR/raw.log" 2>&1 </dev/null &
+    echo "$!" >"$RUN_DIR/raw.pid"
+    log "emisor crudo relanzado (launcher PID $!)."
     sleep 1
   fi
   if [[ -z "$(find_stub_pids)" ]]; then

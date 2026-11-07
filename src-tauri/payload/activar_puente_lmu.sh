@@ -8,6 +8,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BRIDGE="$HERE/bridge"
 EXE="$BRIDGE/lmu_shm_mirror.exe"
+SENDER_EXE="$BRIDGE/lmu_shm_sender.exe"
 STUB_SRC="$BRIDGE/lmu_process_stub.exe"
 CONFIG_PY="$BRIDGE/configure_apps.py"
 RUN_DIR="${LMU_MIRROR_RUN_DIR:-/tmp/etol/lmu_mirror}"
@@ -24,6 +25,20 @@ if [[ -z "$LMU_PFX" ]]; then
   exit 1
 fi
 LMU_WINE="$LMU_PROTON/files/bin/wine"
+
+LMU_GAME_DIR="${LMU_GAME_DIR:-}"
+if [[ -z "$LMU_GAME_DIR" ]]; then
+  _lmu_lib="${LMU_PFX%/steamapps/compatdata/*}"
+  if [[ "$_lmu_lib" != "$LMU_PFX" ]]; then
+    LMU_GAME_DIR="$_lmu_lib/steamapps/common/Le Mans Ultimate"
+  fi
+fi
+if [[ -n "$LMU_GAME_DIR" && -d "$LMU_GAME_DIR" ]]; then
+  mkdir -p "$RUN_DIR/Plugins" "$RUN_DIR/UserData/player"
+  cp -f "$LMU_GAME_DIR/Plugins/"*.dll "$RUN_DIR/Plugins/" 2>/dev/null || true
+  cp -f "$LMU_GAME_DIR/UserData/player/CustomPluginVariables.JSON" \
+        "$RUN_DIR/UserData/player/CustomPluginVariables.JSON" 2>/dev/null || true
+fi
 
 LMU_GAME_DIR="${LMU_GAME_DIR:-}"
 if [[ -z "$LMU_GAME_DIR" ]]; then
@@ -167,6 +182,18 @@ if [[ "$DO_CONFIG" == 1 ]]; then
     echo "AVISO: la configuracion automatica fallo; el puente seguira funcionando." >&2
 fi
 
+# SimHub solo da LMU por configurado si el plugin SMMP esta activo en
+# UserData/player/CustomPluginVariables.JSON; CrewChief ademas lo busca
+# en Plugins/. Se hace con copia de seguridad y sin tocar el resto.
+if [[ -n "$LMU_GAME_DIR" && -d "$LMU_GAME_DIR" ]]; then
+  # SimHub valida el MD5 contra su copia de _Addons; se prefiere esa.
+  LMU_PLUGIN_SRC="$BOTTLE/drive_c/Program Files (x86)/SimHub/_Addons/GamePlugins/RFactor2/Bin64/Plugins/rFactor2SharedMemoryMapPlugin64.dll"
+  [[ -f "$LMU_PLUGIN_SRC" ]] || LMU_PLUGIN_SRC="$BRIDGE/rFactor2SharedMemoryMapPlugin64.dll"
+  python3 "$BRIDGE/ensure_lmu_plugin.py" "$LMU_GAME_DIR" "$LMU_PLUGIN_SRC" \
+    "$BOTTLE/drive_c/Program Files (x86)/SimHub" || \
+    echo "AVISO: no se pudo activar el plugin SMMP en LMU." >&2
+fi
+
 if [[ "${SOLO_CONFIG:-0}" == 1 ]]; then
   echo "Configuracion aplicada."
   exit 0
@@ -304,7 +331,26 @@ if [[ "$DO_HF8" == 1 ]]; then
   fi
 fi
 
+start_raw_sender() {
+  local pidfile="$RUN_DIR/raw.pid"
+  if pid_alive "$pidfile"; then
+    echo "emisor crudo ya esta en marcha (PID $(cat "$pidfile"))."
+    return 0
+  fi
+  rm -f "$pidfile"
+  if [[ ! -x "$SENDER_EXE" ]]; then
+    echo "AVISO: falta $SENDER_EXE; se usara solo el emisor clasico." >&2
+    return 0
+  fi
+  setsid env WINEPREFIX="$LMU_PFX" WINEDEBUG=-all "$LMU_WINE" "$SENDER_EXE" \
+    --sender --udp "127.0.0.1:$PORT" --hz "$HZ" --smmp-hz "$SMMP_HZ" \
+    >"$RUN_DIR/raw.log" 2>&1 < /dev/null &
+  echo "$!" > "$pidfile"
+  echo "emisor crudo arrancado (PID $!, log $RUN_DIR/raw.log)."
+}
+
 start_process sender "$LMU_PFX" "$LMU_WINE" "${SENDER_ARGS[@]}" || fail "no se pudo arrancar el emisor"
+start_raw_sender
 
 if real_lmu_running; then
   if wait_for_log "$RUN_DIR/receiver.log" "LMU_Data publicado" 15; then

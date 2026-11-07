@@ -118,10 +118,19 @@ pub fn compat_prefix(app_id: u32, preferred_library: &Path) -> Option<PathBuf> {
 /// Nombre de la herramienta de compatibilidad usada por el juego.
 ///
 /// Orden de prioridad:
-///   1. `compatdata/<appid>/config_info` (lo que Steam ejecuto de verdad)
-///   2. `CompatToolMapping` del juego en `config/config.vdf`
+///   1. `CompatToolMapping` del juego en `config/config.vdf` (nombre real del
+///      runner elegido en Steam)
+///   2. `compatdata/<appid>/config_info` (puede ser una version, no un nombre)
 ///   3. mapping global (`0`) de Steam
+///
+/// En Steam 2026 el `config_info` de algunos juegos contiene algo como
+/// `11.0-100` (version) en vez del nombre del runner; si se usa primero,
+/// `resolve_proton` no encuentra nada y ETOL acaba usando el wine de Bottles.
 pub fn compat_tool(app_id: u32, preferred_library: &Path) -> Option<String> {
+    if let Some(tool) = compat_tool_from_mapping(app_id) {
+        return Some(tool);
+    }
+
     let mut candidates = vec![preferred_library.to_path_buf()];
     candidates.extend(libraries());
 
@@ -136,7 +145,58 @@ pub fn compat_tool(app_id: u32, preferred_library: &Path) -> Option<String> {
         }
     }
 
-    compat_tool_from_mapping(app_id).or_else(|| compat_tool_from_mapping(0))
+    compat_tool_from_mapping(0)
+}
+
+/// Directorio de Proton que usa el juego, combinando todas las fuentes.
+///
+/// `config_info` guarda, ademas de la version, las rutas reales del runner que
+/// se ejecuto (`.../Proton - Experimental/files/share/fonts/`). Es la pista mas
+/// fiable cuando `CompatToolMapping` todavia no tiene la entrada del juego.
+pub fn proton_for(app_id: u32, preferred_library: &Path) -> Option<PathBuf> {
+    if let Some(tool) = compat_tool_from_mapping(app_id) {
+        if let Some(dir) = resolve_proton(&tool) {
+            return Some(dir);
+        }
+    }
+
+    let mut candidates = vec![preferred_library.to_path_buf()];
+    candidates.extend(libraries());
+    for library in candidates {
+        let info = library
+            .join("steamapps")
+            .join("compatdata")
+            .join(app_id.to_string())
+            .join("config_info");
+        let Ok(text) = std::fs::read_to_string(&info) else {
+            continue;
+        };
+        if let Some(dir) = proton_from_runner_paths(&text) {
+            return Some(dir);
+        }
+        if let Some(tool) = text.lines().next().map(str::trim).filter(|t| !t.is_empty()) {
+            if let Some(dir) = resolve_proton(tool) {
+                return Some(dir);
+            }
+        }
+    }
+
+    compat_tool_from_mapping(0).and_then(|tool| resolve_proton(&tool))
+}
+
+/// Extrae el directorio de Proton de las rutas de `config_info`.
+fn proton_from_runner_paths(text: &str) -> Option<PathBuf> {
+    for line in text.lines() {
+        let line = line.trim();
+        let Some(index) = line.find("/files/") else {
+            continue;
+        };
+        let path = PathBuf::from(&line[..index]);
+        if path.join("files/bin/wine").is_file() || path.join("proton").is_file() {
+            return Some(path);
+        }
+    }
+    None
 }
 
 fn compat_tool_from_mapping(app_id: u32) -> Option<String> {
@@ -200,6 +260,19 @@ pub fn resolve_proton(tool: &str) -> Option<PathBuf> {
             score = score.max(4);
         } else if version.contains(tool) {
             score = score.max(3);
+        } else if score == 0 {
+            // Steam a veces deja en config_info una version ("11.0-100") en
+            // vez del nombre del runner. Se compara el prefijo numerico con
+            // el fichero version (Proton Experimental: experimental-11.0-...).
+            if let Some(prefix) = tool.split('-').next() {
+                let numeric = !prefix.is_empty()
+                    && prefix
+                        .chars()
+                        .all(|c| c.is_ascii_digit() || c == '.');
+                if numeric && version.contains(prefix) {
+                    score = 1;
+                }
+            }
         }
 
         // Steam a veces anota un nombre de build (por ejemplo `CachyOS-11.0-100`)

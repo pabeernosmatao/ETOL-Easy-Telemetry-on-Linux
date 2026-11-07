@@ -1,6 +1,6 @@
 # ETOL · Guía de uso
 
-[English](GUIDE.md) · **Español** · Versión 0.3.4
+[English](GUIDE.md) · **Español** · Versión 0.3.18
 
 Todo lo que hace ETOL, cómo preparar SimHub y CrewChief desde cero y cómo
 sacarle partido a cada simulador.
@@ -42,8 +42,8 @@ clic. No modifica los juegos.
 ### Abrir el AppImage
 
 ```bash
-chmod +x ETOL-0.3.4-linux-x86_64-portable.AppImage
-./ETOL-0.3.4-linux-x86_64-portable.AppImage
+chmod +x ETOL-0.3.18-linux-x86_64-portable.AppImage
+./ETOL-0.3.18-linux-x86_64-portable.AppImage
 ```
 
 La variante **portable** usa el WebKit del sistema y necesita
@@ -151,6 +151,7 @@ desactiva la regla de KWin de los dashboards.
 | Assetto Corsa EVO | memoria compartida | SimHub + CrewChief | |
 | Assetto Corsa | memoria compartida | SimHub + CrewChief | |
 | rFactor 2 | memoria compartida | SimHub + CrewChief | incluye el plugin SMMP |
+| RaceRoom Racing Experience | memoria compartida (`$R3E`) | SimHub + CrewChief | espejo crudo por UDP 8777 |
 | DiRT Rally 2.0 | UDP (relay 20777) | SimHub + CrewChief | `extradata=3` |
 | Euro Truck Simulator 2 | Linux nativo, `/dev/shm` | SimHub | instala el plugin SCS |
 | BeamNG.drive | Linux nativo, OutGauge UDP | SimHub | |
@@ -174,6 +175,12 @@ Los dashboards sobre el juego son una **regla de KWin** que coloca la ventana de
 SimHub encima del simulador. En Plasma funciona **con o sin gamescope**; no es
 necesario usar gamescope. GNOME y niri no implementan esa regla, así que allí
 ETOL ofrece telemetría y apps, pero no el overlay.
+
+ETOL instala solo un **icono de grupo** para SimHub y CrewChief (CrewChief
+arriba, SimHub abajo) y su entrada `.desktop` para la clase de ventana
+`steam_proton`, de modo que el panel muestra un único icono con las dos mitades
+en lugar del icono de CrewChief. Se crea al arrancar; no hay que ejecutar nada a
+mano.
 
 ---
 
@@ -257,5 +264,5 @@ de Bottles y los juegos no se tocan.
 | Descargas de instaladores | `~/Descargas/ETOL/` |
 
 ETOL no guarda nada dentro de la carpeta de Steam ni de los juegos, salvo los
-plugins que el usuario pide instalar (SCS en ETS2 y SMMP en rFactor 2) y los
-ficheros de configuración que cada juego espera.
+plugins que el usuario pide instalar (SCS en ETS2 y SMMP en rFactor 2 y
+Le Mans Ultimate) y los ficheros de configuración que cada juego espera.

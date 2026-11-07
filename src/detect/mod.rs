@@ -88,6 +88,17 @@ pub const GAMES: &[GameDef] = &[
         plugin: None,
     },
     GameDef {
+        id: "r3e",
+        name: "RaceRoom Racing Experience",
+        app_id: 211_500,
+        exes: &["Game/x64/RRRE64.exe", "RRRE64.exe", "RRRE.exe"],
+        run_subdir: "r3e_mirror",
+        port: 8777,
+        apps: APPS_UDP,
+        native: false,
+        plugin: None,
+    },
+    GameDef {
         id: "dirt2",
         name: "DiRT Rally 2.0",
         app_id: 690_790,
@@ -216,6 +227,57 @@ pub fn app_dir_override() -> Option<&'static PathBuf> {
 static APP_DIR_OVERRIDE: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
 
 
+/// Relee solo el runner de Steam de los juegos ya instalados. Es barato y se
+/// usa al arrancar para detectar si Steam cambio el Proton desde la ultima
+/// configuracion.
+pub fn refresh_compat(cfg: &mut Config) -> bool {
+    let mut changed = false;
+    for def in GAMES {
+        if def.native {
+            continue;
+        }
+        let Some(game) = cfg.games.get_mut(def.id) else {
+            continue;
+        };
+        if !game.installed {
+            continue;
+        }
+        let Some(path) = game.path.as_ref() else {
+            continue;
+        };
+        let library = path
+            .parent()
+            .and_then(Path::parent)
+            .and_then(Path::parent)
+            .unwrap_or(path);
+        let proton = steam::proton_for(def.app_id, library);
+        let wine = proton
+            .as_ref()
+            .map(|dir| dir.join("files/bin/wine"))
+            .filter(|path| path.is_file());
+        if let Some(proton) = proton {
+            // Un cambio real de runner: se actualiza.
+            if game.proton.as_ref() != Some(&proton) || game.wine != wine {
+                game.proton = Some(proton);
+                game.wine = wine;
+                changed = true;
+            }
+        } else if game
+            .proton
+            .as_ref()
+            .map(|path| !path.exists())
+            .unwrap_or(false)
+        {
+            // El runner anterior ya no existe: se limpia. Si solo es que
+            // Steam aun no ha escrito el cambio, se conserva el anterior.
+            game.proton = None;
+            game.wine = None;
+            changed = true;
+        }
+    }
+    changed
+}
+
 pub fn detect() -> Config {
     let previous = Config::load().ok();
     let scan_usb = previous
@@ -258,9 +320,7 @@ pub fn detect() -> Config {
 
             game.prefix = steam::compat_prefix(def.app_id, &entry.library);
 
-            if let Some(tool) = steam::compat_tool(def.app_id, &entry.library) {
-                game.proton = steam::resolve_proton(&tool);
-            }
+            game.proton = steam::proton_for(def.app_id, &entry.library);
             if let Some(proton) = &game.proton {
                 let wine = proton.join("files/bin/wine");
                 if wine.is_file() {

@@ -36,7 +36,9 @@ ETOL. Solo lee la telemetría del SDK de SCS.
 | Texto | `vendor/rFactor2SharedMemoryMapPlugin64.LICENSE.txt` |
 
 El plugin se distribuye **sin modificar** dentro del payload (y por tanto del
-AppImage). Su código fuente está disponible en el repositorio indicado.
+AppImage). ETOL lo copia a la carpeta del juego cuando el usuario configura
+rFactor 2 o Le Mans Ultimate. Su código fuente está disponible en el repositorio
+indicado.
 
 Si redistribuyes ETOL o el AppImage, debes:
 

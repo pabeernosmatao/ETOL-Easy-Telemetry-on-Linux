@@ -252,7 +252,7 @@
               stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
       <span>ETOL</span>
-      <span class="badge">versión 0.3.4</span>
+      <span class="badge">versión 0.3.18</span>
     </div>
     <h1>Guía de <span class="grad">uso</span></h1>
     <p class="lead">
@@ -298,8 +298,8 @@
   </ul>
 
   <h3>Abrir el AppImage</h3>
-  <pre><code>chmod +x ETOL-0.3.4-linux-x86_64-portable.AppImage
-./ETOL-0.3.4-linux-x86_64-portable.AppImage</code></pre>
+  <pre><code>chmod +x ETOL-0.3.18-linux-x86_64-portable.AppImage
+./ETOL-0.3.18-linux-x86_64-portable.AppImage</code></pre>
   <p class="small muted">La variante <strong>portable</strong> usa el WebKit del
   sistema y necesita <code>libwebkit2gtk-4.1</code> y <code>libgtk-3</code>. La
   variante <strong>full</strong> lo lleva todo dentro y pide glibc 2.44 o
@@ -451,6 +451,7 @@
       <tr><td><strong>Assetto Corsa EVO</strong></td><td>memoria compartida</td><td>SimHub + CrewChief</td><td></td></tr>
       <tr><td><strong>Assetto Corsa</strong></td><td>memoria compartida</td><td>SimHub + CrewChief</td><td></td></tr>
       <tr><td><strong>rFactor 2</strong></td><td>memoria compartida</td><td>SimHub + CrewChief</td><td>incluye el plugin SMMP</td></tr>
+      <tr><td><strong>RaceRoom Racing Experience</strong></td><td>memoria compartida (<code>$R3E</code>)</td><td>SimHub + CrewChief</td><td>espejo crudo por UDP 8777</td></tr>
       <tr><td><strong>DiRT Rally 2.0</strong></td><td>UDP (relay 20777)</td><td>SimHub + CrewChief</td><td><code>extradata=3</code></td></tr>
       <tr><td><strong>Euro Truck Simulator 2</strong></td><td>Linux nativo, <code>/dev/shm</code></td><td>SimHub</td><td>instala el plugin SCS</td></tr>
       <tr><td><strong>BeamNG.drive</strong></td><td>Linux nativo, OutGauge UDP</td><td>SimHub</td><td></td></tr>
@@ -486,6 +487,12 @@
   KStatusNotifierItem Support» no hay bandeja: ETOL abre igual y lo avisa en el
   log. En niri, el icono lo pinta la barra (Waybar, Noctalia…); si la barra
   arranca después que ETOL, este reintenta registrarse durante un minuto.</p>
+
+  <p class="small muted">ETOL instala solo un <strong>icono de grupo</strong>
+  para SimHub y CrewChief (CrewChief arriba, SimHub abajo) y su entrada
+  <code>.desktop</code> para la clase de ventana <code>steam_proton</code>. Así
+  el panel muestra un único icono con las dos mitades en lugar del icono de
+  CrewChief. Se crea al arrancar; no hay que ejecutar nada a mano.</p>
 </section>
 
 <section id="hf8">
@@ -584,14 +591,15 @@
   </table>
   <p class="small muted">ETOL no guarda nada dentro de la carpeta de Steam ni de
   los juegos, salvo los plugins que el usuario pide instalar (SCS en ETS2 y SMMP
-  en rFactor 2) y los ficheros de configuración que cada juego espera.</p>
+  en rFactor 2 y Le Mans Ultimate) y los ficheros de configuración que cada
+  juego espera.</p>
 </section>
 
 </main>
 
 <footer>
   <div class="wrap">
-    <span>ETOL · Easy Telemetry On Linux · 0.3.4 · MIT</span>
+    <span>ETOL · Easy Telemetry On Linux · 0.3.18 · MIT</span>
     <span>
       <a href="https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux">GitHub</a> ·
       <a href="https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux/blob/main/README.es.md">README</a> ·

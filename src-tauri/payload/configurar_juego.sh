@@ -10,9 +10,9 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 game="${1:-}"
 
 case "$game" in
-  lmu|ams2|acevo|assetto|rf2|dirt2|ets2|beamng) ;;
+  lmu|ams2|acevo|assetto|rf2|r3e|dirt2|ets2|beamng) ;;
   *)
-    echo "uso: $0 <lmu|ams2|acevo|assetto|rf2|dirt2|ets2|beamng>" >&2
+    echo "uso: $0 <lmu|ams2|acevo|assetto|rf2|r3e|dirt2|ets2|beamng>" >&2
     exit 2
     ;;
 esac

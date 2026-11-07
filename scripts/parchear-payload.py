@@ -43,6 +43,15 @@ def guard(var: str, env: str, message: str, command: str) -> str:
 
 # (texto original, texto nuevo)
 REPLACEMENTS: list[tuple[str, str]] = [
+    # RaceRoom en el selector de juegos del configurador.
+    (
+        "  lmu|ams2|acevo|assetto|rf2|dirt2|ets2|beamng) ;;",
+        "  lmu|ams2|acevo|assetto|rf2|r3e|dirt2|ets2|beamng) ;;",
+    ),
+    (
+        "uso: $0 <lmu|ams2|acevo|assetto|rf2|dirt2|ets2|beamng>",
+        "uso: $0 <lmu|ams2|acevo|assetto|rf2|r3e|dirt2|ets2|beamng>",
+    ),
     # Botella y wine de Bottles: nunca un nombre fijo.
     (
         'BOTTLE="${SIMHUB_BOTTLE:-$HOME/.local/share/bottles/bottles/simhub}"',
@@ -169,9 +178,10 @@ REPLACEMENTS: list[tuple[str, str]] = [
         '        lambda match: match.group(1) + literal, text, count=1\n'
         '    )',
     ),
-    # CrewChief (LMU): la "instalacion" que ve es el espejo, donde el puente
-    # publica los buffers y donde se copian los plugins del juego real. El
-    # autodetectado se apaga: el stub no tiene ventana y CrewChief se quedaba
+    # CrewChief (LMU): la ruta de instalacion debe ser la del juego real, no la
+    # del espejo. CrewChief la usa para buscar el plugin SMMP y, si apunta al
+    # espejo (Z:\tmp\etol\lmu_mirror), pregunta si instalarlo en cada arranque.
+    # El autodetectado se apaga: el stub no tiene ventana y CrewChief se quedaba
     # esperando; con run_immediately arranca directo en el juego configurado.
     (
         '        "last_game_definition": "LMU",\n'
@@ -179,13 +189,32 @@ REPLACEMENTS: list[tuple[str, str]] = [
         '        "enable_lmu_rf2_plugin_dll_check": "False",\n'
         '        "run_immediately": "True",\n',
         '        "last_game_definition": "LMU",\n'
-        '        "lmu_install_path": "Z:" + os.environ.get(\n'
-        '            "LMU_MIRROR_RUN_DIR", "/tmp/etol/lmu_mirror"\n'
-        '        ).replace("/", "\\\\"),\n'
+        '        "lmu_install_path": "C:\\\\Program Files (x86)\\\\Steam\\\\steamapps\\\\common\\\\Le Mans Ultimate",\n'
         '        "use_legacy_rf2_shared_memory_filenames": "False",\n'
         '        "enable_lmu_rf2_plugin_dll_check": "False",\n'
+        '        "enable_automatic_plugin_update": "False",\n'
         '        "enable_auto_detect": "False",\n'
         '        "run_immediately": "True",\n',
+    ),
+    # SimHub: si la entrada LMU se crea desde cero, el lanzador queda a null.
+    # Se rellena con el lanzador de Steam por defecto (sin rutas ni argumentos)
+    # para que la ficha no aparezca como "sin configurar".
+    (
+        '        CHANGES.append("SimHub: LMU marcado como juego preferente (OrderEx=1)")\n',
+        '        CHANGES.append("SimHub: LMU marcado como juego preferente (OrderEx=1)")\n'
+        '\n'
+        '    if not games["LMU"].get("LauncherSetting"):\n'
+        '        games["LMU"]["LauncherSetting"] = json.dumps({\n'
+        '            "SteamLauncherMode": 0,\n'
+        '            "UseDefault": True,\n'
+        '            "UseCustom": False,\n'
+        '            "UseEpic": False,\n'
+        '            "CustomPath": None,\n'
+        '            "CustomArguments": None,\n'
+        '            "SelectedSteamStartupOption": None,\n'
+        '        }, indent=2)\n'
+        '        save_json(game_path, games)\n'
+        '        CHANGES.append("SimHub: LMU con lanzador por defecto")\n',
     ),
     # AMS2 y ACEVO: mismo criterio que LMU. Sin autodetectado no hay aviso de
     # "install path incorrect" por el stub, y run_immediately arranca el modo.
@@ -203,10 +232,13 @@ REPLACEMENTS: list[tuple[str, str]] = [
     ),
     # El perfil JSON manda sobre el .config: apagar el autodetectado tambien
     # aqui evita que CrewChief pregunte por la ruta del stub cada arranque.
+    # enable_automatic_plugin_update=False evita el aviso de instalar el plugin.
     (
         '        "enable_lmu_rf2_plugin_dll_check": False,\n'
         '        "use_legacy_rf2_shared_memory_filenames": False,\n',
         '        "enable_lmu_rf2_plugin_dll_check": False,\n'
+        '        "enable_automatic_plugin_update": False,\n'
+        '        "lmu_install_path": "C:\\\\Program Files (x86)\\\\Steam\\\\steamapps\\\\common\\\\Le Mans Ultimate",\n'
         '        "use_legacy_rf2_shared_memory_filenames": False,\n'
         '        "enable_auto_detect": False,\n',
     ),
@@ -253,6 +285,33 @@ REPLACEMENTS: list[tuple[str, str]] = [
 # CrewChief guarda el ultimo juego en el user.config por usuario, que tiene
 # prioridad sobre CrewChiefV4.exe.config. Los configure_apps*.py originales solo
 # tocan el .config, asi que el juego activo se queda en el ultimo abierto a mano.
+LIMIT_HELPER = '''
+def fix_limit_available_games() -> None:
+    """Restaura la lista de juegos de CrewChief si quedo con uno solo.
+
+    Una lista vacia significa "todos". ETOL pudo escribir un unico juego
+    (por ejemplo ASSETTO_EVO) y CrewChief solo mostraba ese. Se limpia.
+    """
+    profiles = BOTTLE / "drive_c/users/steamuser/Documents/CrewChiefV4/Profiles"
+    if not profiles.exists():
+        return
+    for path in sorted(profiles.glob("*.json")):
+        data = load_json(path, None)
+        if not isinstance(data, dict):
+            continue
+        user_settings = data.get("userSettings")
+        if not isinstance(user_settings, dict):
+            continue
+        raw = str(user_settings.get("limit_available_games", "")).strip()
+        available = [item.strip() for item in raw.split(",") if item.strip()]
+        if len(available) == 1:
+            user_settings["limit_available_games"] = ""
+            save_json(path, data)
+            CHANGES.append(f"CrewChief: lista de juegos restaurada en {path.name}")
+
+'''
+
+
 USER_CONFIG_HELPER = '''
 def configure_crewchief_user_config() -> None:
     """Aplica el juego activo al user.config de CrewChief.
@@ -273,6 +332,9 @@ def configure_crewchief_user_config() -> None:
         "lmu_install_path",
         "enable_auto_detect",
         "run_immediately",
+        "enable_lmu_rf2_plugin_dll_check",
+        "enable_automatic_plugin_update",
+        "lmu_enable_pit_manager",
     ):
         match = re.search(
             r'<setting\\s+name="' + re.escape(name) + r'"\\s+serializeAs="String">\\s*'
@@ -301,7 +363,7 @@ def configure_crewchief_user_config() -> None:
         write_atomic(user_config, new_text)
         CHANGES.append(
             f"CrewChief: user.config de {user_config.parent.name} "
-            f"({', '.join(values)})"
+            f"({', '.join(n for n in values if n != 'lmu_install_path')})"
         )
 
 '''
@@ -334,12 +396,14 @@ def configure_crewchief_profile(game_id: str = "") -> None:
                 user_settings[name] = value
                 changed = True
         if game_id:
-            available = [
-                item.strip()
-                for item in str(user_settings.get("limit_available_games", "")).split(",")
-                if item.strip()
-            ]
-            if game_id not in available:
+            raw = str(user_settings.get("limit_available_games", "")).strip()
+            available = [item.strip() for item in raw.split(",") if item.strip()]
+            if len(available) == 1:
+                # ETOL pudo convertir una lista vacia (todos) en una lista de
+                # un solo juego; CrewChief solo mostraba ese juego.
+                user_settings["limit_available_games"] = ""
+                changed = True
+            elif available and game_id not in available:
                 available.append(game_id)
                 user_settings["limit_available_games"] = ",".join(available)
                 changed = True
@@ -356,7 +420,12 @@ def configure_crewchief_profile(game_id: str = "") -> None:
 # de errores cada ~13 s. Se activa solo cuando se lanza LMU.
 SIMHUB_PLUGIN_HELPER = '''
 def configure_simhub_plugins(enable_lmu: bool) -> None:
-    """Activa o desactiva el plugin LMU de SimHub."""
+    """Activa o desactiva el plugin LMU de SimHub.
+
+    SimHub 9.x usa `doX.doX_LMU_SessionDataPlugin`; las versiones antiguas
+    usaban `LMU_SessionDataPlugin.LMU_SessionDataPlugin`. Se activa el que
+    exista, sin tocar los demas plugins del juego.
+    """
     path = (
         BOTTLE
         / "drive_c/Program Files (x86)/SimHub/PluginsData/PluginsActivation.json"
@@ -366,20 +435,77 @@ def configure_simhub_plugins(enable_lmu: bool) -> None:
     data = load_json(path, None)
     if not isinstance(data, list):
         return
+    primary = "doX.doX_LMU_SessionDataPlugin"
+    legacy = "LMU_SessionDataPlugin.LMU_SessionDataPlugin"
+    names = {
+        entry.get("ClassName")
+        for entry in data
+        if isinstance(entry, dict)
+    }
+    target = primary if primary in names else legacy if legacy in names else ""
+    if not target:
+        return
     changed = False
     for entry in data:
-        if not isinstance(entry, dict):
+        if not isinstance(entry, dict) or entry.get("ClassName") != target:
             continue
-        if entry.get("ClassName") == "LMU_SessionDataPlugin.LMU_SessionDataPlugin":
-            if entry.get("IsEnabled") is not enable_lmu:
-                entry["IsEnabled"] = enable_lmu
-                changed = True
+        if entry.get("IsEnabled") is not enable_lmu:
+            entry["IsEnabled"] = enable_lmu
+            changed = True
     if changed:
         save_json(path, data)
         estado = "activado" if enable_lmu else "desactivado"
-        CHANGES.append(f"SimHub: LMU SessionDataPlugin {estado}")
+        CHANGES.append(f"SimHub: {target.split('.')[-1]} {estado}")
 
 '''
+
+def patch_limit_helper(path: Path) -> tuple[int, bool]:
+    """Inserta fix_limit_available_games() en configure_apps*.py."""
+    text = path.read_text(encoding="utf-8")
+    if "def fix_limit_available_games(" in text:
+        return 0, True
+    anchor = "\ndef configure_crewchief() -> None:"
+    main_anchor = "\n\ndef main() -> int:"
+    if anchor not in text or main_anchor not in text:
+        return 0, False
+    text = text.replace(anchor, LIMIT_HELPER + anchor, 1)
+    text = text.replace(main_anchor, "\n    fix_limit_available_games()\n" + main_anchor, 1)
+    path.write_text(text, encoding="utf-8")
+    return 2, True
+
+
+def patch_limit_available_games(path: Path) -> tuple[int, bool]:
+    """Evita que una lista vacia se convierta en un solo juego en .config."""
+    text = path.read_text(encoding="utf-8")
+    import re
+
+    match = re.search(r'"last_game_definition":\s*"([A-Z0-9_]+)"', text)
+    game_id = match.group(1) if match else ""
+    if not game_id:
+        return 0, True
+    old = (
+        "    if m:\n"
+        '        games = [x.strip() for x in m.group(2).split(",") if x.strip()]\n'
+        f'        if "{game_id}" not in games:\n'
+        f'            games.append("{game_id}")\n'
+        '            text = text[:m.start(2)] + ",".join(games) + text[m.end(2):]\n'
+    )
+    new = (
+        "    if m:\n"
+        '        games = [x.strip() for x in m.group(2).split(",") if x.strip()]\n'
+        f'        if games == ["{game_id}"]:\n'
+        '            text = text[:m.start(2)] + "" + text[m.end(2):]\n'
+        f'        elif games and "{game_id}" not in games:\n'
+        f'            games.append("{game_id}")\n'
+        '            text = text[:m.start(2)] + ",".join(games) + text[m.end(2):]\n'
+    )
+    if new in text:
+        return 0, True
+    if old not in text:
+        return 0, False
+    path.write_text(text.replace(old, new, 1), encoding="utf-8")
+    return 1, True
+
 
 def patch_configure_apps(path: Path) -> tuple[int, bool]:
     """Anade el ajuste del user.config a un configure_apps*.py."""
@@ -631,6 +757,139 @@ def patch_activation_script(path: Path) -> tuple[int, bool]:
     return changes, True
 
 
+def patch_lmu_raw_sender(path: Path) -> tuple[int, bool]:
+    """Arranca el emisor crudo junto al emisor clasico."""
+    text = path.read_text(encoding="utf-8")
+    if "lmu_shm_sender.exe" in text:
+        return 0, True
+    changes = 0
+    old = 'EXE="$BRIDGE/lmu_shm_mirror.exe"\n'
+    if old in text:
+        text = text.replace(
+            old,
+            old + 'SENDER_EXE="$BRIDGE/lmu_shm_sender.exe"\n',
+            1,
+        )
+        changes += 1
+    marker = 'start_process sender "$LMU_PFX" "$LMU_WINE" "${SENDER_ARGS[@]}" || fail "no se pudo arrancar el emisor"\n'
+    if marker in text:
+        block = '''start_raw_sender() {
+  local pidfile="$RUN_DIR/raw.pid"
+  if pid_alive "$pidfile"; then
+    echo "emisor crudo ya esta en marcha (PID $(cat "$pidfile"))."
+    return 0
+  fi
+  rm -f "$pidfile"
+  if [[ ! -x "$SENDER_EXE" ]]; then
+    echo "AVISO: falta $SENDER_EXE; se usara solo el emisor clasico." >&2
+    return 0
+  fi
+  setsid env WINEPREFIX="$LMU_PFX" WINEDEBUG=-all "$LMU_WINE" "$SENDER_EXE" \\
+    --sender --udp "127.0.0.1:$PORT" --hz "$HZ" --smmp-hz "$SMMP_HZ" \\
+    >"$RUN_DIR/raw.log" 2>&1 < /dev/null &
+  echo "$!" > "$pidfile"
+  echo "emisor crudo arrancado (PID $!, log $RUN_DIR/raw.log)."
+}
+
+'''
+        text = text.replace(marker, block + marker + "start_raw_sender\n", 1)
+        changes += 1
+    if changes:
+        path.write_text(text, encoding="utf-8")
+    return changes, True
+
+
+def patch_lmu_watchdog(path: Path) -> tuple[int, bool]:
+    """El vigilante tambien relanza el emisor crudo."""
+    text = path.read_text(encoding="utf-8")
+    if "lmu_shm_sender.exe" in text:
+        return 0, True
+    changes = 0
+    old = 'EXE="$HERE/lmu_shm_mirror.exe"\n'
+    if old in text:
+        text = text.replace(old, old + 'RAW_EXE="$HERE/lmu_shm_sender.exe"\n', 1)
+        changes += 1
+    marker = '''  if [[ -z "$(mirror_pid sender)" ]]; then
+    start_mirror sender "$LMU_PFX" "$LMU_WINE" \\
+      --sender --udp "127.0.0.1:$PORT" --hz "$HZ" --smmp-hz "$SMMP_HZ"
+    sleep 1
+  fi
+'''
+    add = marker + '''  if [[ -x "$RAW_EXE" ]] && ! pgrep -f -- 'lmu_shm_sender\\.exe' >/dev/null 2>&1; then
+    setsid env WINEPREFIX="$LMU_PFX" WINEDEBUG=-all "$LMU_WINE" "$RAW_EXE" \\
+      --sender --udp "127.0.0.1:$PORT" --hz "$HZ" --smmp-hz "$SMMP_HZ" \\
+      >>"$RUN_DIR/raw.log" 2>&1 </dev/null &
+    echo "$!" >"$RUN_DIR/raw.pid"
+    log "emisor crudo relanzado (launcher PID $!)."
+    sleep 1
+  fi
+'''
+    if marker in text:
+        text = text.replace(marker, add, 1)
+        changes += 1
+    if changes:
+        path.write_text(text, encoding="utf-8")
+    return changes, True
+
+
+def patch_lmu_stop(path: Path) -> tuple[int, bool]:
+    """El script de parada tambien termina el emisor crudo."""
+    text = path.read_text(encoding="utf-8")
+    if "lmu_shm_sender" in text:
+        return 0, True
+    changes = 0
+    old = """  tr '\\0' ' ' < "/proc/$pid/cmdline" | grep -q 'lmu_shm_mirror\\.exe'"""
+    new = """  tr '\\0' ' ' < "/proc/$pid/cmdline" | grep -qE 'lmu_shm_mirror\\.exe|lmu_shm_sender\\.exe'"""
+    if old in text:
+        text = text.replace(old, new, 1)
+        changes += 1
+    old = "stop_pidfile sender\n"
+    if old in text:
+        text = text.replace(old, old + "stop_pidfile raw\n", 1)
+        changes += 1
+    old = """if pgrep -f -- 'lmu_shm_mirror\\.exe' >/dev/null 2>&1; then"""
+    if old in text:
+        text = text.replace(
+            old,
+            """if pgrep -f -- 'lmu_shm_mirror\\.exe|lmu_shm_sender\\.exe' >/dev/null 2>&1; then""",
+            1,
+        )
+        changes += 1
+    if changes:
+        path.write_text(text, encoding="utf-8")
+    return changes, True
+
+
+def patch_lmu_game_config(path: Path) -> tuple[int, bool]:
+    """Activa el plugin SMMP en el juego antes de salir con --solo-config.
+
+    SimHub solo da LMU por configurado si `CustomPluginVariables.JSON` tiene el
+    plugin activo. CrewChief usa la misma carpeta para comprobar el DLL.
+    """
+    text = path.read_text(encoding="utf-8")
+    if "ensure_lmu_plugin.py" in text:
+        return 0, True
+    marker = 'if [[ "${SOLO_CONFIG:-0}" == 1 ]]; then'
+    if marker not in text:
+        return 0, False
+    block = (
+        "# SimHub solo da LMU por configurado si el plugin SMMP esta activo en\n"
+        "# UserData/player/CustomPluginVariables.JSON; CrewChief ademas lo busca\n"
+        "# en Plugins/. Se hace con copia de seguridad y sin tocar el resto.\n"
+        'if [[ -n "$LMU_GAME_DIR" && -d "$LMU_GAME_DIR" ]]; then\n'
+        '  # SimHub valida el MD5 contra su copia de _Addons; se prefiere esa.\n'
+        '  LMU_PLUGIN_SRC="$BOTTLE/drive_c/Program Files (x86)/SimHub/_Addons/GamePlugins/RFactor2/Bin64/Plugins/rFactor2SharedMemoryMapPlugin64.dll"\n'
+        '  [[ -f "$LMU_PLUGIN_SRC" ]] || LMU_PLUGIN_SRC="$BRIDGE/rFactor2SharedMemoryMapPlugin64.dll"\n'
+        '  python3 "$BRIDGE/ensure_lmu_plugin.py" "$LMU_GAME_DIR" "$LMU_PLUGIN_SRC" \\\n'
+        '    "$BOTTLE/drive_c/Program Files (x86)/SimHub" || \\\n'
+        '    echo "AVISO: no se pudo activar el plugin SMMP en LMU." >&2\n'
+        "fi\n\n"
+    )
+    text = text.replace(marker, block + marker, 1)
+    path.write_text(text, encoding="utf-8")
+    return 1, True
+
+
 def patch_hf8_activation(path: Path) -> tuple[int, bool]:
     """Configura el HF8 al activar el puente, con el wineserver ya vivo."""
     text = path.read_text(encoding="utf-8")
@@ -848,7 +1107,7 @@ def main() -> int:
 
     # Aviso claro cuando el juego se abrio con otro Proton.
     for path in sorted(dest.glob("activar_puente_*.sh")):
-        if path.name in ("activar_puente_dirt2.sh", "activar_puente_ets2.sh", "activar_puente_beamng.sh"):
+        if path.name in ("activar_puente_dirt2.sh", "activar_puente_ets2.sh", "activar_puente_beamng.sh", "activar_puente_r3e.sh"):
             # dirt2 reparte UDP y ets2 lee /dev/shm: no usan shared memory de
             # Wine, asi que el aviso de "otro Proton" no aplica.
             continue
@@ -869,9 +1128,51 @@ def main() -> int:
         if count:
             touched += 1
             changes += count
+        if path.name == "activar_puente_r3e.sh":
+            # R3E no configura el HF8 en el puente; lo hace SimHub.
+            continue
         count, ok = patch_hf8_activation(path)
         if not ok:
             print(f"ERROR: no pude parchear {path}", file=sys.stderr)
+            return 1
+        if count:
+            touched += 1
+            changes += count
+
+    # LMU: el plugin SMMP tiene que estar activo en el juego para SimHub y
+    # CrewChief. Se hace en la copia del payload, nunca en el juego original.
+    lmu_activation = dest / "activar_puente_lmu.sh"
+    if lmu_activation.is_file():
+        count, ok = patch_lmu_game_config(lmu_activation)
+        if not ok:
+            print(f"ERROR: no pude parchear {lmu_activation}", file=sys.stderr)
+            return 1
+        if count:
+            touched += 1
+            changes += count
+        count, ok = patch_lmu_raw_sender(lmu_activation)
+        if not ok:
+            print(f"ERROR: no pude parchear el emisor crudo en {lmu_activation}", file=sys.stderr)
+            return 1
+        if count:
+            touched += 1
+            changes += count
+
+    lmu_watchdog = dest / "bridge" / "lmu_bridge_watchdog.sh"
+    if lmu_watchdog.is_file():
+        count, ok = patch_lmu_watchdog(lmu_watchdog)
+        if not ok:
+            print(f"ERROR: no pude parchear {lmu_watchdog}", file=sys.stderr)
+            return 1
+        if count:
+            touched += 1
+            changes += count
+
+    lmu_stop = dest / "desactivar_puente_lmu.sh"
+    if lmu_stop.is_file():
+        count, ok = patch_lmu_stop(lmu_stop)
+        if not ok:
+            print(f"ERROR: no pude parchear {lmu_stop}", file=sys.stderr)
             return 1
         if count:
             touched += 1
@@ -902,6 +1203,20 @@ def main() -> int:
         count, ok = patch_lmu_crewchief_profile(path)
         if not ok:
             print(f"ERROR: no pude parchear el perfil LMU de {path}", file=sys.stderr)
+            return 1
+        if count:
+            touched += 1
+            changes += count
+        count, ok = patch_limit_helper(path)
+        if not ok:
+            print(f"ERROR: no pude parchear la lista de juegos de {path}", file=sys.stderr)
+            return 1
+        if count:
+            touched += 1
+            changes += count
+        count, ok = patch_limit_available_games(path)
+        if not ok:
+            print(f"ERROR: no pude parchear limit_available_games de {path}", file=sys.stderr)
             return 1
         if count:
             touched += 1

@@ -2,7 +2,7 @@
 
 **English** · [Español](README.es.md) · [User guide](docs/GUIDE.md)
 
-[![Version](https://img.shields.io/badge/version-0.3.4-38e1b0)](https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux/releases)
+[![Version](https://img.shields.io/badge/version-0.3.18-38e1b0)](https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux/releases)
 [![License](https://img.shields.io/badge/license-MIT-4aa8ff)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Linux%20x86__64-8ea3b9)](#requirements)
 [![Tauri](https://img.shields.io/badge/Tauri-2-24c8db)](https://tauri.app)
@@ -63,6 +63,7 @@ The two installers are interactive (they are Windows installers), so you click
 | **Assetto Corsa EVO** | shared memory | SimHub + CrewChief | |
 | **Assetto Corsa** | shared memory | SimHub + CrewChief | |
 | **rFactor 2** | shared memory | SimHub + CrewChief | bundles the SMMP plugin |
+| **RaceRoom Racing Experience** | shared memory (`$R3E`) | SimHub + CrewChief | raw mirror over UDP 8777 |
 | **DiRT Rally 2.0** | UDP relay (20777) | SimHub + CrewChief | `extradata=3` |
 | **Euro Truck Simulator 2** | native Linux, `/dev/shm` | SimHub | installs the SCS plugin |
 | **BeamNG.drive** | native Linux, OutGauge UDP | SimHub | |
@@ -87,8 +88,8 @@ Planned: support for **DC2/DC3 pedals** (not implemented yet).
 Download the AppImage from the latest release and make it executable:
 
 ```bash
-chmod +x ETOL-0.3.4-linux-x86_64-portable.AppImage
-./ETOL-0.3.4-linux-x86_64-portable.AppImage
+chmod +x ETOL-0.3.18-linux-x86_64-portable.AppImage
+./ETOL-0.3.18-linux-x86_64-portable.AppImage
 ```
 
 Two builds are published. Both are **x86_64** (`amd64` is just Debian's name
@@ -96,8 +97,8 @@ for the same architecture); the difference is whether WebKit is bundled:
 
 | Build | Size | WebKit | glibc | When to use |
 |---|---|---|---|---|
-| `ETOL-0.3.4-linux-x86_64-portable.AppImage` | ~6 MB | system | 2.39+ | Ubuntu 26.04, Fedora, Arch, CachyOS. Needs `libwebkit2gtk-4.1` |
-| `ETOL-0.3.4-linux-x86_64-full.AppImage` | ~111 MB | bundled | 2.44+ | Everything included; current rolling and desktop distros |
+| `ETOL-0.3.18-linux-x86_64-portable.AppImage` | ~6 MB | system | 2.39+ | Ubuntu 26.04, Fedora, Arch, CachyOS. Needs `libwebkit2gtk-4.1` |
+| `ETOL-0.3.18-linux-x86_64-full.AppImage` | ~111 MB | bundled | 2.44+ | Everything included; current rolling and desktop distros |
 
 The portable build needs `libwebkit2gtk-4.1` and `libgtk-3`:
 
@@ -110,7 +111,7 @@ sudo pacman -S webkit2gtk-4.1 gtk3                 # Arch/CachyOS
 Without FUSE2:
 
 ```bash
-./ETOL-0.3.4-linux-x86_64-portable.AppImage --appimage-extract-and-run
+./ETOL-0.3.18-linux-x86_64-portable.AppImage --appimage-extract-and-run
 ```
 
 ## Requirements

@@ -39,6 +39,20 @@ if [[ -n "$LMU_GAME_DIR" && -d "$LMU_GAME_DIR" ]]; then
   cp -f "$LMU_GAME_DIR/UserData/player/CustomPluginVariables.JSON" \
         "$RUN_DIR/UserData/player/CustomPluginVariables.JSON" 2>/dev/null || true
 fi
+
+LMU_GAME_DIR="${LMU_GAME_DIR:-}"
+if [[ -z "$LMU_GAME_DIR" ]]; then
+  _lmu_lib="${LMU_PFX%/steamapps/compatdata/*}"
+  if [[ "$_lmu_lib" != "$LMU_PFX" ]]; then
+    LMU_GAME_DIR="$_lmu_lib/steamapps/common/Le Mans Ultimate"
+  fi
+fi
+if [[ -n "$LMU_GAME_DIR" && -d "$LMU_GAME_DIR" ]]; then
+  mkdir -p "$RUN_DIR/Plugins" "$RUN_DIR/UserData/player"
+  cp -f "$LMU_GAME_DIR/Plugins/"*.dll "$RUN_DIR/Plugins/" 2>/dev/null || true
+  cp -f "$LMU_GAME_DIR/UserData/player/CustomPluginVariables.JSON" \
+        "$RUN_DIR/UserData/player/CustomPluginVariables.JSON" 2>/dev/null || true
+fi
 LMU_GAME="${LMU_GAME:-$HOME/.local/share/Steam/steamapps/common/Le Mans Ultimate}"
 
 BOTTLE="${SIMHUB_BOTTLE:-}"

@@ -26,6 +26,7 @@ use etol::kwin;
 use etol::state;
 use etol::status::{self, Snapshot};
 
+mod grupo;
 mod payload;
 mod portcheck;
 
@@ -88,6 +89,7 @@ struct Bootstrap {
     first_run: bool,
     payload: payload::PayloadInfo,
     language: String,
+    version: String,
 }
 
 #[derive(Serialize)]
@@ -145,6 +147,11 @@ fn bootstrap_inner() -> Result<Bootstrap> {
         cfg = fresh;
     }
 
+    // SimHub necesita libraryfolders.vdf y appmanifest_*.acf para detectar
+    // los juegos. Se recrean en cada arranque si faltan (idempotente).
+    let links = detect::links::ensure(&cfg);
+    detect::links::log_report(&links);
+
     // Si la carpeta de scripts desaparecio (por ejemplo tras reinstalar el
     // sistema), usa la copia incluida en el AppImage o cualquier ruta valida.
     let mut changed = first_run || missing_game;
@@ -164,6 +171,13 @@ fn bootstrap_inner() -> Result<Bootstrap> {
             cfg.bridge.app_dir = Some(dir);
             changed = true;
         }
+    }
+
+    // Steam puede cambiar el runner de un juego entre arranques. Se relee sin
+    // repetir todo el escaneo; si cambia, la ficha vuelve a pedir configuracion.
+    if detect::refresh_compat(&mut cfg) {
+        logs::info("detect", "runner de Steam actualizado");
+        changed = true;
     }
 
     // Enlaces de Steam dentro de la botella (tambien al arrancar, no solo al
@@ -188,6 +202,7 @@ fn bootstrap_inner() -> Result<Bootstrap> {
         first_run,
         payload: payload::info(),
         language: i18n::code(i18n::current()).to_string(),
+        version: env!("CARGO_PKG_VERSION").to_string(),
     })
 }
 
@@ -215,6 +230,7 @@ async fn detect(app: tauri::AppHandle) -> Result<Bootstrap, String> {
             first_run: false,
             payload: payload::info(),
             language: i18n::code(i18n::current()).to_string(),
+            version: env!("CARGO_PKG_VERSION").to_string(),
         })
     })
     .await
@@ -248,6 +264,7 @@ async fn set_config(app: tauri::AppHandle, key: String, value: String) -> Result
             first_run: false,
             payload: payload::info(),
             language: i18n::code(i18n::current()).to_string(),
+            version: env!("CARGO_PKG_VERSION").to_string(),
         })
     })
     .await
@@ -1014,6 +1031,7 @@ fn spawn_daemon(app: tauri::AppHandle) {
         let mut overlay_error = false;
         // La configuracion solo se relee cuando cambia el fichero.
         let mut cached: Option<(Option<std::time::SystemTime>, Arc<Config>)> = None;
+        let mut last_diag: Option<std::time::Instant> = None;
         loop {
             std::thread::sleep(DAEMON_TICK);
             if QUITTING.load(Ordering::Relaxed) {
@@ -1039,6 +1057,23 @@ fn spawn_daemon(app: tauri::AppHandle) {
 
             // Un solo barrido de /proc por tick: lo usan KWin y el vigilante.
             let running = daemon::running_games(&cfg);
+            if running.is_empty()
+                && last_diag
+                    .map(|at: std::time::Instant| at.elapsed() > Duration::from_secs(60))
+                    .unwrap_or(true)
+            {
+                let candidates = daemon::undiscovered(&cfg);
+                if !candidates.is_empty() {
+                    for (game, cmdline) in candidates {
+                        let short: String = cmdline.chars().take(160).collect();
+                        logs::warn(
+                            "daemon",
+                            format!("{game}: proceso no reconocido: {short}"),
+                        );
+                    }
+                    last_diag = Some(std::time::Instant::now());
+                }
+            }
             let desired = cfg.overlays.kwin && !running.is_empty();
             if desired != overlay_on {
                 match kwin::set_enabled(desired) {
@@ -1303,6 +1338,61 @@ struct GameConfigRun {
     code: Option<i32>,
     script: String,
     output: String,
+    warnings: Vec<String>,
+}
+
+/// Avisos que deben verse en la ventana del engranaje (no solo en el log).
+fn lmu_config_warnings(cfg: &Config) -> Vec<String> {
+    let mut warnings = Vec::new();
+    let Some(game) = cfg.games.get("lmu") else {
+        return warnings;
+    };
+    let Some(dir) = &game.path else {
+        return warnings;
+    };
+
+    fn plugin_enabled(path: &std::path::Path) -> bool {
+        let Ok(text) = std::fs::read_to_string(path) else {
+            return false;
+        };
+        let Ok(value) = serde_json::from_str::<serde_json::Value>(&text) else {
+            return false;
+        };
+        value
+            .get("LMU.3.8.SharedMemoryMapPlugin.dll")
+            .and_then(|entry| entry.get(" Enabled"))
+            .and_then(|value| value.as_u64())
+            .map(|value| value == 1)
+            .unwrap_or(false)
+    }
+
+    let player = dir.join("UserData/player/CustomPluginVariables.JSON");
+    let global = dir.join("Plugins/CustomPluginVariables.JSON");
+    if !plugin_enabled(&player) && !plugin_enabled(&global) {
+        warnings.push(
+            "No se pudo activar LMU.3.8.SharedMemoryMapPlugin.dll.              Actívalo en LMU (o revisa los permisos de la carpeta del juego)."
+                .to_string(),
+        );
+    }
+    if !dir
+        .join("Plugins/LMU.3.8.SharedMemoryMapPlugin.dll")
+        .is_file()
+    {
+        warnings.push(
+            "El juego no tiene LMU.3.8.SharedMemoryMapPlugin.dll; actualiza LMU para              que CrewChief pueda recibir telemetría."
+                .to_string(),
+        );
+    }
+    let running = state::running_drive_exe("Le Mans Ultimate.exe")
+        .iter()
+        .any(|proc| !proc.cmdline.contains("lmu_mirror") && !proc.cmdline.contains("/tmp/etol"));
+    if running {
+        warnings.push(
+            "LMU está abierto. Si el plugin SMMP no estaba activo antes, cierra LMU y              vuelve a abrirlo para que lo cargue; si no, CrewChief no tendrá datos."
+                .to_string(),
+        );
+    }
+    warnings
 }
 
 /// Aplica solo la configuracion del juego (sin arrancar el puente ni apps).
@@ -1312,6 +1402,8 @@ async fn configure_game(game: String) -> Result<GameConfigRun, String> {
         let cfg = Config::load()?;
         detect::game_def(&game)
             .with_context(|| format!("juego desconocido: {game}"))?;
+        let links = detect::links::ensure(&cfg);
+        detect::links::log_report(&links);
         let app_dir = cfg
             .app_dir()
             .context("no se conoce la carpeta de scripts; usa Redetectar")?;
@@ -1343,7 +1435,7 @@ async fn configure_game(game: String) -> Result<GameConfigRun, String> {
         save_script_output("config", &game, &text);
         if ok {
             // El engranaje deja de estar rojo en cuanto la configuracion pasa.
-            status::mark_configured(&game);
+            status::mark_configured(&cfg, &game);
         }
         logs::info(
             "config",
@@ -1355,11 +1447,35 @@ async fn configure_game(game: String) -> Result<GameConfigRun, String> {
                 logs::error("config", format!("{game}: {summary}"));
             }
         }
+        let mut warnings = if game.eq_ignore_ascii_case("lmu") {
+            lmu_config_warnings(&cfg)
+        } else {
+            Vec::new()
+        };
+        let native = detect::game_def(&game)
+            .map(|def| def.native)
+            .unwrap_or(false);
+        if !game.eq_ignore_ascii_case("lmu")
+            && !native
+            && cfg
+                .games
+                .get(&game)
+                .map(|state| state.wine.is_none())
+                .unwrap_or(false)
+        {
+            let name = detect::game_def(&game)
+                .map(|def| def.name)
+                .unwrap_or(game.as_str());
+            warnings.push(format!(
+                "No se detectó el Proton de {name}. Se usará el wine de Bottles para configurar; si el puente no lee la memoria del juego, revisa el runner del juego en Steam."
+            ));
+        }
         Ok(GameConfigRun {
             ok,
             code: output.status.code(),
             script: script.display().to_string(),
             output: text,
+            warnings,
         })
     })
     .await
@@ -1463,6 +1579,10 @@ fn main() {
                     logs::info("payload", format!("arreglo: {fix}"));
                 }
             }
+
+            // Icono de grupo de SimHub + CrewChief: sin esto KDE muestra solo
+            // el icono de CrewChief en equipos nuevos.
+            grupo::ensure();
 
             let cfg = Config::load().unwrap_or_else(|error| {
                 logs::warn("gui", format!("configuracion no valida ({error}); redetecto"));

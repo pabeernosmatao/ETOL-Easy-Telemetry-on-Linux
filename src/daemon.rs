@@ -244,6 +244,48 @@ pub fn game_installed(cfg: &Config, def: &GameDef) -> bool {
             .unwrap_or(false)
 }
 
+/// Procesos que llevan el nombre del ejecutable de un juego pero que
+/// `game_running` no reconoce. Solo se usa para diagnostico: si un juego no
+/// arranca solo, el log dice que proceso se esta viendo.
+pub fn undiscovered(cfg: &Config) -> Vec<(String, String)> {
+    let stubs = stub_needles(cfg);
+    detect::GAMES
+        .iter()
+        .filter_map(|def| {
+            let game = cfg.games.get(def.id)?;
+            if !game.installed || game_running(cfg, def) {
+                return None;
+            }
+            let name = game
+                .exe
+                .as_ref()?
+                .file_name()?
+                .to_str()?
+                .to_ascii_lowercase();
+            if !name.ends_with(".exe") {
+                return None;
+            }
+            let proc = state::matching(&name).into_iter().find(|proc| {
+                let cmdline = proc.cmdline.to_lowercase();
+                !stubs.iter().any(|needle| cmdline.contains(needle))
+                    && !cmdline.contains("start.exe")
+                    && !is_shell_or_wrapper(&cmdline)
+            })?;
+            Some((def.id.to_string(), proc.cmdline))
+        })
+        .collect()
+}
+
+/// Envoltorios que solo mencionan el ejecutable en sus argumentos (una
+/// shell, un `pgrep`, un `wine`...). No sirven para diagnosticar nada.
+fn is_shell_or_wrapper(cmdline: &str) -> bool {
+    const WRAPPERS: &[&str] = &[
+        "bash", "sh -c", "zsh", "fish", "grep", "pgrep", "ps ", "python",
+        "wine", "wineserver", "proton", "steam.exe",
+    ];
+    WRAPPERS.iter().any(|wrapper| cmdline.contains(wrapper))
+}
+
 /// Proceso real del juego, excluyendo los stubs inertes que crea el puente.
 ///
 /// Los simuladores de Windows se detectan por su ruta de unidad Wine. Los
@@ -266,7 +308,18 @@ pub fn game_running(cfg: &Config, def: &GameDef) -> bool {
     };
 
     if name.to_ascii_lowercase().ends_with(".exe") {
-        return state::running_drive_exe(name).iter().any(real);
+        // Algunos juegos abren antes un lanzador con otro nombre (Assetto
+        // Corsa: `AssettoCorsa.exe` -> `acs.exe`). Mientras cualquiera de
+        // los ejecutables del juego siga vivo, el juego esta en marcha.
+        return def.exes.iter().any(|candidate| {
+            let Some(name) = Path::new(candidate)
+                .file_name()
+                .and_then(|name| name.to_str())
+            else {
+                return false;
+            };
+            state::running_drive_exe(name).iter().any(&real)
+        });
     }
 
     // Juego nativo: el proceso se llama igual que el binario, sin extension.

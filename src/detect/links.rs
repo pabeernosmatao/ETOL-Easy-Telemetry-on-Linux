@@ -20,11 +20,12 @@ pub struct Report {
     pub created: Vec<PathBuf>,
     pub skipped: Vec<String>,
     pub errors: Vec<String>,
+    pub metadata: bool,
 }
 
 impl Report {
     pub fn changed(&self) -> bool {
-        self.migrated.is_some() || !self.created.is_empty()
+        self.migrated.is_some() || !self.created.is_empty() || self.metadata
     }
 
     pub fn detail(&self) -> String {
@@ -34,6 +35,9 @@ impl Report {
         }
         if !self.created.is_empty() {
             parts.push(format!("{} juego(s) enlazados", self.created.len()));
+        }
+        if self.metadata {
+            parts.push("metadatos de Steam actualizados".to_string());
         }
         if !self.skipped.is_empty() {
             parts.push(format!("{} omitido(s)", self.skipped.len()));
@@ -66,8 +70,8 @@ fn steam_dir(program_files: &Path) -> PathBuf {
 }
 
 /// Juegos instalados con su ruta real, sin duplicados por nombre.
-fn installed_games(cfg: &Config) -> Vec<(String, PathBuf)> {
-    let mut out: Vec<(String, PathBuf)> = Vec::new();
+fn installed_games(cfg: &Config) -> Vec<(String, PathBuf, u32)> {
+    let mut out: Vec<(String, PathBuf, u32)> = Vec::new();
     for def in crate::detect::GAMES {
         let Some(game) = cfg.games.get(def.id) else {
             continue;
@@ -85,12 +89,98 @@ fn installed_games(cfg: &Config) -> Vec<(String, PathBuf)> {
             .file_name()
             .map(|value| value.to_string_lossy().to_string())
             .unwrap_or_default();
-        if name.is_empty() || out.iter().any(|(existing, _)| existing == &name) {
+        if name.is_empty()
+            || out
+                .iter()
+                .any(|(existing, _, _)| existing == &name)
+        {
             continue;
         }
-        out.push((name, path.clone()));
+        out.push((name, path.clone(), def.app_id));
     }
     out
+}
+
+/// Escribe los metadatos que SteamHelper.dll (SimHub) usa para detectar los
+/// juegos: `libraryfolders.vdf` y un `appmanifest_<id>.acf` por juego.
+///
+/// Sin estos ficheros SimHub no encuentra la ruta de instalación y muestra los
+/// juegos como no configurados, aunque existan los enlaces en `steamapps/common`.
+fn write_steam_metadata(steam: &Path, games: &[(String, PathBuf, u32)]) -> std::io::Result<()> {
+    let steamapps = steam.join("steamapps");
+    fs::create_dir_all(&steamapps)?;
+
+    let steam_name = steam
+        .file_name()
+        .map(|value| value.to_string_lossy().to_string())
+        .unwrap_or_else(|| "Steam".to_string());
+    let win_path = format!("C:\\\\Program Files (x86)\\\\{steam_name}");
+
+    let mut vdf = String::from("\"libraryfolders\"\n{\n\t\"0\"\n\t{\n");
+    vdf.push_str(&format!("\t\t\"path\"\t\t\"{win_path}\"\n"));
+    vdf.push_str("\t\t\"label\"\t\t\"\"\n");
+    vdf.push_str("\t\t\"contentid\"\t\t\"0\"\n");
+    vdf.push_str("\t\t\"totalsize\"\t\t\"0\"\n");
+    vdf.push_str("\t\t\"update_clean_bytes_tally\"\t\t\"0\"\n");
+    vdf.push_str("\t\t\"time_last_update_verified\"\t\t\"0\"\n");
+    vdf.push_str("\t\t\"apps\"\n\t\t{\n");
+    for (_, _, app_id) in games {
+        vdf.push_str(&format!("\t\t\t\"{app_id}\"\t\t\"0\"\n"));
+    }
+    vdf.push_str("\t\t}\n\t}\n}\n");
+
+    let vdf_path = steamapps.join("libraryfolders.vdf");
+    if let Ok(meta) = fs::symlink_metadata(&vdf_path) {
+        if meta.file_type().is_symlink() {
+            let _ = fs::remove_file(&vdf_path);
+        }
+    }
+    if fs::read_to_string(&vdf_path).ok().as_deref() != Some(vdf.as_str()) {
+        fs::write(&vdf_path, vdf)?;
+    }
+
+    for (name, path, app_id) in games {
+        let manifest = steamapps.join(format!("appmanifest_{app_id}.acf"));
+        let real = path
+            .parent()
+            .and_then(Path::parent)
+            .and_then(Path::parent)
+            .map(|library| {
+                library
+                    .join("steamapps")
+                    .join(format!("appmanifest_{app_id}.acf"))
+            });
+
+        if let Some(real) = real.filter(|manifest| manifest.is_file()) {
+            match fs::read_link(&manifest) {
+                Ok(current) if current == real => continue,
+                Ok(_) => {
+                    let _ = fs::remove_file(&manifest);
+                }
+                Err(_) => {
+                    if manifest.exists() {
+                        // Un ACF real: no se toca.
+                        continue;
+                    }
+                }
+            }
+            let _ = symlink(real, &manifest);
+        } else {
+            if let Ok(meta) = fs::symlink_metadata(&manifest) {
+                if meta.file_type().is_symlink() {
+                    let _ = fs::remove_file(&manifest);
+                } else {
+                    continue;
+                }
+            }
+            let acf = format!(
+                "\"AppState\"\n{{\n\t\"appid\"\t\t\"{app_id}\"\n\t\"name\"\t\t\"{name}\"\n\t\"StateFlags\"\t\t\"4\"\n\t\"installdir\"\t\t\"{name}\"\n}}\n"
+            );
+            fs::write(&manifest, acf)?;
+        }
+    }
+
+    Ok(())
 }
 
 /// Crea (o corrige) los enlaces de Steam dentro de la botella.
@@ -160,12 +250,20 @@ pub fn ensure(cfg: &Config) -> Report {
         return report;
     }
 
-    for (name, real) in games {
-        let target = common.join(&name);
+    if let Err(error) = write_steam_metadata(&steam, &games) {
+        report
+            .errors
+            .push(format!("no se pudieron escribir los metadatos de Steam: {error}"));
+    } else {
+        report.metadata = true;
+    }
+
+    for (name, real, _) in &games {
+        let target = common.join(name);
         match fs::symlink_metadata(&target) {
             Ok(meta) if meta.file_type().is_symlink() => {
                 let current = fs::read_link(&target).unwrap_or_default();
-                if current == real {
+                if current == *real {
                     continue;
                 }
                 if fs::remove_file(&target).is_err() {
@@ -174,7 +272,7 @@ pub fn ensure(cfg: &Config) -> Report {
                         .push(format!("no se pudo reemplazar {}", target.display()));
                     continue;
                 }
-                match symlink(&real, &target) {
+                match symlink(real, &target) {
                     Ok(()) => report.created.push(target),
                     Err(error) => report
                         .errors
@@ -186,7 +284,7 @@ pub fn ensure(cfg: &Config) -> Report {
                     .skipped
                     .push(format!("{} ya existe y no es un enlace", target.display()));
             }
-            Err(_) => match symlink(&real, &target) {
+            Err(_) => match symlink(real, &target) {
                 Ok(()) => report.created.push(target),
                 Err(error) => report
                     .errors
@@ -220,10 +318,10 @@ pub fn check(cfg: &Config) -> (usize, usize, Option<PathBuf>) {
         .then_some(steam.clone());
     let mut ok = 0usize;
     let mut missing = 0usize;
-    for (name, real) in games {
-        let target = steam.join("steamapps").join("common").join(&name);
+    for (name, real, _) in &games {
+        let target = steam.join("steamapps").join("common").join(name);
         match fs::read_link(&target) {
-            Ok(current) if current == real => ok += 1,
+            Ok(current) if current == *real => ok += 1,
             _ => missing += 1,
         }
     }
@@ -240,6 +338,9 @@ pub fn log_report(report: &Report) {
     }
     for path in &report.created {
         crate::logs::info("bottle-links", format!("creado {}", path.display()));
+    }
+    if report.metadata {
+        crate::logs::info("bottle-links", "metadatos de Steam actualizados");
     }
     for item in &report.skipped {
         crate::logs::warn("bottle-links", item);

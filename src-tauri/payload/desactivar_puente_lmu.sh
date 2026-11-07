@@ -64,7 +64,7 @@ stop_stub() {
 is_our_process() {
   local pid="$1"
   [[ -r "/proc/$pid/cmdline" ]] || return 1
-  tr '\0' ' ' < "/proc/$pid/cmdline" | grep -q 'lmu_shm_mirror\.exe'
+  tr '\0' ' ' < "/proc/$pid/cmdline" | grep -qE 'lmu_shm_mirror\.exe|lmu_shm_sender\.exe'
 }
 
 stop_pidfile() {
@@ -120,6 +120,7 @@ stop_watchdog
 stop_stub
 stop_pidfile receiver
 stop_pidfile sender
+stop_pidfile raw
 
 # Limpieza de procesos huerfanos (por ejemplo si se perdio el PID file).
 for mode in receiver sender; do
@@ -132,7 +133,7 @@ for mode in receiver sender; do
 done
 
 sleep 0.5
-if pgrep -f -- 'lmu_shm_mirror\.exe' >/dev/null 2>&1; then
+if pgrep -f -- 'lmu_shm_mirror\.exe|lmu_shm_sender\.exe' >/dev/null 2>&1; then
   echo "AVISO: aun queda algun proceso lmu_shm_mirror.exe; revisa pgrep -af lmu_shm_mirror." >&2
 else
   echo "Espejo, vigilante y stub de deteccion detenidos. LMU, SimHub y CrewChief no se han tocado."

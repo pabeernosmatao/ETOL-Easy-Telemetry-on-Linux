@@ -7,6 +7,9 @@ use std::path::{Path, PathBuf};
 pub struct Proc {
     pub pid: u32,
     pub cmdline: String,
+    /// Nombre del ejecutable segun `/proc/<pid>/comm` (el que ve Wine/Proton
+    /// para los procesos Windows, aunque la linea de comandos no lleve ruta).
+    pub comm: String,
 }
 
 #[derive(Debug, Clone)]
@@ -37,7 +40,10 @@ pub fn processes() -> Vec<Proc> {
             .replace('\0', " ")
             .trim()
             .to_string();
-        out.push(Proc { pid, cmdline });
+        let comm = std::fs::read_to_string(entry.path().join("comm"))
+            .map(|text| text.trim().to_string())
+            .unwrap_or_default();
+        out.push(Proc { pid, cmdline, comm });
     }
 
     out
@@ -73,12 +79,30 @@ pub fn running_windows_exe(needle: &str) -> Vec<Proc> {
 
 /// Como `running_windows_exe`, pero acepta cualquier unidad de Wine (`S:\`,
 /// `D:\`...). Los juegos de Steam suelen arrancar desde una unidad propia.
+///
+/// Tambien acepta el proceso si `/proc/<pid>/comm` es el ejecutable: algunos
+/// juegos (Assetto Corsa) se relanzan con `argv[0]` relativo (`acs.exe`) o a
+/// traves de un lanzador, y entonces la linea de comandos no empieza por
+/// unidad. `comm` es lo mismo que ve Wine para el nombre del proceso.
 pub fn running_drive_exe(needle: &str) -> Vec<Proc> {
+    let needle_lower = needle.to_lowercase();
     matching(needle)
         .into_iter()
         .filter(|proc| !proc.cmdline.contains("start.exe"))
-        .filter(|proc| is_windows_path(proc.cmdline.trim_start()))
+        .filter(|proc| {
+            comm_matches(&proc.comm, &needle_lower)
+                || is_windows_path(proc.cmdline.trim_start())
+        })
         .collect()
+}
+
+/// `comm` esta limitado a 15 caracteres en Linux.
+fn comm_matches(comm: &str, needle: &str) -> bool {
+    let comm = comm.trim().to_lowercase();
+    if comm.is_empty() {
+        return false;
+    }
+    comm == needle || (needle.len() > 15 && needle.starts_with(&comm))
 }
 
 fn is_windows_path(cmdline: &str) -> bool {

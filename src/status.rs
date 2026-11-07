@@ -97,11 +97,36 @@ pub fn configured_marker(game: &str) -> bool {
     configured_dir().join(game).is_file()
 }
 
+/// Huella del runner que se uso al configurar: Proton/wine o "native".
+fn game_fingerprint(game: &crate::config::Game) -> String {
+    if let Some(path) = &game.proton {
+        return path.display().to_string();
+    }
+    if let Some(path) = &game.wine {
+        return path.display().to_string();
+    }
+    "native".to_string()
+}
+
+/// Segunda linea de la marca (la huella). Las marcas antiguas solo tienen la
+/// fecha, asi que no se comparan.
+fn configured_fingerprint(game: &str) -> Option<String> {
+    let text = std::fs::read_to_string(configured_dir().join(game)).ok()?;
+    let fingerprint = text.lines().nth(1)?.trim().to_string();
+    (!fingerprint.is_empty()).then_some(fingerprint)
+}
+
 /// Deja constancia de que el juego se ha configurado sin errores.
-pub fn mark_configured(game: &str) {
+pub fn mark_configured(cfg: &Config, game: &str) {
     let dir = configured_dir();
     if std::fs::create_dir_all(&dir).is_ok() {
-        let _ = std::fs::write(dir.join(game), util::now_utc());
+        let fingerprint = cfg
+            .games
+            .get(game)
+            .map(game_fingerprint)
+            .unwrap_or_default();
+        let text = format!("{}\n{fingerprint}\n", util::now_utc());
+        let _ = std::fs::write(dir.join(game), text);
     }
 }
 
@@ -111,6 +136,13 @@ fn config_problem(
     def: &detect::GameDef,
     game: &crate::config::Game,
 ) -> Option<String> {
+    if let Some(stored) = configured_fingerprint(def.id) {
+        if stored != game_fingerprint(game) {
+            return Some(
+                "el Proton o wine del juego ha cambiado; vuelve a configurarlo".to_string(),
+            );
+        }
+    }
     if def.id == "ets2" {
         if let Some(dir) = game.path.as_ref() {
             if let Some(path) = def.plugin_path(dir) {

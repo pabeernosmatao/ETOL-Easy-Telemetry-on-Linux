@@ -9,8 +9,12 @@ y una entrada .desktop que captura esa clase para que el grupo lo use.
 Los logos se extraen de los propios ejecutables (no se descargan). No modifica
 ni SimHub ni CrewChief.
 
+ETOL instala este icono solo al arrancar (modulo `grupo` de la interfaz), con
+los PNG ya incluidos en el binario. Este script queda para regenerar los PNG
+(`src-tauri/icono-grupo/NNN.png`) si cambian los logos de SimHub o CrewChief.
+
 Uso:
-  ./scripts/icono-apps.py                 instala icono y entrada .desktop
+  ./scripts/icono-apps.py                 regenera icono e instala la entrada
   ./scripts/icono-apps.py --solo-preview  solo escribe /tmp/etol-apps-preview.png
 """
 
@@ -190,7 +194,7 @@ def appimage() -> str:
     try:
         version = json.loads((raiz / "src-tauri/tauri.conf.json").read_text())["version"]
     except Exception:
-        version = "0.3.4"
+        version = "0.3.7"
     return str(HOME / f".local/bin/ETOL-{version}-linux-x86_64-portable.AppImage")
 
 

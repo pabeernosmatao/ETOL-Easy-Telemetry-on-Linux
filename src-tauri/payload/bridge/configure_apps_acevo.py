@@ -213,12 +213,14 @@ def configure_crewchief_profile(game_id: str = "") -> None:
                 user_settings[name] = value
                 changed = True
         if game_id:
-            available = [
-                item.strip()
-                for item in str(user_settings.get("limit_available_games", "")).split(",")
-                if item.strip()
-            ]
-            if game_id not in available:
+            raw = str(user_settings.get("limit_available_games", "")).strip()
+            available = [item.strip() for item in raw.split(",") if item.strip()]
+            if len(available) == 1:
+                # ETOL pudo convertir una lista vacia (todos) en una lista de
+                # un solo juego; CrewChief solo mostraba ese juego.
+                user_settings["limit_available_games"] = ""
+                changed = True
+            elif available and game_id not in available:
                 available.append(game_id)
                 user_settings["limit_available_games"] = ",".join(available)
                 changed = True
@@ -248,6 +250,9 @@ def configure_crewchief_user_config() -> None:
         "lmu_install_path",
         "enable_auto_detect",
         "run_immediately",
+        "enable_lmu_rf2_plugin_dll_check",
+        "enable_automatic_plugin_update",
+        "lmu_enable_pit_manager",
     ):
         match = re.search(
             r'<setting\s+name="' + re.escape(name) + r'"\s+serializeAs="String">\s*'
@@ -276,12 +281,17 @@ def configure_crewchief_user_config() -> None:
         write_atomic(user_config, new_text)
         CHANGES.append(
             f"CrewChief: user.config de {user_config.parent.name} "
-            f"({', '.join(values)})"
+            f"({', '.join(n for n in values if n != 'lmu_install_path')})"
         )
 
 
 def configure_simhub_plugins(enable_lmu: bool) -> None:
-    """Activa o desactiva el plugin LMU de SimHub."""
+    """Activa o desactiva el plugin LMU de SimHub.
+
+    SimHub 9.x usa `doX.doX_LMU_SessionDataPlugin`; las versiones antiguas
+    usaban `LMU_SessionDataPlugin.LMU_SessionDataPlugin`. Se activa el que
+    exista, sin tocar los demas plugins del juego.
+    """
     path = (
         BOTTLE
         / "drive_c/Program Files (x86)/SimHub/PluginsData/PluginsActivation.json"
@@ -291,18 +301,51 @@ def configure_simhub_plugins(enable_lmu: bool) -> None:
     data = load_json(path, None)
     if not isinstance(data, list):
         return
+    primary = "doX.doX_LMU_SessionDataPlugin"
+    legacy = "LMU_SessionDataPlugin.LMU_SessionDataPlugin"
+    names = {
+        entry.get("ClassName")
+        for entry in data
+        if isinstance(entry, dict)
+    }
+    target = primary if primary in names else legacy if legacy in names else ""
+    if not target:
+        return
     changed = False
     for entry in data:
-        if not isinstance(entry, dict):
+        if not isinstance(entry, dict) or entry.get("ClassName") != target:
             continue
-        if entry.get("ClassName") == "LMU_SessionDataPlugin.LMU_SessionDataPlugin":
-            if entry.get("IsEnabled") is not enable_lmu:
-                entry["IsEnabled"] = enable_lmu
-                changed = True
+        if entry.get("IsEnabled") is not enable_lmu:
+            entry["IsEnabled"] = enable_lmu
+            changed = True
     if changed:
         save_json(path, data)
         estado = "activado" if enable_lmu else "desactivado"
-        CHANGES.append(f"SimHub: LMU SessionDataPlugin {estado}")
+        CHANGES.append(f"SimHub: {target.split('.')[-1]} {estado}")
+
+
+def fix_limit_available_games() -> None:
+    """Restaura la lista de juegos de CrewChief si quedo con uno solo.
+
+    Una lista vacia significa "todos". ETOL pudo escribir un unico juego
+    (por ejemplo ASSETTO_EVO) y CrewChief solo mostraba ese. Se limpia.
+    """
+    profiles = BOTTLE / "drive_c/users/steamuser/Documents/CrewChiefV4/Profiles"
+    if not profiles.exists():
+        return
+    for path in sorted(profiles.glob("*.json")):
+        data = load_json(path, None)
+        if not isinstance(data, dict):
+            continue
+        user_settings = data.get("userSettings")
+        if not isinstance(user_settings, dict):
+            continue
+        raw = str(user_settings.get("limit_available_games", "")).strip()
+        available = [item.strip() for item in raw.split(",") if item.strip()]
+        if len(available) == 1:
+            user_settings["limit_available_games"] = ""
+            save_json(path, data)
+            CHANGES.append(f"CrewChief: lista de juegos restaurada en {path.name}")
 
 
 def configure_crewchief() -> None:
@@ -340,7 +383,9 @@ def configure_crewchief() -> None:
     )
     if m:
         games = [x.strip() for x in m.group(2).split(",") if x.strip()]
-        if "ASSETTO_EVO" not in games:
+        if games == ["ASSETTO_EVO"]:
+            text = text[:m.start(2)] + "" + text[m.end(2):]
+        elif games and "ASSETTO_EVO" not in games:
             games.append("ASSETTO_EVO")
             text = text[:m.start(2)] + ",".join(games) + text[m.end(2):]
 
@@ -354,6 +399,8 @@ def configure_crewchief() -> None:
     configure_crewchief_profile("ASSETTO_EVO")
 
     configure_crewchief_user_config()
+
+    fix_limit_available_games()
 
 
 def main() -> int:
