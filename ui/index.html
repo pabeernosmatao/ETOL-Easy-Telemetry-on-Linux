@@ -292,27 +292,31 @@
               <label class="extras-option">
                 <input type="checkbox" data-extra="grab" />
                 <span><strong>Capturar el ratón</strong>
-                  <small>Evita que el puntero se escape a otro monitor (<code>--force-grab-cursor</code>).</small></span>
+                  <small>Evita que el puntero se escape a otro monitor (<code>--force-grab-cursor</code>).</small>
+                  <span class="scope-tag">solo gamescope</span></span>
               </label>
               <label class="extras-option">
                 <input type="checkbox" data-extra="mangoapp" />
                 <span><strong>MangoHud</strong>
-                  <small>Overlay de FPS, GPU y latencia dentro de gamescope (<code>--mangoapp</code>).</small></span>
+                  <small>Overlay de FPS, GPU y latencia. Con gamescope usa <code>--mangoapp</code>; sin gamescope, <code>MANGOHUD=1</code>.</small></span>
               </label>
               <label class="extras-option">
                 <input type="checkbox" data-extra="forcefs" />
                 <span><strong>Forzar pantalla completa interna</strong>
-                  <small>Para juegos que arrancan en ventana (<code>--force-windows-fullscreen</code>).</small></span>
+                  <small>Para juegos que arrancan en ventana (<code>--force-windows-fullscreen</code>).</small>
+                  <span class="scope-tag">solo gamescope</span></span>
               </label>
               <label class="extras-option">
                 <input type="checkbox" data-extra="rt" />
                 <span><strong>Prioridad en tiempo real</strong>
-                  <small>Menos microtirones; depende de rtkit (<code>--rt</code>).</small></span>
+                  <small>Menos microtirones; depende de rtkit (<code>--rt</code>).</small>
+                  <span class="scope-tag">solo gamescope</span></span>
               </label>
               <label class="extras-option">
                 <input type="checkbox" data-extra="itm" />
                 <span><strong>HDR inverso para SDR</strong>
-                  <small>Solo con HDR activo (<code>--hdr-itm-enabled</code>).</small></span>
+                  <small>Solo con HDR activo (<code>--hdr-itm-enabled</code>).</small>
+                  <span class="scope-tag">solo gamescope</span></span>
               </label>
             </section>
             <section class="extras-col">
@@ -330,7 +334,8 @@
               <label class="extras-option">
                 <input type="checkbox" data-extra="fsr" />
                 <span><strong>Reescalado FSR 1.0</strong>
-                  <small>Si el juego renderiza por debajo de la ventana (<code>-F fsr --sharpness 5</code>).</small></span>
+                  <small>Si el juego renderiza por debajo de la ventana (<code>-F fsr --sharpness 5</code>).</small>
+                  <span class="scope-tag">solo gamescope</span></span>
               </label>
               <label class="extras-option">
                 <input type="checkbox" data-extra="radv" />
@@ -363,13 +368,15 @@
               <label class="extras-option">
                 <input type="checkbox" data-extra="nis" />
                 <span><strong>Reescalado NIS</strong>
-                  <small>NVIDIA Image Scaling (<code>-F nis --sharpness 5</code>).</small></span>
+                  <small>NVIDIA Image Scaling (<code>-F nis --sharpness 5</code>).</small>
+                  <span class="scope-tag">solo gamescope</span></span>
               </label>
             </section>
           </div>
           <p class="extras-note">
-            Elige solo las opciones de tu tarjeta. En modo sin gamescope solo se
-            aplican las variables de AMD/NVIDIA; las opciones de gamescope se omiten.
+            Elige solo las opciones de tu tarjeta. En modo sin gamescope se
+            aplican las variables de AMD/NVIDIA y MangoHud (MANGOHUD=1); las
+            opciones marcadas «solo gamescope» se omiten.
           </p>
         </section>
       </div>

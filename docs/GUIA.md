@@ -1,6 +1,6 @@
 # ETOL · Guía de uso
 
-[English](GUIDE.md) · **Español** · Versión 0.3.20
+[English](GUIDE.md) · **Español** · Versión 0.3.22
 
 Todo lo que hace ETOL, cómo preparar SimHub y CrewChief desde cero y cómo
 sacarle partido a cada simulador.
@@ -42,8 +42,8 @@ clic. No modifica los juegos.
 ### Abrir el AppImage
 
 ```bash
-chmod +x ETOL-0.3.20-linux-x86_64-portable.AppImage
-./ETOL-0.3.20-linux-x86_64-portable.AppImage
+chmod +x ETOL-0.3.22-linux-x86_64-portable.AppImage
+./ETOL-0.3.22-linux-x86_64-portable.AppImage
 ```
 
 La variante **portable** usa el WebKit del sistema y necesita
@@ -139,6 +139,9 @@ desactiva la regla de KWin de los dashboards.
 > **En los instaladores:** en CrewChief, al terminar **no marques** «Run
 > CrewChiefV4». En SimHub, desmarca *Install .NET Runtime*, *Install USB Display
 > Drivers* e *Install Visual C++ Redistributables*, y no lo ejecutes al final.
+
+> **CrewChief** se descarga del espejo oficial y puede ser una versión anterior:
+> ábrelo una vez después y acepta la actualización antes de usarlo con los juegos.
 
 ---
 

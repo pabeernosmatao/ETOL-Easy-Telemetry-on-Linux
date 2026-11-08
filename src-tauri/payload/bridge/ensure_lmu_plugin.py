@@ -10,6 +10,10 @@ El espejo de ETOL no necesita el plugin dentro del juego para publicar los
 buffers, pero SimHub y CrewChief sí lo esperan. Este script copia el DLL que ya
 viaja en el payload y activa la entrada del JSON, con copia de seguridad y sin
 tocar nada más del juego.
+
+CrewChief traía `LMU.3.8.SharedMemoryMapPlugin.dll` en versiones anteriores; la
+4.18 ya no lo incluye. Por eso ETOL lleva su propia copia (vendor/) y la usa
+cuando CrewChief no la tiene.
 """
 
 from __future__ import annotations
@@ -23,6 +27,8 @@ from pathlib import Path
 
 PLUGIN = "rFactor2SharedMemoryMapPlugin64.dll"
 LMU_PLUGIN = "LMU.3.8.SharedMemoryMapPlugin.dll"
+# Copia que viaja con ETOL, junto a este script (payload/bridge/).
+BUNDLED_LMU = Path(__file__).resolve().parent / LMU_PLUGIN
 
 LMU_DEFAULTS = {
     " Enabled": 1,
@@ -92,13 +98,21 @@ def crewchief_lmu_dll(simhub: Path | None) -> Path | None:
 
 
 def install_lmu_dll(plugins: Path, simhub: Path | None) -> None:
-    """Copia LMU.3.8.SharedMemoryMapPlugin.dll al juego si falta o difiere."""
+    """Copia LMU.3.8.SharedMemoryMapPlugin.dll al juego si falta o difiere.
+
+    Primero se usa el que trae CrewChief (versiones antiguas); si no está, la
+    copia incluida en ETOL. Así una instalación limpia con CrewChief 4.18+
+    sigue teniendo el plugin que espera LMU 2026.
+    """
     dest = plugins / LMU_PLUGIN
     source = crewchief_lmu_dll(simhub)
+    if not source and BUNDLED_LMU.is_file():
+        source = BUNDLED_LMU
+        print(f"LMU: CrewChief ya no trae {LMU_PLUGIN}; uso la copia de ETOL")
     if not source:
         print(
-            f"AVISO: CrewChief no trae {LMU_PLUGIN}; "
-            "actualiza CrewChief o copia el plugin a mano.",
+            f"AVISO: falta {LMU_PLUGIN} (ni CrewChief ni ETOL lo traen); "
+            "copia el plugin a mano.",
             file=sys.stderr,
         )
         return
@@ -113,8 +127,22 @@ def install_lmu_dll(plugins: Path, simhub: Path | None) -> None:
     print(f"LMU: {LMU_PLUGIN} copiado en {dest}")
 
 
+def lmu_dll_present(game: Path) -> bool:
+    """El DLL está donde LMU lo busca (Plugins/ o Bin64/Plugins/)."""
+    return any(
+        (game / rel / LMU_PLUGIN).is_file()
+        for rel in ("Plugins", "Bin64/Plugins")
+    )
+
+
 def enable_lmu_plugin(game: Path) -> None:
-    """Activa LMU.3.8.SharedMemoryMapPlugin.dll (buffers $LMU.3.8.SMMP_*)."""
+    """Activa LMU.3.8.SharedMemoryMapPlugin.dll (buffers $LMU.3.8.SMMP_*).
+
+    Si el DLL no está, una entrada activa solo haría que LMU intentara cargar
+    un fichero inexistente; en ese caso se retira la entrada obsoleta.
+    """
+    present = lmu_dll_present(game)
+    touched = False
     for rel in (
         "UserData/player/CustomPluginVariables.JSON",
         "Plugins/CustomPluginVariables.JSON",
@@ -128,6 +156,18 @@ def enable_lmu_plugin(game: Path) -> None:
             print(f"AVISO: no se pudo leer {config}: {exc}", file=sys.stderr)
             continue
         if not isinstance(data, dict):
+            continue
+        if not present:
+            if isinstance(data.get(LMU_PLUGIN), dict):
+                saved = backup(config)
+                if saved:
+                    print(f"LMU: copia de {config.name} en {saved}")
+                del data[LMU_PLUGIN]
+                config.write_text(
+                    json.dumps(data, indent=2, ensure_ascii=False) + "\n",
+                    encoding="utf-8",
+                )
+                print(f"LMU: entrada obsoleta de {LMU_PLUGIN} retirada de {config}")
             continue
         entry = data.get(LMU_PLUGIN)
         if not isinstance(entry, dict):
@@ -147,7 +187,9 @@ def enable_lmu_plugin(game: Path) -> None:
                 encoding="utf-8",
             )
             print(f"LMU: {LMU_PLUGIN} activado en {config}")
-    print("LMU: reinicia el juego para que cargue el plugin si estaba desactivado.")
+            touched = True
+    if present and touched:
+        print("LMU: reinicia el juego para que cargue el plugin si estaba desactivado.")
 
 
 def report(simhub: Path | None) -> None:

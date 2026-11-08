@@ -19,3 +19,6 @@ __pycache__/
 
 # Simbolos de depuracion
 *.pdb
+
+# Lock de instancia unica al ejecutar desde el arbol
+/etol-gui.lock

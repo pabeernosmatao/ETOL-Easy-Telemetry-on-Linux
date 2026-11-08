@@ -45,10 +45,22 @@ Si redistribuyes ETOL o el AppImage, debes:
 - conservar el texto de la GPL v3 que acompaña al plugin,
 - mantener el aviso de que el plugin es GPL v3 y enlazar su código fuente.
 
-La licencia MIT de ETOL **no se aplica** a este fichero ni relaja sus
-condiciones. ETOL y el plugin conviven como componentes separados: ETOL no
-enlaza ni modifica el plugin, solo lo copia a la carpeta del juego cuando el
-usuario activa el puente de rFactor 2.
+### Plugin de Le Mans Ultimate (`LMU.3.8.SharedMemoryMapPlugin.dll`)
+
+| | |
+|---|---|
+| Fichero | `vendor/LMU.3.8.SharedMemoryMapPlugin.dll` |
+| SHA-256 | `3c79c9df5b132c833363aefbfb986b8e60cd35a403d887a114bf97b62d35c618` |
+| Versión | 3.8.0.1 (`LMU Shared Memory Map Plugin`) |
+| Licencia | **GNU GPL v3** |
+| Origen | TheIronWolfModding (mismo proyecto que el plugin de rFactor 2) |
+| Texto | `vendor/rFactor2SharedMemoryMapPlugin64.LICENSE.txt` |
+
+CrewChief 4.18 y posteriores ya no incluyen este plugin. ETOL lleva una copia
+**sin modificar** y la copia a `<juego>/Plugins/` al configurar Le Mans
+Ultimate, para que el juego publique los buffers `$LMU.3.8.SMMP_*` que leen
+SimHub, CrewChief y el espejo de ETOL. Se aplican las mismas obligaciones GPL v3
+descritas arriba.
 
 ---
 

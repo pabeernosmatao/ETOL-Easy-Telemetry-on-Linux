@@ -1351,7 +1351,7 @@ fn lmu_config_warnings(cfg: &Config) -> Vec<String> {
         return warnings;
     };
 
-    fn plugin_enabled(path: &std::path::Path) -> bool {
+    fn entry_enabled(path: &std::path::Path, key: &str) -> bool {
         let Ok(text) = std::fs::read_to_string(path) else {
             return false;
         };
@@ -1359,36 +1359,52 @@ fn lmu_config_warnings(cfg: &Config) -> Vec<String> {
             return false;
         };
         value
-            .get("LMU.3.8.SharedMemoryMapPlugin.dll")
+            .get(key)
             .and_then(|entry| entry.get(" Enabled"))
             .and_then(|value| value.as_u64())
             .map(|value| value == 1)
             .unwrap_or(false)
     }
 
+    fn plugin_enabled(path: &std::path::Path) -> bool {
+        // CrewChief 4.18+ reutiliza el plugin de rFactor 2 para LMU; las
+        // versiones anteriores esperaban LMU.3.8. Vale cualquiera de los dos.
+        ["rFactor2SharedMemoryMapPlugin64.dll", "LMU.3.8.SharedMemoryMapPlugin.dll"]
+            .iter()
+            .any(|key| entry_enabled(path, key))
+    }
+
     let player = dir.join("UserData/player/CustomPluginVariables.JSON");
     let global = dir.join("Plugins/CustomPluginVariables.JSON");
     if !plugin_enabled(&player) && !plugin_enabled(&global) {
         warnings.push(
-            "No se pudo activar LMU.3.8.SharedMemoryMapPlugin.dll.              Actívalo en LMU (o revisa los permisos de la carpeta del juego)."
+            "No se pudo activar el plugin de memoria compartida en LMU. \
+             Actívalo en el juego o revisa los permisos de la carpeta."
                 .to_string(),
         );
     }
-    if !dir
-        .join("Plugins/LMU.3.8.SharedMemoryMapPlugin.dll")
-        .is_file()
-    {
+
+    let lmu_dll = [
+        "Plugins/LMU.3.8.SharedMemoryMapPlugin.dll",
+        "Bin64/Plugins/LMU.3.8.SharedMemoryMapPlugin.dll",
+    ]
+    .iter()
+    .any(|rel| dir.join(rel).is_file());
+    if !lmu_dll {
         warnings.push(
-            "El juego no tiene LMU.3.8.SharedMemoryMapPlugin.dll; actualiza LMU para              que CrewChief pueda recibir telemetría."
+            "El juego no tiene LMU.3.8.SharedMemoryMapPlugin.dll; \
+             pulsa de nuevo el engranaje para copiarlo desde ETOL."
                 .to_string(),
         );
     }
+
     let running = state::running_drive_exe("Le Mans Ultimate.exe")
         .iter()
         .any(|proc| !proc.cmdline.contains("lmu_mirror") && !proc.cmdline.contains("/tmp/etol"));
     if running {
         warnings.push(
-            "LMU está abierto. Si el plugin SMMP no estaba activo antes, cierra LMU y              vuelve a abrirlo para que lo cargue; si no, CrewChief no tendrá datos."
+            "LMU está abierto. Si el plugin SMMP no estaba activo antes, cierra LMU y \
+             vuelve a abrirlo para que lo cargue; si no, CrewChief no tendrá datos."
                 .to_string(),
         );
     }

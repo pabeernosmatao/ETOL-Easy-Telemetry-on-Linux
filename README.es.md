@@ -2,7 +2,7 @@
 
 [English](README.md) · **Español** · [Guía de uso](docs/GUIA.md)
 
-[![Versión](https://img.shields.io/badge/versi%C3%B3n-0.3.20-38e1b0)](https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux/releases)
+[![Versión](https://img.shields.io/badge/versi%C3%B3n-0.3.22-38e1b0)](https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux/releases)
 [![Licencia](https://img.shields.io/badge/licencia-MIT-4aa8ff)](LICENSE)
 [![Plataforma](https://img.shields.io/badge/plataforma-Linux%20x86__64-8ea3b9)](#requisitos)
 [![Tauri](https://img.shields.io/badge/Tauri-2-24c8db)](https://tauri.app)
@@ -86,8 +86,8 @@ Pendiente: soporte para **pedales DC2/DC3** (todavía no está implementado).
 Descarga el AppImage de la última release y dale permisos:
 
 ```bash
-chmod +x ETOL-0.3.20-linux-x86_64-portable.AppImage
-./ETOL-0.3.20-linux-x86_64-portable.AppImage
+chmod +x ETOL-0.3.22-linux-x86_64-portable.AppImage
+./ETOL-0.3.22-linux-x86_64-portable.AppImage
 ```
 
 Hay dos variantes. Las dos son **x86_64** (`amd64` es solo el nombre que usa
@@ -95,8 +95,8 @@ Debian para la misma arquitectura); la diferencia es si llevan WebKit dentro:
 
 | Variante | Tamaño | WebKit | glibc | Cuándo usarla |
 |---|---|---|---|---|
-| `ETOL-0.3.20-linux-x86_64-portable.AppImage` | ~6 MB | del sistema | 2.39+ | Ubuntu 26.04, Fedora, Arch, CachyOS. Necesita `libwebkit2gtk-4.1` |
-| `ETOL-0.3.20-linux-x86_64-full.AppImage` | ~111 MB | incluido | 2.44+ | Todo dentro; rolling y escritorios actuales |
+| `ETOL-0.3.22-linux-x86_64-portable.AppImage` | ~6 MB | del sistema | 2.39+ | Ubuntu 26.04, Fedora, Arch, CachyOS. Necesita `libwebkit2gtk-4.1` |
+| `ETOL-0.3.22-linux-x86_64-full.AppImage` | ~111 MB | incluido | 2.44+ | Todo dentro; rolling y escritorios actuales |
 
 La variante portable necesita `libwebkit2gtk-4.1` y `libgtk-3`:
 
@@ -109,7 +109,7 @@ sudo pacman -S webkit2gtk-4.1 gtk3                 # Arch/CachyOS
 Sin FUSE2:
 
 ```bash
-./ETOL-0.3.20-linux-x86_64-portable.AppImage --appimage-extract-and-run
+./ETOL-0.3.22-linux-x86_64-portable.AppImage --appimage-extract-and-run
 ```
 
 ## Requisitos

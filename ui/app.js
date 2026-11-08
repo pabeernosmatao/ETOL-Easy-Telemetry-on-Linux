@@ -806,6 +806,9 @@ function setupDialog(kind) {
         </ul>
         <p>Las dependencias ya las instala el script dentro del prefijo.</p>
       </div>
+      <p class="setup-note">CrewChief se descarga del espejo oficial y puede ser
+      una versión anterior. Ábrelo una vez al terminar y acepta la
+      actualización antes de usarlo con los juegos.</p>
       <p class="setup-note">Puede tardar bastante: GE-Proton y SimHub son
       descargas grandes. No se toca ningún juego ni prefijo de Steam.</p>`;
   } else if (kind === "device") {
@@ -1682,7 +1685,7 @@ const DISPLAY_RESOLUTIONS = {
 
 const GAMESCOPE_EXTRAS = [
   { id: "grab", flag: "--force-grab-cursor" },
-  { id: "mangoapp", flag: "--mangoapp" },
+  { id: "mangoapp", flag: "--mangoapp", nativeEnv: "MANGOHUD=1" },
   { id: "forcefs", flag: "--force-windows-fullscreen" },
   { id: "rt", flag: "--rt" },
   { id: "itm", flag: "--hdr-itm-enabled" },
@@ -1744,8 +1747,12 @@ function displayExtrasChosen() {
 
 function displayCommand() {
   const envs = displayExtrasChosen().map((extra) => extra.env).filter(Boolean);
+  // Extras que tienen equivalente fuera de gamescope (MangoHud: MANGOHUD=1).
+  const nativeEnvs = displayExtrasChosen()
+    .map((extra) => extra.nativeEnv)
+    .filter(Boolean);
   if (displayMode === "native") {
-    return [...envs, "%command%"].join(" ");
+    return [...envs, ...nativeEnvs, "%command%"].join(" ");
   }
   const flags = displayExtrasChosen().map((extra) => extra.flag).filter(Boolean);
   const width = displayWidth();

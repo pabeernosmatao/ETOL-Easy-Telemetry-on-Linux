@@ -499,6 +499,8 @@ launch_crewchief_installer() {
     - Pulsa Siguiente/Aceptar hasta el final.
     - Si al terminar ofrece «Run CrewChiefV4» o «Launch CrewChief»,
       DESMÁRCALO antes de cerrar.
+    - El MSI viene del espejo oficial y puede ser una version anterior:
+      abre CrewChief una vez al terminar y acepta la actualizacion.
     - No hace falta instalar plugins de juegos desde aquí.
 
 EOF
