@@ -213,6 +213,118 @@ bottle_exists() {
     | grep -q -- "- $BOTTLE\$"
 }
 
+# Bottles descarga sus componentes (dxvk, vkd3d, nvapi, latencyflex,
+# winebridge) directamente de github.com/releases/download, que a veces
+# responde 504. Cuando falla la creacion de la botella, ETOL descarga esos
+# mismos ficheros por la API de GitHub y los deja en la cache de Bottles
+# (~/.var/.../bottles/temp). Bottles comprueba el MD5 y, si coinciden, no
+# vuelve a descargarlos.
+precache_bottles_components() {
+  python3 - "$ETOL_BOTTLES_DATA" <<'PY_COMPONENTS'
+import hashlib
+import json
+import os
+import re
+import sys
+import urllib.error
+import urllib.request
+
+base = sys.argv[1]
+temp = os.path.join(base, "temp")
+repos = os.path.join(temp, "repositories", "components")
+if not os.path.isdir(repos):
+    sys.exit(0)
+
+UA = "ETOL/1.0"
+GH_RELEASE = re.compile(
+    r"^https://github\.com/([^/]+)/([^/]+)/releases/download/([^/]+)/(.+)$"
+)
+
+
+def get(url, accept=None):
+    headers = {"User-Agent": UA}
+    if accept:
+        headers["Accept"] = accept
+    return urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=300)
+
+
+def download(url, dest):
+    try:
+        with get(url) as resp, open(dest, "wb") as fh:
+            while True:
+                chunk = resp.read(1 << 20)
+                if not chunk:
+                    break
+                fh.write(chunk)
+        return True
+    except urllib.error.HTTPError as error:
+        match = GH_RELEASE.match(url)
+        if error.code not in (403, 404, 429, 500, 502, 503, 504) or not match:
+            return False
+    except Exception:
+        return False
+
+    owner, repo, tag, name = match.groups()
+    try:
+        with get(f"https://api.github.com/repos/{owner}/{repo}/releases/tags/{tag}") as resp:
+            data = json.load(resp)
+        asset = next((a for a in data.get("assets", []) if a.get("name") == name), None)
+        if not asset:
+            return False
+        with get(asset["url"], "application/octet-stream") as resp, open(dest, "wb") as fh:
+            while True:
+                chunk = resp.read(1 << 20)
+                if not chunk:
+                    break
+                fh.write(chunk)
+        return True
+    except Exception:
+        return False
+
+
+prepared = 0
+for root, _dirs, files in os.walk(repos):
+    for entry in files:
+        if not entry.endswith(".yml") or entry == "catalog.yml":
+            continue
+        text = open(os.path.join(root, entry), encoding="utf-8", errors="replace").read()
+        name = re.search(r"^Name:\s*(\S+)", text, re.M)
+        file_name = re.search(r"^\s*-?\s*file_name:\s*(\S+)", text, re.M)
+        url = re.search(r"^\s*url:\s*(\S+)", text, re.M)
+        checksum = re.search(r"^\s*file_checksum:\s*([0-9a-fA-F]{32})", text, re.M)
+        rename = re.search(r"^\s*rename:\s*(\S+)", text, re.M)
+        if not (name and file_name and url and checksum):
+            continue
+        target = os.path.join(temp, (rename.group(1) if rename else file_name.group(1)))
+        md5 = checksum.group(1).lower()
+        if os.path.isfile(target):
+            with open(target, "rb") as fh:
+                if hashlib.md5(fh.read()).hexdigest() == md5:
+                    continue
+            os.remove(target)
+        print(f"  componente {name.group(1)}: descargando…", flush=True)
+        if not download(url.group(1), target):
+            print(f"AVISO: no se pudo descargar {name.group(1)}", file=sys.stderr)
+            continue
+        with open(target, "rb") as fh:
+            got = hashlib.md5(fh.read()).hexdigest()
+        if got != md5:
+            os.remove(target)
+            print(f"AVISO: {name.group(1)} no coincide con su MD5", file=sys.stderr)
+            continue
+        prepared += 1
+print(f"  componentes preparados: {prepared}", flush=True)
+PY_COMPONENTS
+}
+
+bottle_new() {
+  flatpak run --command=bottles-cli "$ETOL_BOTTLES_ID" new \
+    --bottle-name "$BOTTLE" \
+    --environment application \
+    --arch win64 \
+    --runner "$RUNNER"
+}
+
 wait_for_prefix() {
   local tries=0
   while (( tries < 300 )); do
@@ -233,14 +345,15 @@ create_bottle() {
   fi
   step "Creando la botella $BOTTLE"
   progress 45 "Creando la botella $BOTTLE"
-  if ! flatpak run --command=bottles-cli "$ETOL_BOTTLES_ID" new \
-    --bottle-name "$BOTTLE" \
-    --environment application \
-    --arch win64 \
-    --runner "$RUNNER"; then
-    die "Bottles no pudo crear la botella.
-Si la salida muestra «504» al descargar componentes (dxvk, vkd3d, nvapi…),
-es una caída temporal de las descargas de GitHub: reintenta en unos minutos."
+  if ! bottle_new; then
+    warn "Bottles no pudo crearla; preparando sus componentes desde la API de GitHub."
+    progress 46 "Preparando componentes de Bottles"
+    precache_bottles_components || true
+    if ! bottle_new; then
+      die "Bottles no pudo crear la botella.
+Si la salida muestra «504», es una caída temporal de las descargas de GitHub:
+reintenta en unos minutos."
+    fi
   fi
   wait_for_prefix || die "la botella se creó pero el prefijo no está listo."
   progress 50 "Prefijo creado"
