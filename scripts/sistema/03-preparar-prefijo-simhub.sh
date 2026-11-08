@@ -82,17 +82,63 @@ trap cleanup EXIT
 
 win_path() { printf 'Z:%s' "${1//\//\\}"; }
 
-# Ultima etiqueta de una release usando la redireccion de GitHub.
-# Evita api.github.com, que devuelve 403 cuando se agota el limite por IP.
+# Ultima etiqueta de una release. Primero usa la redireccion de GitHub, que no
+# consume el limite de la API; si esa ruta falla (a veces responde 504), se
+# consulta api.github.com como respaldo.
 github_latest_tag() {
-  local repo="$1" url
+  local repo="$1" url tag
   url="$(curl -fsSL -A "$UA" -o /dev/null -w '%{url_effective}' --max-time 30 \
-    "https://github.com/$repo/releases/latest" 2>/dev/null)" || return 1
-  printf '%s\n' "$url" | sed -n 's#.*/releases/tag/\([^/]*\)$#\1#p'
+    "https://github.com/$repo/releases/latest" 2>/dev/null || true)"
+  tag="$(printf '%s\n' "$url" | sed -n 's#.*/releases/tag/\([^/]*\)$#\1#p')"
+  if [[ -z "$tag" ]]; then
+    tag="$(curl -fsSL -A "$UA" --max-time 30 \
+      "https://api.github.com/repos/$repo/releases/latest" 2>/dev/null \
+      | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' \
+      | head -n1 || true)"
+  fi
+  [[ -n "$tag" ]] || return 1
+  printf '%s\n' "$tag"
 }
 
 api_latest_runner() {
   github_latest_tag GloriousEggroll/proton-ge-custom
+}
+api_latest_runner() {
+  github_latest_tag GloriousEggroll/proton-ge-custom
+}
+
+# URL de un asset concreto de una release, consultando la API de GitHub.
+github_asset_api_url() {
+  local repo="$1" tag="$2" name="$3"
+  curl -fsSL -A "$UA" --max-time 30 \
+    "https://api.github.com/repos/$repo/releases/tags/$tag" 2>/dev/null \
+    | python3 -c 'import json, sys
+name = sys.argv[1]
+try:
+    data = json.load(sys.stdin)
+except Exception:
+    sys.exit(1)
+for asset in data.get("assets", []):
+    if asset.get("name") == name:
+        print(asset.get("url", ""))
+        break
+' "$name"
+}
+
+# Descarga un asset de una release. La ruta /releases/download/ de github.com
+# puede responder 504 (incidencias del CDN); api.github.com sigue funcionando y
+# redirige al mismo fichero, asi que se usa como respaldo.
+github_download_asset() {
+  local repo="$1" tag="$2" name="$3" out="$4" url api
+  url="https://github.com/$repo/releases/download/$tag/$name"
+  if curl -fL --progress-bar --max-time 1800 "$url" -o "$out"; then
+    return 0
+  fi
+  warn "la descarga directa de GitHub fallo; probando la API de GitHub."
+  api="$(github_asset_api_url "$repo" "$tag" "$name" || true)"
+  [[ -n "$api" ]] || die "no se encontro $name en la release $tag de $repo."
+  curl -fL --progress-bar --max-time 1800 \
+    -H "Accept: application/octet-stream" "$api" -o "$out"
 }
 
 resolve_runner() {
@@ -109,8 +155,13 @@ resolve_runner() {
   else
     if ! tag="$(api_latest_runner)" || [[ -z "$tag" ]]; then
       # Sin red: usa el runner instalado más reciente, si hay alguno.
-      local installed
-      installed="$(find "$ETOL_BOTTLES_DATA/runners" -maxdepth 1 -type d -name 'ge-proton*' 2>/dev/null | sort -V | tail -1)"
+      local installed=""
+      # En una instalacion limpia la carpeta runners aun no existe; sin esta
+      # guarda, `find` falla, pipefail propaga el error y el script termina
+      # sin mensaje (solo "codigo 1" en la interfaz).
+      if [[ -d "$ETOL_BOTTLES_DATA/runners" ]]; then
+        installed="$(find "$ETOL_BOTTLES_DATA/runners" -maxdepth 1 -type d -name 'ge-proton*' | sort -V | tail -1)"
+      fi
       if [[ -n "$installed" && -x "$installed/files/bin/wine" ]]; then
         warn "no se pudo consultar GitHub; uso el runner instalado $(basename "$installed")."
         RUNNER="$(basename "$installed")"
@@ -138,11 +189,12 @@ Comprueba la conexión (o pasa una versión con --runner, por ejemplo --runner g
   info "$url"
   mkdir -p "$ETOL_BOTTLES_DATA/runners"
   TMP_DIR="$(mktemp -d "$ETOL_BOTTLES_DATA/runners/.etol-runner-XXXXXX")"
-  curl -fL --progress-bar "$url" -o "$TMP_DIR/runner.tar.gz"
+  github_download_asset GloriousEggroll/proton-ge-custom "$tag" \
+    "$tag-x86_64.tar.gz" "$TMP_DIR/runner.tar.gz"
   info "extrayendo…"
   tar -xzf "$TMP_DIR/runner.tar.gz" -C "$TMP_DIR"
   local src
-  src="$(find "$TMP_DIR" -maxdepth 1 -type d -name 'GE-Proton*' | head -1)"
+  src="$(find "$TMP_DIR" -maxdepth 1 -type d -name 'GE-Proton*' | head -1 || true)"
   [[ -n "$src" ]] || die "el tar.gz no contiene una carpeta GE-Proton*."
   mkdir -p "$ETOL_BOTTLES_DATA/runners/$RUNNER"
   shopt -s dotglob
@@ -181,11 +233,15 @@ create_bottle() {
   fi
   step "Creando la botella $BOTTLE"
   progress 45 "Creando la botella $BOTTLE"
-  flatpak run --command=bottles-cli "$ETOL_BOTTLES_ID" new \
+  if ! flatpak run --command=bottles-cli "$ETOL_BOTTLES_ID" new \
     --bottle-name "$BOTTLE" \
     --environment application \
     --arch win64 \
-    --runner "$RUNNER"
+    --runner "$RUNNER"; then
+    die "Bottles no pudo crear la botella.
+Si la salida muestra «504» al descargar componentes (dxvk, vkd3d, nvapi…),
+es una caída temporal de las descargas de GitHub: reintenta en unos minutos."
+  fi
   wait_for_prefix || die "la botella se creó pero el prefijo no está listo."
   progress 50 "Prefijo creado"
   info "prefijo listo en $BOTTLE_DIR"
@@ -300,7 +356,11 @@ simhub_installer() {
   if [[ ! -s "$zip" ]]; then
     step "Descargando SimHub $tag"
     info "$url"
-    curl -fL --progress-bar "$url" -o "$zip" || die "no se pudo descargar SimHub."
+    local asset
+    asset="$(basename "${url%%\?*}")"
+    [[ -n "$asset" ]] || asset="SimHub.$tag.zip"
+    github_download_asset SHWotever/SimHub "$tag" "$asset" "$zip" \
+      || die "no se pudo descargar SimHub."
   else
     info "reutilizo $zip"
   fi
@@ -312,7 +372,7 @@ simhub_installer() {
     unzip -q "$zip" -d "$outdir" || die "no se pudo extraer $zip"
   fi
   local setup
-  setup="$(find "$outdir" -maxdepth 2 -iname 'SimHubSetup*.exe' | head -1)"
+  setup="$(find "$outdir" -maxdepth 2 -iname 'SimHubSetup*.exe' | head -1 || true)"
   [[ -n "$setup" ]] || die "el ZIP de SimHub no contiene SimHubSetup*.exe"
   SIMHUB_SETUP="$setup"
 }

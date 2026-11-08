@@ -13,6 +13,11 @@ info() { printf '  %s\n' "$*"; }
 warn() { printf 'AVISO: %s\n' "$*" >&2; }
 die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 
+# Si una orden falla sin pasar por die(), deja el motivo en la salida.
+# Sin esto, `set -e` termina el script y la interfaz solo muestra
+# "El script termino con errores (codigo 1)" sin ninguna pista.
+trap 'code=$?; printf "ERROR: fallo inesperado en la linea %s (codigo %s).\n" "$LINENO" "$code" >&2' ERR
+
 # Escribe el progreso (0-100) y el texto de la etapa para la barra de ETOL.
 # La interfaz pasa ETOL_PROGRESS_FILE; si no existe, no hace nada.
 progress() {

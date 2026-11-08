@@ -918,7 +918,7 @@ dependencies = [
 
 [[package]]
 name = "etol"
-version = "0.3.18"
+version = "0.3.19"
 dependencies = [
  "anyhow",
  "clap",
@@ -929,7 +929,7 @@ dependencies = [
 
 [[package]]
 name = "etol-gui"
-version = "0.3.18"
+version = "0.3.19"
 dependencies = [
  "anyhow",
  "etol",
