@@ -4,7 +4,7 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/../../../.." && pwd)"
-ZIG="${ZIG:-$HOME/Escritorio/SIMHUB_LINUX/tools/zig/zig}"
+ZIG="${ZIG:-$ROOT/../SIMHUB_LINUX/tools/zig/zig}"
 
 if [[ ! -x "$ZIG" ]]; then
   echo "ERROR: no encuentro Zig en: $ZIG" >&2

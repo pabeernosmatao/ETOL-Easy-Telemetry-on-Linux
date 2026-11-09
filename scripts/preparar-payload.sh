@@ -17,6 +17,9 @@ find_src() {
     return 0
   fi
   for candidate in \
+    "$ROOT/../SIMHUB_LINUX/Simhub_Linux_APP" \
+    "$ROOT/../SIMHUB_LINUX" \
+    "$HOME/Proyectos/SIMHUB_LINUX/Simhub_Linux_APP" \
     "$HOME/Escritorio/SIMHUB_LINUX/Simhub_Linux_APP" \
     "$HOME/SIMHUB_LINUX/Simhub_Linux_APP" \
     "$HOME/Simhub_Linux_APP"; do

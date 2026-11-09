@@ -165,9 +165,10 @@ impl GameDef {
 }
 
 /// Rutas donde historicamente vivia Simhub_Linux_APP.
-pub fn legacy_app_dirs() -> [PathBuf; 3] {
+pub fn legacy_app_dirs() -> [PathBuf; 4] {
     let home = util::home();
     [
+        home.join("Proyectos/SIMHUB_LINUX/Simhub_Linux_APP"),
         home.join("Escritorio/SIMHUB_LINUX/Simhub_Linux_APP"),
         home.join("SIMHUB_LINUX/Simhub_Linux_APP"),
         home.join("Simhub_Linux_APP"),
