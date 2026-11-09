@@ -252,7 +252,7 @@
               stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
       <span>ETOL</span>
-      <span class="badge">versión 0.3.22</span>
+      <span class="badge">versión 0.3.23</span>
     </div>
     <h1>Guía de <span class="grad">uso</span></h1>
     <p class="lead">
@@ -298,8 +298,8 @@
   </ul>
 
   <h3>Abrir el AppImage</h3>
-  <pre><code>chmod +x ETOL-0.3.22-linux-x86_64-portable.AppImage
-./ETOL-0.3.22-linux-x86_64-portable.AppImage</code></pre>
+  <pre><code>chmod +x ETOL-0.3.23-linux-x86_64-portable.AppImage
+./ETOL-0.3.23-linux-x86_64-portable.AppImage</code></pre>
   <p class="small muted">La variante <strong>portable</strong> usa el WebKit del
   sistema y necesita <code>libwebkit2gtk-4.1</code> y <code>libgtk-3</code>. La
   variante <strong>full</strong> lo lleva todo dentro y pide glibc 2.44 o
@@ -505,6 +505,10 @@
   muestra un aviso.</p>
   <p>En <strong>Dispositivos</strong> puedes activarlo o desactivarlo, ver el
   puerto y reconfigurarlo si cambias de USB.</p>
+  <p>Si el pad aparece pero SimHub no lo abre, pulsa <strong>Preparar acceso
+  USB</strong> en Dispositivos: añade tu usuario al grupo serie (uucp o
+  dialout), instala una regla udev y desactiva brltty si está instalado. Pide
+  autorización de administrador; si se añade el grupo, cierra sesión o reinicia.</p>
 </section>
 
 <section id="bandeja">
@@ -601,7 +605,7 @@
 
 <footer>
   <div class="wrap">
-    <span>ETOL · Easy Telemetry On Linux · 0.3.22 · MIT</span>
+    <span>ETOL · Easy Telemetry On Linux · 0.3.23 · MIT</span>
     <span>
       <a href="https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux">GitHub</a> ·
       <a href="https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux/blob/main/README.es.md">README</a> ·

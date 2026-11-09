@@ -475,6 +475,13 @@ async fn configure_hf8() -> Result<String, String> {
     .await
 }
 
+/// Anade el usuario al grupo serie, instala la regla udev `uaccess` y
+/// enmascara brltty si esta instalado. Pide autorizacion con pkexec.
+#[tauri::command]
+async fn fix_usb_access() -> Result<String, String> {
+    blocking(|| etol::usbaccess::fix()).await
+}
+
 #[tauri::command]
 async fn env_preview() -> Result<String, String> {
     blocking(|| {
@@ -1650,6 +1657,7 @@ fn main() {
             start_app_for_game,
             stop_app,
             configure_hf8,
+            fix_usb_access,
             env_preview,
             open_path,
             open_guide,

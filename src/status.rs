@@ -12,6 +12,8 @@ pub struct Snapshot {
     pub generated: String,
     pub apps: AppsStatus,
     pub hf8: Hf8Status,
+    /// Acceso del usuario a los puertos serie USB (HF8, LEDs, Arduino...).
+    pub usb: crate::usbaccess::UsbAccess,
     pub setup: SetupStatus,
     /// Vigilancia automatica activa (cambia el banner de MESSAGES).
     pub daemon_enabled: bool,
@@ -320,6 +322,7 @@ pub fn snapshot(cfg: &Config) -> Snapshot {
     let scripts_dir = cfg
         .app_dir()
         .map(|dir| dir.join("sistema").display().to_string());
+    let usb = crate::usbaccess::inspect();
 
     Snapshot {
         generated: util::now_utc(),
@@ -347,6 +350,7 @@ pub fn snapshot(cfg: &Config) -> Snapshot {
             com_ok,
             holders,
         },
+        usb,
         setup: SetupStatus {
             flatpak,
             bottle_ready,

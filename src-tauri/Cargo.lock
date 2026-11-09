@@ -918,10 +918,11 @@ dependencies = [
 
 [[package]]
 name = "etol"
-version = "0.3.22"
+version = "0.3.23"
 dependencies = [
  "anyhow",
  "clap",
+ "libc",
  "serde",
  "serde_json",
  "toml 0.8.23",
@@ -929,7 +930,7 @@ dependencies = [
 
 [[package]]
 name = "etol-gui"
-version = "0.3.22"
+version = "0.3.23"
 dependencies = [
  "anyhow",
  "etol",

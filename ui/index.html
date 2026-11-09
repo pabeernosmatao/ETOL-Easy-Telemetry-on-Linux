@@ -68,6 +68,22 @@
         </section>
 
         <section class="panel" data-panel="dispositivos" hidden>
+          <section class="card collapsible">
+            <details id="usb-details" class="card-details">
+              <summary class="panel-head">
+                <h2>Acceso a dispositivos USB</h2>
+                <span class="tag" id="usb-tag">—</span>
+                <span class="chevron" aria-hidden="true">›</span>
+              </summary>
+              <div class="rows" id="usb-access"></div>
+              <div class="panel-actions">
+                <button class="btn" id="btn-usb-fix" title="Anade tu usuario al grupo serie y aplica la regla udev">
+                  <span class="icon">⚡</span> Preparar acceso USB
+                </button>
+              </div>
+            </details>
+          </section>
+
           <section class="card">
             <div class="panel-head">
               <h2>Pad HF8</h2>

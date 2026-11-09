@@ -1,6 +1,6 @@
 # ETOL · User guide
 
-**English** · [Español](GUIA.md) · Version 0.3.22
+**English** · [Español](GUIA.md) · Version 0.3.23
 
 Everything ETOL does, how to set up SimHub and CrewChief from scratch and how
 to get the most out of each simulator.
@@ -42,8 +42,8 @@ with one click. It never modifies your games.
 ### Opening the AppImage
 
 ```bash
-chmod +x ETOL-0.3.22-linux-x86_64-portable.AppImage
-./ETOL-0.3.22-linux-x86_64-portable.AppImage
+chmod +x ETOL-0.3.23-linux-x86_64-portable.AppImage
+./ETOL-0.3.23-linux-x86_64-portable.AppImage
 ```
 
 The **portable** build uses the system WebKit and needs `libwebkit2gtk-4.1` and

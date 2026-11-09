@@ -133,6 +133,7 @@ function setLanguage(lang) {
     renderGames(state.snapshot);
     renderApps(state.snapshot);
     renderHf8(state.snapshot);
+    renderUsbAccess(state.snapshot);
     renderMessages(state.snapshot);
     renderDaemonGames();
   }
@@ -572,6 +573,15 @@ function renderHf8(snapshot) {
     : `${hf8.com_port} → sin enlace`;
 
   const holders = hf8.holders.length ? hf8.holders.join(", ") : "nadie";
+  const usbHint = snapshot.usb?.needs_fix
+    ? `<div class="row">
+        <span class="dot warn"></span>
+        <div class="row-main">
+          <div class="label">${esc(t("Acceso USB"))}</div>
+          <div class="value">${esc(t("Revisa la tarjeta «Acceso a dispositivos USB»."))}</div>
+        </div>
+      </div>`
+    : "";
 
   $("#hf8").innerHTML = `
     <div class="row">
@@ -594,8 +604,100 @@ function renderHf8(snapshot) {
         <div class="label">Abierto por</div>
         <div class="value" title="${esc(holders)}">${esc(holders)}</div>
       </div>
-    </div>`;
+    </div>
+    ${usbHint}`;
   translateDom($("#hf8"));
+}
+
+/* ------------------------------------------------------ acceso usb */
+
+function renderUsbAccess(snapshot) {
+  const usb = snapshot?.usb;
+  const box = $("#usb-access");
+  if (!usb || !box) return;
+
+  const tag = $("#usb-tag");
+  if (tag) {
+    tag.textContent = usb.needs_fix ? t("Revisar") : t("Correcto");
+    tag.className = `tag ${usb.needs_fix ? "warn" : "ok"}`;
+  }
+
+  const groupValue = usb.serial_group
+    ? usb.in_group
+      ? tf("{0} · usuario incluido", usb.serial_group)
+      : tf("{0} · falta añadir el usuario", usb.serial_group)
+    : t("No se detectó el grupo serie (uucp/dialout)");
+
+  const brlttyValue = !usb.brltty_present
+    ? t("No instalado")
+    : usb.brltty_active
+      ? t("Activo (puede bloquear el puerto)")
+      : usb.brltty_masked
+        ? t("Enmascarado")
+        : t("Instalado y sin enmascarar");
+
+  const ruleValue = usb.rule_ok
+    ? t("Instalada")
+    : usb.rule_present
+      ? t("Instalada pero incompleta")
+      : t("No instalada");
+
+  const devValue = usb.devices.length
+    ? usb.devices
+        .map((device) =>
+          esc(
+            `${device.dev}${device.name ? ` · ${device.name}` : ""}${
+              device.accessible ? "" : ` (${t("sin acceso")})`
+            }`
+          )
+        )
+        .join("<br>")
+    : esc(t("No hay puertos serie USB conectados"));
+
+  const devicesOk = usb.devices.length
+    ? usb.devices.every((device) => device.accessible)
+    : usb.in_group || usb.rule_ok;
+
+  const relogin = usb.needs_relogin
+    ? `<div class="row">
+        <span class="dot warn"></span>
+        <div class="row-main">
+          <div class="label">${esc(t("Sesión"))}</div>
+          <div class="value">${esc(t("Cierra sesión o reinicia para aplicar el grupo."))}</div>
+        </div>
+      </div>`
+    : "";
+
+  box.innerHTML = `
+    <div class="row">
+      <span class="dot ${usb.in_group ? "on" : "warn"}"></span>
+      <div class="row-main">
+        <div class="label">${esc(t("Grupo serie"))}</div>
+        <div class="value">${esc(groupValue)}</div>
+      </div>
+    </div>
+    <div class="row">
+      <span class="dot ${usb.brltty_present && (!usb.brltty_masked || usb.brltty_active) ? "warn" : "on"}"></span>
+      <div class="row-main">
+        <div class="label">${esc(t("brltty"))}</div>
+        <div class="value">${esc(brlttyValue)}</div>
+      </div>
+    </div>
+    <div class="row">
+      <span class="dot ${usb.rule_ok ? "on" : ""}"></span>
+      <div class="row-main">
+        <div class="label">${esc(t("Regla udev"))}</div>
+        <div class="value">${esc(ruleValue)}</div>
+      </div>
+    </div>
+    <div class="row">
+      <span class="dot ${devicesOk ? "on" : "warn"}"></span>
+      <div class="row-main">
+        <div class="label">${esc(t("Dispositivos serie"))}</div>
+        <div class="value">${devValue}</div>
+      </div>
+    </div>
+    ${relogin}`;
 }
 
 /* --------------------------------------------------------------- mensajes */
@@ -1239,6 +1341,7 @@ async function refreshStatus(force = false) {
       renderGames(snapshot);
       renderApps(snapshot);
       renderHf8(snapshot);
+      renderUsbAccess(snapshot);
       renderMessages(snapshot);
       const ids = daemonGameList().map((game) => game.id).join("|");
       if (ids !== state.daemonGamesKey) renderDaemonGames();
@@ -1553,6 +1656,41 @@ $("#btn-hf8").addEventListener("click", async (event) => {
     fail(error);
   } finally {
     busy(event.currentTarget, false);
+  }
+});
+
+$("#btn-usb-fix").addEventListener("click", async (event) => {
+  const button = event.currentTarget;
+  busy(button, true);
+  openModal({
+    title: t("Preparar acceso USB"),
+    html: `<div class="setup-state" id="setup-state">${esc(t("Pidiendo autorización…"))}</div>
+      <pre class="setup-log" id="setup-log" hidden></pre>`,
+    actions: [{ label: t("Cerrar"), onClick: () => $("#modal").close() }],
+  });
+  const closeButton = $("#modal-actions").querySelector("button");
+  if (closeButton) closeButton.disabled = true;
+  try {
+    const output = await call("fix_usb_access");
+    const log = $("#setup-log");
+    log.textContent = output || "(sin salida)";
+    log.hidden = false;
+    const stateBox = $("#setup-state");
+    stateBox.className = "setup-state ok";
+    stateBox.textContent = t("Acceso USB preparado.");
+    if (closeButton) closeButton.disabled = false;
+    toast(t("Acceso USB preparado"), "ok");
+    await Promise.all([refreshStatus(true), refreshDoctor()]);
+  } catch (error) {
+    const stateBox = $("#setup-state");
+    if (stateBox) {
+      stateBox.className = "setup-state bad";
+      stateBox.textContent = String(error?.message ?? error);
+    }
+    if (closeButton) closeButton.disabled = false;
+    fail(error);
+  } finally {
+    busy(button, false);
   }
 });
 

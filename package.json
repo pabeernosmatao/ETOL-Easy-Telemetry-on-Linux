@@ -1,6 +1,6 @@
 {
   "name": "etol",
-  "version": "0.3.22",
+  "version": "0.3.23",
   "private": true,
   "description": "ETOL · Easy Telemetry On Linux",
   "scripts": {

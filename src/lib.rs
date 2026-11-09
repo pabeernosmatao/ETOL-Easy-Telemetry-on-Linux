@@ -17,6 +17,7 @@ pub mod messages;
 pub mod payload;
 pub mod state;
 pub mod status;
+pub mod usbaccess;
 pub mod util;
 pub mod vdf;
 

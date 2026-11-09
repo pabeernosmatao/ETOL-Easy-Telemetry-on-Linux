@@ -1,6 +1,6 @@
 # ETOL · Guía de uso
 
-[English](GUIDE.md) · **Español** · Versión 0.3.22
+[English](GUIDE.md) · **Español** · Versión 0.3.23
 
 Todo lo que hace ETOL, cómo preparar SimHub y CrewChief desde cero y cómo
 sacarle partido a cada simulador.
@@ -42,8 +42,8 @@ clic. No modifica los juegos.
 ### Abrir el AppImage
 
 ```bash
-chmod +x ETOL-0.3.22-linux-x86_64-portable.AppImage
-./ETOL-0.3.22-linux-x86_64-portable.AppImage
+chmod +x ETOL-0.3.23-linux-x86_64-portable.AppImage
+./ETOL-0.3.23-linux-x86_64-portable.AppImage
 ```
 
 La variante **portable** usa el WebKit del sistema y necesita

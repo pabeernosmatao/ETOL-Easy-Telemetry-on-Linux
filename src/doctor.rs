@@ -477,6 +477,43 @@ pub fn run(cfg: &Config) -> Vec<Check> {
         checks.push(ok("HF8", "desactivado en la configuracion"));
     }
 
+    // --- Acceso a los puertos serie USB ---
+    let access = crate::usbaccess::inspect();
+    if access.needs_fix {
+        let mut reasons = Vec::new();
+        if !access.in_group {
+            match access.serial_group.as_deref() {
+                Some(group) => reasons.push(format!(
+                    "el usuario {} no esta en el grupo {group}",
+                    access.user
+                )),
+                None => reasons.push("no se encontro el grupo uucp/dialout".to_string()),
+            }
+        }
+        if access.brltty_present && (!access.brltty_masked || access.brltty_active) {
+            reasons.push("brltty puede reclamar el puerto".to_string());
+        }
+        let blocked: Vec<String> = access
+            .devices
+            .iter()
+            .filter(|device| !device.accessible)
+            .map(|device| device.dev.clone())
+            .collect();
+        if !blocked.is_empty() {
+            reasons.push(format!("sin acceso a {}", blocked.join(", ")));
+        }
+        checks.push(warn(
+            "Acceso USB",
+            reasons.join("; "),
+            Some("Dispositivos → Preparar acceso USB".into()),
+        ));
+    } else {
+        checks.push(ok(
+            "Acceso USB",
+            "el usuario puede abrir los puertos serie",
+        ));
+    }
+
     // --- Binarios del puente ---
     if let Some(dir) = cfg.app_dir() {
         for def in detect::GAMES {

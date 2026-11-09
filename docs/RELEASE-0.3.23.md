@@ -1,0 +1,78 @@
+# ETOL 0.3.23
+
+Un arreglo para el pad HF8: acceso a los puertos serie USB sin comandos
+manuales.
+
+## Acceso USB del HF8
+
+En una instalación limpia, SimHub podía ver el HF8 pero no abrirlo. El motivo
+habitual es que el usuario no pertenece al grupo propietario de
+`/dev/ttyACM*` y `/dev/ttyUSB*`:
+
+- Arch/CachyOS: `uucp`.
+- Debian, Ubuntu, Fedora: `dialout`.
+
+Además, `brltty` puede reclamar dispositivos USB CDC-ACM (como el HF8).
+
+La pestaña **Dispositivos** tiene ahora una tarjeta **Acceso a dispositivos
+USB** como primera ficha y plegada por defecto. La cabecera muestra el estado
+(«Correcto» o «Revisar») sin ocupar espacio. Al desplegarla se ve:
+
+- el grupo serie detectado y si el usuario pertenece a él;
+- el estado de `brltty` (no instalado, enmascarado o activo);
+- el estado de la regla udev;
+- los puertos serie detectados y si el usuario puede abrirlos.
+
+El botón **Preparar acceso USB** pide autorización con `pkexec` y:
+
+1. añade el usuario al grupo que posee los puertos serie (`uucp` o `dialout`);
+2. instala `/etc/udev/rules.d/99-etol-serial.rules` con `TAG+="uaccess"` para
+   `ttyACM*` y `ttyUSB*`, de modo que el acceso funciona sin depender del grupo;
+3. enmascara `brltty-udev.service` y `brltty.service` si están instalados;
+4. recarga y aplica las reglas udev.
+
+La regla udev da acceso inmediato al usuario de la sesión. El grupo es el
+respaldo persistente: si se añade, hay que cerrar sesión o reiniciar para que
+la sesión lo reciba.
+
+En el equipo de pruebas el único cambio necesario fue añadir el usuario a
+`uucp`: `brltty` no estaba instalado y la regla de `ttyUSB` que se usaba para
+los LEDs no afecta al HF8, que es `ttyACM`.
+
+## Diagnóstico
+
+La pestaña **Diagnóstico** incluye una comprobación **Acceso USB**. Si el
+usuario no puede abrir el dispositivo o `brltty` puede reclamarlo, aparece un
+aviso con el arreglo.
+
+## Notas de la versión
+
+- Nueva tarjeta en Dispositivos y nuevo comando `fix_usb_access`.
+- Nuevo módulo `usbaccess` con la detección y el arreglo.
+- Traducciones en español, catalán e inglés.
+- Guías actualizadas en los tres idiomas.
+
+## Assets
+
+| Asset | Size | SHA-256 |
+|---|---|---|
+| `ETOL-0.3.23-linux-x86_64-portable.AppImage` | 6.6 MB | `9acff7e0e93c40dce252e6acabbb8e486cb8b43c247e9d3c9dc21c94b09aaa94` |
+| `ETOL-0.3.23-linux-x86_64-full.AppImage` | 112 MB | `e1bf8cf7b9a30688c05b123105e06515396ee49988fb28e19a27a3560232a251` |
+
+## Instalación
+
+```bash
+chmod +x ETOL-0.3.23-linux-x86_64-portable.AppImage
+./ETOL-0.3.23-linux-x86_64-portable.AppImage
+```
+
+## Requisitos
+
+- Linux x86_64, glibc **2.39+** (portable) o **2.44+** (full).
+- `python3` y `curl` en el sistema.
+- Portable: `libwebkit2gtk-4.1` + `libgtk-3`.
+- `pkexec` y un agente polkit para aplicar el arreglo USB (KDE lo incluye).
+- Steam con los juegos; Bottles con SimHub (ETOL puede instalar y preparar
+  ambos).
+- KDE Plasma para los dashboards sobre el juego.
+- Un host StatusNotifier para el icono de bandeja.
