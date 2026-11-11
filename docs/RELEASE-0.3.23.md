@@ -50,6 +50,10 @@ Ahora solo cuenta el proceso cuyo primer argumento (o `comm`) es el ejecutable
 del juego. El `steam.exe` del prefijo ya no impide que se paren el puente,
 CrewChief y SimHub al cerrar el simulador.
 
+Tambien se corrigio el autocierre de LMU: el nombre del puente ahora incluye
+`.exe` (antes no se reconocia el proceso) y la ventana de arranque manual ya no
+impide cerrar CrewChief y SimHub si el juego se cierra dentro de esos 90 s.
+
 Ademas, al arrancar ETOL se paran los puentes que hayan quedado de una sesion
 anterior si su juego no esta abierto.
 
@@ -70,8 +74,8 @@ aviso con el arreglo.
 
 | Asset | Size | SHA-256 |
 |---|---|---|
-| `ETOL-0.3.23-linux-x86_64-portable.AppImage` | 6.6 MB | `9f7a0bea93eeb804472f5673990d9729e8d7b18dc8c166aac3c3fb2e09a23dc5` |
-| `ETOL-0.3.23-linux-x86_64-full.AppImage` | 112 MB | `5134ed60061a395347146651b98b529ee3e87db20c9022a9ab93d6d5c5be504a` |
+| `ETOL-0.3.23-linux-x86_64-portable.AppImage` | 6.6 MB | `e9019519b70b99a5cfaf4d78420fc689602fe442bb6b9d1ad2bc795de859cf03` |
+| `ETOL-0.3.23-linux-x86_64-full.AppImage` | 112 MB | `13f76a9bb56eb674ff673ecb42521f28e7cb06671d7365a3e73c6ba9b2d9b4b7` |
 
 ## Instalación
 

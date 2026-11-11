@@ -149,7 +149,9 @@ impl GameDef {
             // Puentes por UDP: el proceso es el relay o el stub del juego.
             "dirt2" => "dirt2_udp_relay".to_string(),
             "beamng" => "beamng_udp".to_string(),
-            _ => format!("{}_shm_mirror", self.id),
+            // Los espejos son ejecutables Windows: el nombre incluye `.exe`.
+            // Sin la extension, `running_drive_exe` no los reconoce.
+            _ => format!("{}_shm_mirror.exe", self.id),
         }
     }
 

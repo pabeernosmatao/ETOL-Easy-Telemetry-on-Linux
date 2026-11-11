@@ -906,7 +906,10 @@ fn run_daemon_actions(app: &tauri::AppHandle, actions: Vec<Action>) {
         let manual = action_game(&action)
             .map(|game| with_watcher(|watcher| watcher.manual_active(game)))
             .unwrap_or(false);
-        if manual && !matches!(action, Action::StopBridge(_)) {
+        // La ventana de arranque manual solo evita duplicar arranques. Los
+        // parados deben ejecutarse siempre: si el juego se cierra dentro de
+        // esos 90 s, las apps tambien tienen que cerrarse.
+        if manual && matches!(action, Action::StartBridge(_) | Action::StartApp(_, _)) {
             logs::info(
                 "daemon",
                 format!(
