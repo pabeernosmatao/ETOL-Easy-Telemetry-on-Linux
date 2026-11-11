@@ -1039,6 +1039,30 @@ fn spawn_daemon(app: tauri::AppHandle) {
         // La configuracion solo se relee cuando cambia el fichero.
         let mut cached: Option<(Option<std::time::SystemTime>, Arc<Config>)> = None;
         let mut last_diag: Option<std::time::Instant> = None;
+
+        // Al arrancar no deben quedar puentes de una sesion anterior. Si el
+        // juego esta abierto, su puente se conserva; los demas se paran.
+        if let Ok(cfg) = Config::load() {
+            if cfg.daemon.enabled {
+                let running = daemon::running_games(&cfg);
+                let running_ids: Vec<&str> = running.iter().map(|def| def.id).collect();
+                for def in detect::GAMES {
+                    if !running_ids.contains(&def.id) && bridge_running(def.id) {
+                        logs::info(
+                            "daemon",
+                            format!("{}: puente de una sesion anterior; lo paro", def.id),
+                        );
+                        if let Err(error) = launch::stop_bridge(&cfg, def.id) {
+                            logs::warn("daemon", format!("{}: {error:#}", def.id));
+                        }
+                        if cfg.daemon.close_apps {
+                            launch::stop_apps_for(&cfg, def.id);
+                        }
+                    }
+                }
+            }
+        }
+
         loop {
             std::thread::sleep(DAEMON_TICK);
             if QUITTING.load(Ordering::Relaxed) {

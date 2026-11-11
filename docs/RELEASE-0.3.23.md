@@ -39,6 +39,20 @@ En el equipo de pruebas el único cambio necesario fue añadir el usuario a
 `uucp`: `brltty` no estaba instalado y la regla de `ttyUSB` que se usaba para
 los LEDs no afecta al HF8, que es `ttyACM`.
 
+## Autocierre al cerrar el juego
+
+El vigilante daba por abiertos algunos juegos después de cerrarlos. Proton deja
+un proceso `steam.exe` cuyo primer argumento es
+`c:\windows\system32\steam.exe` y que lleva la ruta del juego en la línea de
+comandos; la detección lo confundía con el ejecutable real.
+
+Ahora solo cuenta el proceso cuyo primer argumento (o `comm`) es el ejecutable
+del juego. El `steam.exe` del prefijo ya no impide que se paren el puente,
+CrewChief y SimHub al cerrar el simulador.
+
+Ademas, al arrancar ETOL se paran los puentes que hayan quedado de una sesion
+anterior si su juego no esta abierto.
+
 ## Diagnóstico
 
 La pestaña **Diagnóstico** incluye una comprobación **Acceso USB**. Si el
@@ -56,8 +70,8 @@ aviso con el arreglo.
 
 | Asset | Size | SHA-256 |
 |---|---|---|
-| `ETOL-0.3.23-linux-x86_64-portable.AppImage` | 6.6 MB | `9acff7e0e93c40dce252e6acabbb8e486cb8b43c247e9d3c9dc21c94b09aaa94` |
-| `ETOL-0.3.23-linux-x86_64-full.AppImage` | 112 MB | `e1bf8cf7b9a30688c05b123105e06515396ee49988fb28e19a27a3560232a251` |
+| `ETOL-0.3.23-linux-x86_64-portable.AppImage` | 6.6 MB | `9f7a0bea93eeb804472f5673990d9729e8d7b18dc8c166aac3c3fb2e09a23dc5` |
+| `ETOL-0.3.23-linux-x86_64-full.AppImage` | 112 MB | `5134ed60061a395347146651b98b529ee3e87db20c9022a9ab93d6d5c5be504a` |
 
 ## Instalación
 

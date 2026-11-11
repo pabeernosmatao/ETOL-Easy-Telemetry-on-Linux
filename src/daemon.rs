@@ -511,6 +511,83 @@ mod tests {
     }
 
     #[cfg(unix)]
+    fn spawn_con_arg0_y_arg(arg0: &str, arg: &str) -> std::process::Child {
+        use std::os::unix::process::CommandExt;
+        // `sh` conserva su cmdline mientras espera a `sleep`; asi el proceso
+        // de prueba tiene el nombre de Steam y la ruta del juego como args.
+        std::process::Command::new("sh")
+            .arg("-c")
+            .arg("sleep 30")
+            .arg0(arg0)
+            .arg(arg)
+            .spawn()
+            .expect("no se pudo lanzar el proceso de prueba")
+    }
+
+    #[test]
+    fn cierra_al_desaparecer_el_juego() {
+        let cfg = cfg_with(true);
+        let def = detect::game_def("rf2").unwrap();
+        let mut watcher = Watcher::new();
+        let t0 = Instant::now();
+
+        let actions = watcher.tick_with(&cfg, t0, &[def]);
+        assert!(
+            actions
+                .iter()
+                .any(|action| matches!(action, Action::StartBridge(id) if id == "rf2")),
+            "el primer tick debe arrancar el puente"
+        );
+
+        // El juego desaparece: se espera el margen antes de parar nada.
+        let actions = watcher.tick_with(&cfg, t0 + Duration::from_secs(1), &[]);
+        assert!(actions.is_empty(), "todavia no debe parar");
+
+        // Pasado el margen, se para el puente y las apps.
+        let actions = watcher.tick_with(
+            &cfg,
+            t0 + CLOSE_GRACE + Duration::from_secs(2),
+            &[],
+        );
+        assert!(
+            actions
+                .iter()
+                .any(|action| matches!(action, Action::StopBridge(id) if id == "rf2")),
+            "debe parar el puente"
+        );
+        assert!(
+            actions
+                .iter()
+                .any(|action| matches!(action, Action::StopApps(id) if id == "rf2")),
+            "debe cerrar las apps"
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn el_envoltorio_steam_no_cuenta_como_juego() {
+        let mut cfg = cfg_with(true);
+        let def = detect::game_def("acevo").unwrap();
+        let game = cfg.games.get_mut("acevo").unwrap();
+        game.exe = Some(PathBuf::from("/juego/AssettoCorsaEVO.exe"));
+        game.run_dir = PathBuf::from("/tmp/etol/acevo_mirror");
+
+        // `steam.exe` lleva la ruta del juego como argumento y empieza por
+        // `c:\`, pero no es el juego.
+        let fake = spawn_con_arg0_y_arg(
+            "c:\\windows\\system32\\steam.exe",
+            "S:\\steamapps\\common\\Assetto Corsa EVO\\AssettoCorsaEVO.exe",
+        );
+        std::thread::sleep(Duration::from_millis(150));
+        let detected = game_running(&cfg, def);
+        let _ = std::process::Command::new("kill")
+            .arg(fake.id().to_string())
+            .status();
+
+        assert!(!detected, "el steam.exe del prefijo no debe contar como juego");
+    }
+
+    #[cfg(unix)]
     #[test]
     fn detecta_el_juego_real_y_ignora_su_stub() {
         let mut cfg = cfg_with(true);

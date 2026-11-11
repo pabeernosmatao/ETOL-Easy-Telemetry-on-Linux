@@ -91,9 +91,45 @@ pub fn running_drive_exe(needle: &str) -> Vec<Proc> {
         .filter(|proc| !proc.cmdline.contains("start.exe"))
         .filter(|proc| {
             comm_matches(&proc.comm, &needle_lower)
-                || is_windows_path(proc.cmdline.trim_start())
+                || first_arg_matches(proc.pid, &needle_lower)
         })
         .collect()
+}
+
+/// ¿El primer argumento del proceso es una ruta Windows que apunta al
+/// ejecutable buscado?
+///
+/// No basta con que la linea de comandos empiece por `C:\`: el envoltorio
+/// `steam.exe` de Proton tambien empieza por `c:\windows\system32\steam.exe` y
+/// lleva la ruta del juego como argumento. Si se acepta, el vigilante cree que
+/// el juego sigue abierto cuando en realidad solo queda ese envoltorio.
+fn first_arg_matches(pid: u32, needle: &str) -> bool {
+    let Some(arg) = first_arg(pid) else {
+        return false;
+    };
+    windows_exe_name_matches(&arg, needle)
+}
+
+fn first_arg(pid: u32) -> Option<String> {
+    let raw = std::fs::read(format!("/proc/{pid}/cmdline")).ok()?;
+    let first = raw.split(|byte| *byte == 0).next()?;
+    if first.is_empty() {
+        return None;
+    }
+    Some(String::from_utf8_lossy(first).into_owned())
+}
+
+fn windows_exe_name_matches(arg: &str, needle: &str) -> bool {
+    let arg = arg.trim().trim_matches('"');
+    if !is_windows_path(arg) {
+        return false;
+    }
+    let base = arg
+        .rsplit(['\\', '/'])
+        .next()
+        .unwrap_or(arg)
+        .to_lowercase();
+    base == needle
 }
 
 /// `comm` esta limitado a 15 caracteres en Linux.
@@ -359,4 +395,33 @@ fn read_trimmed(path: &Path) -> Option<String> {
     let text = std::fs::read_to_string(path).ok()?;
     let trimmed = text.trim().to_string();
     (!trimmed.is_empty()).then_some(trimmed)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::windows_exe_name_matches;
+
+    #[test]
+    fn el_juego_real_cuenta() {
+        assert!(windows_exe_name_matches(
+            "S:\\steamapps\\common\\Assetto Corsa EVO\\AssettoCorsaEVO.exe",
+            "assettocorsaevo.exe"
+        ));
+        assert!(windows_exe_name_matches(
+            "\"Z:\\juego\\Le Mans Ultimate.exe\"",
+            "le mans ultimate.exe"
+        ));
+    }
+
+    #[test]
+    fn los_envoltorios_de_steam_no_cuentan() {
+        assert!(!windows_exe_name_matches(
+            "c:\\windows\\system32\\steam.exe",
+            "assettocorsaevo.exe"
+        ));
+        assert!(!windows_exe_name_matches(
+            "/home/barbas/.local/share/Steam/steamapps/common/Assetto Corsa EVO/AssettoCorsaEVO.exe",
+            "assettocorsaevo.exe"
+        ));
+    }
 }
