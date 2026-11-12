@@ -1,86 +1,82 @@
 # ETOL 0.3.23
 
-Un arreglo para el pad HF8: acceso a los puertos serie USB sin comandos
-manuales.
+An HF8 fix: USB serial access without manual commands.
 
-## Acceso USB del HF8
+## HF8 USB access
 
-En una instalación limpia, SimHub podía ver el HF8 pero no abrirlo. El motivo
-habitual es que el usuario no pertenece al grupo propietario de
-`/dev/ttyACM*` y `/dev/ttyUSB*`:
+On a clean install SimHub could see the HF8 but not open it. The usual cause is
+that the user is not in the group that owns `/dev/ttyACM*` and `/dev/ttyUSB*`:
 
 - Arch/CachyOS: `uucp`.
 - Debian, Ubuntu, Fedora: `dialout`.
 
-Además, `brltty` puede reclamar dispositivos USB CDC-ACM (como el HF8).
+`brltty` can also claim CDC-ACM USB devices such as the HF8.
 
-La pestaña **Dispositivos** tiene ahora una tarjeta **Acceso a dispositivos
-USB** como primera ficha y plegada por defecto. La cabecera muestra el estado
-(«Correcto» o «Revisar») sin ocupar espacio. Al desplegarla se ve:
+The **Devices** tab now has a **USB device access** card as the first card,
+collapsed by default. Its header shows the status ("OK" or "Check") without
+taking up space. Expanding it shows:
 
-- el grupo serie detectado y si el usuario pertenece a él;
-- el estado de `brltty` (no instalado, enmascarado o activo);
-- el estado de la regla udev;
-- los puertos serie detectados y si el usuario puede abrirlos.
+- the detected serial group and whether the user belongs to it;
+- the `brltty` state (not installed, masked or active);
+- the udev rule state;
+- the detected serial ports and whether the user can open them.
 
-El botón **Preparar acceso USB** pide autorización con `pkexec` y:
+The **Set up USB access** button asks for authorization with `pkexec` and:
 
-1. añade el usuario al grupo que posee los puertos serie (`uucp` o `dialout`);
-2. instala `/etc/udev/rules.d/99-etol-serial.rules` con `TAG+="uaccess"` para
-   `ttyACM*` y `ttyUSB*`, de modo que el acceso funciona sin depender del grupo;
-3. enmascara `brltty-udev.service` y `brltty.service` si están instalados;
-4. recarga y aplica las reglas udev.
+1. adds the user to the group that owns the serial ports (`uucp` or `dialout`);
+2. installs `/etc/udev/rules.d/99-etol-serial.rules` with `TAG+="uaccess"` for
+   `ttyACM*` and `ttyUSB*`, so access works without depending on the group;
+3. masks `brltty-udev.service` and `brltty.service` if they are installed;
+4. reloads and applies the udev rules.
 
-La regla udev da acceso inmediato al usuario de la sesión. El grupo es el
-respaldo persistente: si se añade, hay que cerrar sesión o reiniciar para que
-la sesión lo reciba.
+The udev rule grants immediate access to the session user. The group is the
+persistent fallback: if it is added, log out or reboot for the session to
+receive it.
 
-En el equipo de pruebas el único cambio necesario fue añadir el usuario a
-`uucp`: `brltty` no estaba instalado y la regla de `ttyUSB` que se usaba para
-los LEDs no afecta al HF8, que es `ttyACM`.
+On the test machine the only required change was adding the user to `uucp`:
+`brltty` was not installed and the `ttyUSB` rule used for the LEDs does not
+affect the HF8, which is `ttyACM`.
 
-## Autocierre al cerrar el juego
+## Auto-close when the game exits
 
-El vigilante daba por abiertos algunos juegos después de cerrarlos. Proton deja
-un proceso `steam.exe` cuyo primer argumento es
-`c:\windows\system32\steam.exe` y que lleva la ruta del juego en la línea de
-comandos; la detección lo confundía con el ejecutable real.
+The watcher considered some games open after they had been closed. Proton
+leaves a `steam.exe` process whose first argument is
+`c:\windows\system32\steam.exe` and which carries the game path in its command
+line; detection confused it with the real game executable.
 
-Ahora solo cuenta el proceso cuyo primer argumento (o `comm`) es el ejecutable
-del juego. El `steam.exe` del prefijo ya no impide que se paren el puente,
-CrewChief y SimHub al cerrar el simulador.
+Now only the process whose first argument (or `comm`) is the game executable
+counts. The prefix's `steam.exe` no longer prevents the bridge, CrewChief and
+SimHub from stopping when the simulator closes.
 
-Tambien se corrigio el autocierre de LMU: el nombre del puente ahora incluye
-`.exe` (antes no se reconocia el proceso) y la ventana de arranque manual ya no
-impide cerrar CrewChief y SimHub si el juego se cierra dentro de esos 90 s.
+LMU auto-close was also fixed: the bridge name now includes `.exe` (it was not
+recognized before), and the manual-start window no longer prevents closing
+CrewChief and SimHub if the game closes within those 90 seconds.
 
-En BeamNG el puente es el stub `BeamNG.drive.x64.exe` que SimHub usa para
-detectar el juego nativo. Ahora ETOL reconoce ese proceso y lo para al cerrar
-BeamNG; antes quedaba vivo y SimHub volvia siempre a BeamNG aunque cambiaras de
-juego a mano.
+In BeamNG the bridge is the `BeamNG.drive.x64.exe` stub that SimHub uses to
+detect the native game. ETOL now recognizes that process and stops it when
+BeamNG closes; before it stayed alive and SimHub always switched back to BeamNG
+even if you changed the game manually.
 
-Para los juegos nativos (ETS2, BeamNG) la deteccion ya no acepta cualquier
-argumento de la linea de comandos: los envoltorios `reaper`/`python3` de Steam
-llevan la ruta del juego y podian mantenerlo como abierto despues de cerrarlo.
-Se comprueba el `comm` del proceso o su primer argumento real (leido de
-`/proc/<pid>/cmdline`, que respeta los espacios de rutas como
-`Euro Truck Simulator 2`).
+For native games (ETS2, BeamNG), detection no longer accepts any command-line
+argument: Steam's `reaper`/`python3` wrappers carry the game path and could keep
+it marked as open after closing. It checks the process `comm` or its real first
+argument (read from `/proc/<pid>/cmdline`, which respects spaces in paths such
+as `Euro Truck Simulator 2`).
 
-Ademas, al arrancar ETOL se paran los puentes que hayan quedado de una sesion
-anterior si su juego no esta abierto.
+ETOL also stops bridges left over from a previous session at startup if their
+game is not open.
 
-## Diagnóstico
+## Diagnostics
 
-La pestaña **Diagnóstico** incluye una comprobación **Acceso USB**. Si el
-usuario no puede abrir el dispositivo o `brltty` puede reclamarlo, aparece un
-aviso con el arreglo.
+The **Diagnostics** tab includes a **USB access** check. If the user cannot open
+the device or `brltty` may claim it, a warning with the fix is shown.
 
-## Notas de la versión
+## Release notes
 
-- Nueva tarjeta en Dispositivos y nuevo comando `fix_usb_access`.
-- Nuevo módulo `usbaccess` con la detección y el arreglo.
-- Traducciones en español, catalán e inglés.
-- Guías actualizadas en los tres idiomas.
+- New card in Devices and new `fix_usb_access` command.
+- New `usbaccess` module with detection and fix.
+- Spanish, Catalan and English translations.
+- Guides updated in all three languages.
 
 ## Assets
 
@@ -89,20 +85,20 @@ aviso con el arreglo.
 | `ETOL-0.3.23-linux-x86_64-portable.AppImage` | 6.6 MB | `9fa40c146dede2d17ac82dc837e98f2f5855bb02e1c94bbbcb5e52e33665ac0e` |
 | `ETOL-0.3.23-linux-x86_64-full.AppImage` | 112 MB | `125531bcc47a0dd6dc9e7c050e3153aae16037b171bf382c20b843e76b732999` |
 
-## Instalación
+## Install
 
 ```bash
 chmod +x ETOL-0.3.23-linux-x86_64-portable.AppImage
 ./ETOL-0.3.23-linux-x86_64-portable.AppImage
 ```
 
-## Requisitos
+## Requirements
 
-- Linux x86_64, glibc **2.39+** (portable) o **2.44+** (full).
-- `python3` y `curl` en el sistema.
+- Linux x86_64, glibc **2.39+** (portable) or **2.44+** (full).
+- `python3` and `curl` on the system.
 - Portable: `libwebkit2gtk-4.1` + `libgtk-3`.
-- `pkexec` y un agente polkit para aplicar el arreglo USB (KDE lo incluye).
-- Steam con los juegos; Bottles con SimHub (ETOL puede instalar y preparar
-  ambos).
-- KDE Plasma para los dashboards sobre el juego.
-- Un host StatusNotifier para el icono de bandeja.
+- `pkexec` and a polkit agent to apply the USB fix (KDE includes one).
+- Steam with the games; Bottles with SimHub (ETOL can install and prepare
+  both).
+- KDE Plasma for the in-game dashboards.
+- A StatusNotifier host for the tray icon.
