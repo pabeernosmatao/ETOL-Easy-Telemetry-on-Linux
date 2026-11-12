@@ -110,7 +110,7 @@ fn first_arg_matches(pid: u32, needle: &str) -> bool {
     windows_exe_name_matches(&arg, needle)
 }
 
-fn first_arg(pid: u32) -> Option<String> {
+pub(crate) fn first_arg(pid: u32) -> Option<String> {
     let raw = std::fs::read(format!("/proc/{pid}/cmdline")).ok()?;
     let first = raw.split(|byte| *byte == 0).next()?;
     if first.is_empty() {
@@ -133,7 +133,7 @@ fn windows_exe_name_matches(arg: &str, needle: &str) -> bool {
 }
 
 /// `comm` esta limitado a 15 caracteres en Linux.
-fn comm_matches(comm: &str, needle: &str) -> bool {
+pub(crate) fn comm_matches(comm: &str, needle: &str) -> bool {
     let comm = comm.trim().to_lowercase();
     if comm.is_empty() {
         return false;

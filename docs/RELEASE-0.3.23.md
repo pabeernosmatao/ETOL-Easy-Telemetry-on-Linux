@@ -59,6 +59,13 @@ detectar el juego nativo. Ahora ETOL reconoce ese proceso y lo para al cerrar
 BeamNG; antes quedaba vivo y SimHub volvia siempre a BeamNG aunque cambiaras de
 juego a mano.
 
+Para los juegos nativos (ETS2, BeamNG) la deteccion ya no acepta cualquier
+argumento de la linea de comandos: los envoltorios `reaper`/`python3` de Steam
+llevan la ruta del juego y podian mantenerlo como abierto despues de cerrarlo.
+Se comprueba el `comm` del proceso o su primer argumento real (leido de
+`/proc/<pid>/cmdline`, que respeta los espacios de rutas como
+`Euro Truck Simulator 2`).
+
 Ademas, al arrancar ETOL se paran los puentes que hayan quedado de una sesion
 anterior si su juego no esta abierto.
 
@@ -79,8 +86,8 @@ aviso con el arreglo.
 
 | Asset | Size | SHA-256 |
 |---|---|---|
-| `ETOL-0.3.23-linux-x86_64-portable.AppImage` | 6.6 MB | `e7da7ae0532e065e121a6a2b9aa07e71fd4d757b1bf3950c892d45210f179f2f` |
-| `ETOL-0.3.23-linux-x86_64-full.AppImage` | 112 MB | `cf539502479de9756b34cc1a83f1919c644ba458dd77ae74d088640aa7e48a03` |
+| `ETOL-0.3.23-linux-x86_64-portable.AppImage` | 6.6 MB | `9fa40c146dede2d17ac82dc837e98f2f5855bb02e1c94bbbcb5e52e33665ac0e` |
+| `ETOL-0.3.23-linux-x86_64-full.AppImage` | 112 MB | `125531bcc47a0dd6dc9e7c050e3153aae16037b171bf382c20b843e76b732999` |
 
 ## Instalación
 

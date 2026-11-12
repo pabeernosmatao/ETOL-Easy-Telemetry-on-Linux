@@ -323,21 +323,32 @@ pub fn game_running(cfg: &Config, def: &GameDef) -> bool {
     }
 
     // Juego nativo: el proceso se llama igual que el binario, sin extension.
+    // Se comprueba `comm` (el nombre real del proceso) y, como respaldo, el
+    // primer argumento. No vale cualquier argumento: los envoltorios de Steam
+    // (`reaper`, `python3`...) llevan la ruta del juego y seguirian contando
+    // como juego abierto despues de cerrarlo.
+    let name_lower = name.to_lowercase();
     state::matching(name)
         .iter()
         .filter(|proc| real(proc))
-        .any(|proc| native_cmd_matches(&proc.cmdline, name))
+        .any(|proc| {
+            state::comm_matches(&proc.comm, &name_lower)
+                || native_cmd_matches(proc.pid, name)
+        })
 }
 
-/// ¿Algun argumento de la linea de comandos es ese ejecutable nativo?
+/// ¿El primer argumento real (el ejecutable) es ese binario nativo?
 ///
-/// Steam a veces envuelve el juego en otros procesos, asi que no basta con
-/// mirar solo el primer argumento.
-fn native_cmd_matches(cmdline: &str, name: &str) -> bool {
-    cmdline.split_whitespace().any(|token| {
-        let base = token.rsplit(['/', '\\']).next().unwrap_or(token);
-        base.eq_ignore_ascii_case(name)
-    })
+/// Se lee `/proc/<pid>/cmdline` separado por NUL: la ruta puede tener espacios
+/// (`Euro Truck Simulator 2`, `BeamNG.drive`...) y no se puede trocear como
+/// texto.
+fn native_cmd_matches(pid: u32, name: &str) -> bool {
+    let Some(arg) = state::first_arg(pid) else {
+        return false;
+    };
+    let arg = arg.trim().trim_matches('"');
+    let base = arg.rsplit(['/', '\\']).next().unwrap_or(arg);
+    base.eq_ignore_ascii_case(name)
 }
 
 fn run_dir(cfg: &Config, def: &GameDef) -> PathBuf {
@@ -487,6 +498,30 @@ mod tests {
         let choice = cfg.daemon.game("ets2");
         assert!(!choice.crewchief);
         assert!(choice.simhub);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn el_envoltorio_de_steam_no_cuenta_como_juego_nativo() {
+        let mut cfg = cfg_with(true);
+        let def = detect::game_def("beamng").unwrap();
+        let game = cfg.games.get_mut("beamng").unwrap();
+        game.exe = Some(PathBuf::from("/juego/BinLinux/BeamNG.drive.x64"));
+        game.run_dir = PathBuf::from("/tmp/etol/beamng_udp");
+
+        // `reaper` lleva la ruta del juego en argumentos, pero el proceso real
+        // del juego es otro (comm `BeamNG.drive.x64`).
+        let fake = spawn_con_arg0_y_arg(
+            "/home/barbas/.local/share/Steam/ubuntu12_32/reaper",
+            "/mnt/GAMES/SteamLibrary/steamapps/common/BeamNG.drive/BinLinux/BeamNG.drive.x64",
+        );
+        std::thread::sleep(Duration::from_millis(150));
+        let detected = game_running(&cfg, def);
+        let _ = std::process::Command::new("kill")
+            .arg(fake.id().to_string())
+            .status();
+
+        assert!(!detected, "el reaper de Steam no debe contar como juego");
     }
 
     #[cfg(unix)]
