@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: User guide (English)
+    url: https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux/blob/main/docs/GUIDE.md
+    about: Installation, requirements, per-game setup and troubleshooting.
+  - name: Guía de uso (Español)
+    url: https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux/blob/main/docs/GUIA.md
+    about: Instalación, requisitos, configuración por juego y solución de problemas.
+  - name: README
+    url: https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux#readme
+    about: What ETOL does, supported games and the personal-project disclaimer.

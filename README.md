@@ -168,6 +168,13 @@ apps but no overlay.
 - [`docs/guia-en.html`](docs/guia-en.html): the same guide as HTML.
 - [`THIRD-PARTY.md`](THIRD-PARTY.md): licenses of the bundled components.
 
+## Contributing
+
+Bug reports, feature requests and pull requests are welcome. Read
+[CONTRIBUTING.md](CONTRIBUTING.md) first. ETOL is a personal project and I can
+only test what I have installed; issues and PRs can be written in English or
+Spanish.
+
 ## License
 
 ETOL is MIT. The AppImage bundles third-party components; see

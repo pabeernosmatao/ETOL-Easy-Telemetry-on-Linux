@@ -1,0 +1,105 @@
+name: Bug report
+description: Report a problem with ETOL
+title: "[Bug]: "
+labels: ["bug", "needs-info"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a problem. ETOL is a personal project: I can only
+        test the simulators, hardware and Linux distributions I have installed.
+        You can write in English or Spanish.
+
+        Please remove API keys, passwords and personal data from logs before
+        posting.
+  - type: input
+    id: etol-version
+    attributes:
+      label: ETOL version
+      description: Run `etol --version` or read it in the window title.
+      placeholder: "0.3.23"
+    validations:
+      required: true
+  - type: dropdown
+    id: distro
+    attributes:
+      label: Linux distribution
+      options:
+        - Arch / CachyOS
+        - Fedora
+        - Ubuntu / Debian
+        - openSUSE
+        - Other (write it below)
+    validations:
+      required: true
+  - type: input
+    id: desktop
+    attributes:
+      label: Desktop and session
+      description: KDE Plasma, GNOME, niri, Hyprland... and X11 or Wayland.
+      placeholder: "KDE Plasma 6, Wayland"
+    validations:
+      required: true
+  - type: input
+    id: gpu
+    attributes:
+      label: GPU and driver
+      placeholder: "AMD RX 7800 XT, Mesa 25.x"
+  - type: dropdown
+    id: simulator
+    attributes:
+      label: Simulator
+      options:
+        - Assetto Corsa EVO
+        - Assetto Corsa
+        - Automobilista 2
+        - BeamNG.drive
+        - DiRT Rally 2.0
+        - Euro Truck Simulator 2
+        - Le Mans Ultimate
+        - RaceRoom Racing Experience
+        - rFactor 2
+        - Not simulator-specific
+    validations:
+      required: true
+  - type: input
+    id: runtime
+    attributes:
+      label: Proton / Wine / Bottles
+      description: Proton version, Bottles runner, Flatpak or native.
+      placeholder: "Proton-GE Latest, Bottles Flatpak"
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Expected behaviour and actual behaviour.
+      placeholder: "I opened ... and ETOL ..."
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open ...
+        2. Click ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Use the Capture logs button in ETOL or `scripts/recoger-logs.sh`. Attach the archive or paste the relevant lines.
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I have read the README and the user guide.
+          required: true
+        - label: I understand this is a personal project and untested setups may not be supported.
+          required: true
+        - label: I have removed personal data, API keys and passwords from the logs.
+          required: true

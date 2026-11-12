@@ -1,0 +1,33 @@
+name: Question
+description: Ask how to use ETOL or clarify something
+title: "[Question]: "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        You can write in English or Spanish. For installation and per-game
+        setup, check the user guide first.
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+    validations:
+      required: true
+  - type: input
+    id: etol-version
+    attributes:
+      label: ETOL version
+      placeholder: "0.3.23"
+  - type: input
+    id: distro
+    attributes:
+      label: Distribution / desktop
+      placeholder: "CachyOS, KDE Plasma 6, Wayland"
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I have read the README and the user guide.
+          required: true

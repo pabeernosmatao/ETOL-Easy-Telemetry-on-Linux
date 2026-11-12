@@ -1,0 +1,56 @@
+name: Feature request
+description: Suggest an improvement or new simulator/hardware support
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ETOL is a personal project. I can only implement and test features for
+        simulators, hardware and Linux distributions I have access to.
+        You can write in English or Spanish.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does it solve?
+      placeholder: "I would like to..."
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Simulator support
+        - Hardware / HF8
+        - Bridge / telemetry
+        - UI / translations
+        - Packaging / installation
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: hardware
+    attributes:
+      label: Hardware involved (if any)
+      placeholder: "HF8, DC2 pedals, wheelbase..."
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched existing issues and this is not a duplicate.
+          required: true
+        - label: I understand this is a personal project and support depends on the hardware/distro being available.
+          required: true

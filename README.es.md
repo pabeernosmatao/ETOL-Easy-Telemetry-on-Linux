@@ -166,6 +166,13 @@ telemetría y apps, pero no el overlay.
 - [`docs/guia-es.html`](docs/guia-es.html): la misma guía en HTML.
 - [`THIRD-PARTY.md`](THIRD-PARTY.md): licencias de los componentes incluidos.
 
+## Contribuir
+
+Los informes de fallos, propuestas y pull requests son bienvenidos. Lee antes
+[CONTRIBUTING.md](CONTRIBUTING.md). ETOL es un proyecto personal y solo puedo
+probar lo que tengo instalado; las issues y PRs se pueden escribir en inglés o
+español.
+
 ## Licencia
 
 ETOL es MIT. El AppImage incluye componentes de terceros; ver
