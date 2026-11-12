@@ -54,6 +54,11 @@ Tambien se corrigio el autocierre de LMU: el nombre del puente ahora incluye
 `.exe` (antes no se reconocia el proceso) y la ventana de arranque manual ya no
 impide cerrar CrewChief y SimHub si el juego se cierra dentro de esos 90 s.
 
+En BeamNG el puente es el stub `BeamNG.drive.x64.exe` que SimHub usa para
+detectar el juego nativo. Ahora ETOL reconoce ese proceso y lo para al cerrar
+BeamNG; antes quedaba vivo y SimHub volvia siempre a BeamNG aunque cambiaras de
+juego a mano.
+
 Ademas, al arrancar ETOL se paran los puentes que hayan quedado de una sesion
 anterior si su juego no esta abierto.
 
@@ -74,8 +79,8 @@ aviso con el arreglo.
 
 | Asset | Size | SHA-256 |
 |---|---|---|
-| `ETOL-0.3.23-linux-x86_64-portable.AppImage` | 6.6 MB | `e9019519b70b99a5cfaf4d78420fc689602fe442bb6b9d1ad2bc795de859cf03` |
-| `ETOL-0.3.23-linux-x86_64-full.AppImage` | 112 MB | `13f76a9bb56eb674ff673ecb42521f28e7cb06671d7365a3e73c6ba9b2d9b4b7` |
+| `ETOL-0.3.23-linux-x86_64-portable.AppImage` | 6.6 MB | `e7da7ae0532e065e121a6a2b9aa07e71fd4d757b1bf3950c892d45210f179f2f` |
+| `ETOL-0.3.23-linux-x86_64-full.AppImage` | 112 MB | `cf539502479de9756b34cc1a83f1919c644ba458dd77ae74d088640aa7e48a03` |
 
 ## Instalación
 

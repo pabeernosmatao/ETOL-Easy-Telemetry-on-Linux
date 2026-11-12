@@ -453,6 +453,16 @@ mod tests {
     }
 
     #[test]
+    fn beamng_usa_el_stub_de_deteccion() {
+        // El puente de BeamNG es el proceso inerte que SimHub detecta; el
+        // juego real es nativo y no lleva `.exe`.
+        assert_eq!(
+            detect::game_def("beamng").unwrap().bridge_needle(),
+            "BeamNG.drive.x64.exe"
+        );
+    }
+
+    #[test]
     fn stub_no_cuenta_como_juego() {
         let cfg = cfg_with(true);
         let def = detect::game_def("rf2").unwrap();

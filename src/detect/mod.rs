@@ -148,7 +148,10 @@ impl GameDef {
         match self.id {
             // Puentes por UDP: el proceso es el relay o el stub del juego.
             "dirt2" => "dirt2_udp_relay".to_string(),
-            "beamng" => "beamng_udp".to_string(),
+            // BeamNG corre nativo en Linux; el puente es el stub inerte que
+            // SimHub usa para detectar el juego. El ejecutable real no lleva
+            // `.exe`, asi que este nombre solo coincide con el stub.
+            "beamng" => "BeamNG.drive.x64.exe".to_string(),
             // Los espejos son ejecutables Windows: el nombre incluye `.exe`.
             // Sin la extension, `running_drive_exe` no los reconoce.
             _ => format!("{}_shm_mirror.exe", self.id),
