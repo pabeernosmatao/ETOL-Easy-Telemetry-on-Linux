@@ -32,7 +32,7 @@ ETOL detecta tus juegos, prepara SimHub (y CrewChief) y lo lanza todo con un cli
 - **Vigilancia automática**: al abrir un simulador levanta el puente y las apps
   elegidas; al cerrarlo lo para todo. Si cambias de juego, cambia solo.
 - **Pad HF8** (ForceFeel) con su COM dentro de la botella, listo para SimHub.
-- **Dashboards de SimHub sobre el juego** en KDE/KWin, sin gamescope.
+- **Dashboards de SimHub sobre el juego** en KDE/KWin, con y sin gamescope.
 - Interfaz en **español, catalán e inglés**.
 
 ## Capturas
