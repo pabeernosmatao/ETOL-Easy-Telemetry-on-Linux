@@ -33,7 +33,7 @@ with one click.
 - **Automatic watchdog**: opening a simulator starts its bridge and apps;
   closing it stops everything. Switching games switches everything.
 - **HF8 pad** (ForceFeel) with its COM port wired inside the bottle.
-- **SimHub dashboards over the game** on KDE/KWin, no gamescope needed.
+- **SimHub dashboards over the game** on KDE/KWin, with or without Gamescope.
 - Interface in **Spanish, Catalan and English**.
 
 ## Screenshots
