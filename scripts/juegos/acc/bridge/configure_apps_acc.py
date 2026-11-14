@@ -145,16 +145,17 @@ def configure_wine_audio() -> None:
     env["WINEDEBUG"] = "-all"
 
     def reg(args: list[str]) -> subprocess.CompletedProcess:
+        # `wine reg` responde en la codificacion local (no siempre UTF-8).
         return subprocess.run(
             [wine, "reg", *args],
             env=env,
             capture_output=True,
-            text=True,
             timeout=60,
         )
 
     query = reg(["query", r"HKCU\Software\Wine\Drivers", "/v", "Audio"])
-    if query.returncode == 0 and re.search(r"\bpulse\b", query.stdout, re.I):
+    stdout = (query.stdout or b"").decode("utf-8", "replace")
+    if query.returncode == 0 and re.search(r"\bpulse\b", stdout, re.I):
         CHANGES.append("Wine: audio ya estaba en PulseAudio")
         return
 
@@ -164,9 +165,9 @@ def configure_wine_audio() -> None:
         "/t", "REG_SZ", "/d", "pulse", "/f",
     ])
     if add.returncode != 0:
+        detail = (add.stderr or add.stdout or b"").decode("utf-8", "replace").strip()
         WARNINGS.append(
-            "no se pudo activar el audio PulseAudio de Wine: "
-            + (add.stderr or add.stdout).strip()
+            "no se pudo activar el audio PulseAudio de Wine: " + detail
         )
         return
     CHANGES.append("Wine: audio por PulseAudio (CrewChief se oye)")
