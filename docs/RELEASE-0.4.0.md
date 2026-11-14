@@ -18,6 +18,13 @@ Assetto Corsa Competizione support, plus all the fixes from 0.3.23.
   uses the shared-memory reader (`CurrentReader=null`).
 - **CrewChief**: active game `ACC`, with `enable_auto_detect=False` and
   `run_immediately=True` so the stub does not leave it waiting.
+- **Rivals, relative and leaderboard**: ETOL writes ACC's `broadcasting.json`
+  (`127.0.0.1:9000`, connection password `asd`). SimHub and CrewChief use it
+  for opponents and race-control messages. Restart ACC once after the first
+  configuration so the game reads the file.
+- **CrewChief audio**: ETOL sets Wine's audio driver to `pulse`
+  (PipeWire-Pulse) in the Bottles prefix. Without it the runner exposes no
+  output devices, CrewChief plays its messages internally and nothing is heard.
 - Auto-close uses the real `AC2-Win64-Shipping.exe` process: closing ACC stops
   the bridge, the stubs, CrewChief and SimHub.
 - Tested with Proton-CachyOS, the Bottles GE-Proton runner and SimHub/CrewChief.
@@ -34,8 +41,8 @@ Assetto Corsa Competizione support, plus all the fixes from 0.3.23.
 
 | Asset | Size | SHA-256 |
 |---|---|---|
-| `ETOL-0.4.0-linux-x86_64-portable.AppImage` | 6.8 MB | `4e0a03e7217ae82f8d8c6b9ef72ec668e6e85cf8570f0ea1a264d404824c3806` |
-| `ETOL-0.4.0-linux-x86_64-full.AppImage` | 112 MB | `60ba8d8515df8dabace36c7dcfabbd3221f66bc962b830b2a2dc26f69455df94` |
+| `ETOL-0.4.0-linux-x86_64-portable.AppImage` | 6.8 MB | `31d8f1faf6c538361261ac7bdc01c4e28d6a53776c4d733faef134316fd48253` |
+| `ETOL-0.4.0-linux-x86_64-full.AppImage` | 112 MB | `29e45f6812d0d313372ebd2e07d2412115978da42729d59629f4a40f52196982` |
 
 ## Install
 

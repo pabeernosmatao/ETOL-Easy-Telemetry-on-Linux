@@ -5,6 +5,7 @@ Competizione.
 - SimHub: Assetto Corsa Competizione visible y como juego preferente, lector
   por memoria compartida (CurrentReader null).
 - CrewChief: juego activo ACC.
+- Wine: salida de audio por PulseAudio, para que CrewChief se oiga.
 
 No toca ninguna opcion de otros juegos, no arranca ni reinicia aplicaciones y
 no modifica archivos de una app que este abierta (esa app los reescribiria al
@@ -17,6 +18,7 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -96,19 +98,78 @@ def save_json(path: Path, data) -> None:
 
 
 def load_acc_json(path: Path, default):
+    """ACC escribe este JSON en UTF-16, pero puede quedar a medias."""
     if not path.exists():
         return default
-    try:
-        with path.open("r", encoding="utf-16") as fh:
-            return json.load(fh)
-    except Exception:
-        return load_json(path, default)
+    raw = path.read_bytes()
+    for encoding in ("utf-16", "utf-8-sig", "utf-8"):
+        try:
+            return json.loads(raw.decode(encoding))
+        except Exception:
+            continue
+    if raw.strip(b"\xff\xfe\x00"):
+        print(f"AVISO: no se pudo leer {path}; se reescribe", file=sys.stderr)
+    return default
 
 
 def write_utf16(path: Path, text: str) -> None:
     tmp = path.with_name(path.name + ".tmp-acc-mirror")
     tmp.write_text(text, encoding="utf-16", newline="")
     os.replace(tmp, path)
+
+
+def configure_wine_audio() -> None:
+    """Deja la salida de audio de Wine en PulseAudio (PipeWire-Pulse).
+
+    Este runner no tiene clave Audio y arranca `winealsa`, que en este equipo
+    no inicializa ningun dispositivo: la botella expone cero salidas y
+    CrewChief reproduce sus avisos por dentro pero no se oye nada. Con
+    `pulse` los avisos salen por el dispositivo por defecto del sistema.
+    """
+    wine = os.environ.get("BOTTLE_WINE", "").strip()
+    if not wine or not Path(wine).is_file():
+        WARNINGS.append(
+            "falta BOTTLE_WINE; no puedo revisar el driver de audio de Wine"
+        )
+        return
+
+    socket = Path(os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")) / "pulse/native"
+    if not socket.exists() and not os.environ.get("PULSE_SERVER"):
+        WARNINGS.append(
+            "no encuentro PulseAudio/PipeWire; CrewChief podria quedarse sin audio"
+        )
+        return
+
+    env = dict(os.environ)
+    env["WINEPREFIX"] = str(BOTTLE)
+    env["WINEDEBUG"] = "-all"
+
+    def reg(args: list[str]) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            [wine, "reg", *args],
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+
+    query = reg(["query", r"HKCU\Software\Wine\Drivers", "/v", "Audio"])
+    if query.returncode == 0 and re.search(r"\bpulse\b", query.stdout, re.I):
+        CHANGES.append("Wine: audio ya estaba en PulseAudio")
+        return
+
+    backup(BOTTLE / "user.reg")
+    add = reg([
+        "add", r"HKCU\Software\Wine\Drivers", "/v", "Audio",
+        "/t", "REG_SZ", "/d", "pulse", "/f",
+    ])
+    if add.returncode != 0:
+        WARNINGS.append(
+            "no se pudo activar el audio PulseAudio de Wine: "
+            + (add.stderr or add.stdout).strip()
+        )
+        return
+    CHANGES.append("Wine: audio por PulseAudio (CrewChief se oye)")
 
 
 def configure_acc_broadcasting() -> None:
@@ -129,18 +190,31 @@ def configure_acc_broadcasting() -> None:
     if not configs:
         WARNINGS.append("no encuentro la carpeta Config de ACC en el prefijo")
         return
+    desired = {
+        "updListenerPort": 9000,
+        "connectionPassword": "asd",
+        "commandPassword": "",
+    }
     for config_dir in configs:
         path = config_dir / "broadcasting.json"
         data = load_acc_json(path, {})
         if not isinstance(data, dict):
             data = {}
-        data["updListenerPort"] = 9000
-        data["connectionPassword"] = "asd"
-        data["commandPassword"] = ""
+        changed = any(data.get(key) != value for key, value in desired.items())
+        if not changed:
+            CHANGES.append(
+                f"ACC: broadcasting ya estaba activo en 127.0.0.1:9000 ({path})"
+            )
+            continue
+        data.update(desired)
         backup(path)
         write_utf16(path, json.dumps(data, indent=4, ensure_ascii=False) + "\n")
         CHANGES.append(f"ACC: broadcasting activado en 127.0.0.1:9000 ({path})")
-    WARNINGS.append("si ACC estaba abierto, reinicialo una vez para que lea broadcasting.json")
+
+    if app_running("AC2-Win64-Shipping.exe"):
+        WARNINGS.append(
+            "ACC esta abierto: reinicialo una vez para que lea broadcasting.json"
+        )
 
 
 def configure_simhub() -> None:
@@ -300,6 +374,7 @@ def main() -> int:
         print(f"ERROR: no existe la botella {BOTTLE}", file=sys.stderr)
         return 1
 
+    configure_wine_audio()
     configure_acc_broadcasting()
     configure_simhub()
     configure_crewchief()
