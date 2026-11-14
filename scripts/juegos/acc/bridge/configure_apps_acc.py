@@ -32,6 +32,7 @@ BACKUP_DIR = Path(os.environ.get(
     HOME / ".local/share/acc_mirror/backups",
 )).expanduser()
 RUN_DIR = os.environ.get("ACC_MIRROR_RUN_DIR", "/tmp/etol/acc_mirror")
+ACC_PFX = os.environ.get("ACC_PFX", "").strip()
 STAMP = datetime.now().strftime("%Y%m%d-%H%M%S")
 CHANGES: list[str] = []
 WARNINGS: list[str] = []
@@ -94,6 +95,54 @@ def save_json(path: Path, data) -> None:
     write_atomic(path, json.dumps(data, indent=2, ensure_ascii=False) + "\n")
 
 
+def load_acc_json(path: Path, default):
+    if not path.exists():
+        return default
+    try:
+        with path.open("r", encoding="utf-16") as fh:
+            return json.load(fh)
+    except Exception:
+        return load_json(path, default)
+
+
+def write_utf16(path: Path, text: str) -> None:
+    tmp = path.with_name(path.name + ".tmp-acc-mirror")
+    tmp.write_text(text, encoding="utf-16", newline="")
+    os.replace(tmp, path)
+
+
+def configure_acc_broadcasting() -> None:
+    """Activa el servidor de broadcasting de ACC en 127.0.0.1:9000.
+
+    CrewChief y SimHub escuchan en ese puerto y usan la contrasena "asd".
+    El juego lee el fichero al arrancar: si ACC esta abierto hay que
+    reiniciarlo una vez.
+    """
+    if not ACC_PFX:
+        WARNINGS.append("falta ACC_PFX; no puedo escribir el broadcasting.json de ACC")
+        return
+    configs = list(
+        (Path(ACC_PFX) / "drive_c/users").glob(
+            "*/Documents/Assetto Corsa Competizione/Config"
+        )
+    )
+    if not configs:
+        WARNINGS.append("no encuentro la carpeta Config de ACC en el prefijo")
+        return
+    for config_dir in configs:
+        path = config_dir / "broadcasting.json"
+        data = load_acc_json(path, {})
+        if not isinstance(data, dict):
+            data = {}
+        data["updListenerPort"] = 9000
+        data["connectionPassword"] = "asd"
+        data["commandPassword"] = ""
+        backup(path)
+        write_utf16(path, json.dumps(data, indent=4, ensure_ascii=False) + "\n")
+        CHANGES.append(f"ACC: broadcasting activado en 127.0.0.1:9000 ({path})")
+    WARNINGS.append("si ACC estaba abierto, reinicialo una vez para que lea broadcasting.json")
+
+
 def configure_simhub() -> None:
     simhub_running = app_running("SimHubWPF.exe")
     plugins = BOTTLE / "drive_c/Program Files (x86)/SimHub/PluginsData"
@@ -144,6 +193,15 @@ def configure_simhub() -> None:
             CHANGES.append("SimHub: entrada AssettoCorsaCompetizione creada")
     else:
         changed = False
+        if entry.get("UDPPort") != 9000:
+            if simhub_running:
+                WARNINGS.append(
+                    "SimHub esta abierto: no cambio el puerto UDP de ACC; "
+                    "deberia usar 9000 por defecto."
+                )
+            else:
+                entry["UDPPort"] = 9000
+                changed = True
         if entry.get("OrderEx") != 1:
             if simhub_running:
                 WARNINGS.append(
@@ -242,6 +300,7 @@ def main() -> int:
         print(f"ERROR: no existe la botella {BOTTLE}", file=sys.stderr)
         return 1
 
+    configure_acc_broadcasting()
     configure_simhub()
     configure_crewchief()
 

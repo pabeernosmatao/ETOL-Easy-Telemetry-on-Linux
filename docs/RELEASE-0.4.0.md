@@ -34,8 +34,8 @@ Assetto Corsa Competizione support, plus all the fixes from 0.3.23.
 
 | Asset | Size | SHA-256 |
 |---|---|---|
-| `ETOL-0.4.0-linux-x86_64-portable.AppImage` | 6.8 MB | `c299d8501199ebe2e6160793a90be028ebefd9177365c586d5bf9a4508dd6f0d` |
-| `ETOL-0.4.0-linux-x86_64-full.AppImage` | 112 MB | `12cb90dbf64fbf69d7a13b6f2998f35fc723271ccba3964601f849b4756ab3df` |
+| `ETOL-0.4.0-linux-x86_64-portable.AppImage` | 6.8 MB | `4e0a03e7217ae82f8d8c6b9ef72ec668e6e85cf8570f0ea1a264d404824c3806` |
+| `ETOL-0.4.0-linux-x86_64-full.AppImage` | 112 MB | `60ba8d8515df8dabace36c7dcfabbd3221f66bc962b830b2a2dc26f69455df94` |
 
 ## Install
 
