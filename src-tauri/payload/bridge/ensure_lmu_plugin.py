@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import json
 import os
-import re
 import shutil
 import sys
 from datetime import datetime
@@ -193,100 +192,6 @@ def enable_lmu_plugin(game: Path) -> None:
         print("LMU: reinicia el juego para que cargue el plugin si estaba desactivado.")
 
 
-
-def remove_lmu_dll(plugins: Path) -> None:
-    """Retira LMU.3.8.SharedMemoryMapPlugin.dll de Plugins.
-
-    LMU 1.4.2 rechaza ese plugin y borra su entrada de
-    CustomPluginVariables.JSON; si se queda en Plugins, el adaptador de
-    plugins no carga ninguno. El DLL queda guardado en backups.
-    """
-    dest = plugins / LMU_PLUGIN
-    if not dest.is_file():
-        return
-    saved = backup(dest)
-    dest.unlink()
-    extra = f" (copia en {saved})" if saved else ""
-    print(f"LMU: {LMU_PLUGIN} retirado de Plugins{extra}")
-
-
-def disable_lmu_plugin(game: Path) -> None:
-    """Quita LMU.3.8 del JSON: LMU 1.4.2 usa rFactor2SharedMemoryMapPlugin64."""
-    for rel in (
-        "UserData/player/CustomPluginVariables.JSON",
-        "Plugins/CustomPluginVariables.JSON",
-    ):
-        config = game / rel
-        if not config.is_file():
-            continue
-        try:
-            data = json.loads(config.read_text(encoding="utf-8-sig") or "{}")
-        except Exception as exc:  # noqa: BLE001
-            print(f"AVISO: no se pudo leer {config}: {exc}", file=sys.stderr)
-            continue
-        if not isinstance(data, dict) or not isinstance(data.get(LMU_PLUGIN), dict):
-            continue
-        saved = backup(config)
-        del data[LMU_PLUGIN]
-        config.write_text(
-            json.dumps(data, indent=2, ensure_ascii=False) + "\n",
-            encoding="utf-8",
-        )
-        extra = f" (copia en {saved})" if saved else ""
-        print(f"LMU: entrada {LMU_PLUGIN} retirada de {config.name}{extra}")
-
-
-def configure_crewchief_legacy(simhub: Path | None) -> None:
-    """Hace que CrewChief lea $rFactor2SMMP_* en LMU.
-
-    Sin el plugin LMU.3.8, CrewChief debe usar los nombres legacy
-    (use_legacy_rf2_shared_memory_filenames = true); si no, espera
-    $LMU.3.8.SMMP_* y no recibe datos.
-    """
-    if not simhub or not simhub.is_dir():
-        return
-    bottle = simhub.parent.parent.parent
-    users = bottle / "drive_c/users"
-    for path in sorted(users.glob("*/Documents/CrewChiefV4/Profiles/*.json")):
-        try:
-            data = json.loads(path.read_text(encoding="utf-8-sig") or "{}")
-        except Exception:
-            continue
-        settings = data.get("userSettings") if isinstance(data, dict) else None
-        if not isinstance(settings, dict):
-            continue
-        if settings.get("use_legacy_rf2_shared_memory_filenames") is True:
-            continue
-        backup(path)
-        settings["use_legacy_rf2_shared_memory_filenames"] = True
-        path.write_text(
-            json.dumps(data, indent=2, ensure_ascii=False) + "\n",
-            encoding="utf-8",
-        )
-        print(f"CrewChief: nombres legacy activados en {path.name}")
-
-    xmls = list(users.glob(
-        "*/AppData/Local/Britton_IT_Ltd/CrewChiefV4.exe_Url_*/*/user.config"
-    ))
-    exe = bottle / "drive_c/Program Files (x86)/Britton IT Ltd/CrewChiefV4/CrewChiefV4.exe.config"
-    if exe.is_file():
-        xmls.append(exe)
-    for path in xmls:
-        try:
-            text = path.read_text(encoding="utf-8-sig")
-        except Exception:
-            continue
-        new, count = re.subn(
-            r'(name="use_legacy_rf2_shared_memory_filenames"[^>]*>\s*<value>)False(</value>)',
-            r'\1True\2',
-            text,
-        )
-        if count:
-            backup(path)
-            path.write_text(new, encoding="utf-8")
-            print(f"CrewChief: nombres legacy activados en {path.name}")
-
-
 def report(simhub: Path | None) -> None:
     """Resume el estado que usa SimHub para dar LMU por configurado."""
     if not simhub or not simhub.is_dir():
@@ -365,8 +270,8 @@ def main() -> int:
     plugins.mkdir(parents=True, exist_ok=True)
     player.mkdir(parents=True, exist_ok=True)
 
-    # LMU 1.4.2 rechaza LMU.3.8: se retira para que cargue rFactor2.
-    remove_lmu_dll(plugins)
+    # LMU 2026 carga LMU.3.8.SharedMemoryMapPlugin.dll desde Plugins/.
+    install_lmu_dll(plugins, simhub)
 
     dll = plugins / PLUGIN
     if dll_src and dll_src.is_file():
@@ -413,8 +318,7 @@ def main() -> int:
     else:
         print("LMU: el plugin ya estaba activo")
 
-    disable_lmu_plugin(game)
-    configure_crewchief_legacy(simhub)
+    enable_lmu_plugin(game)
 
     if dll.is_file() and dll_src and dll_src.is_file():
         print(

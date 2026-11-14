@@ -38,18 +38,14 @@ Assetto Corsa Competizione support, plus all the fixes from 0.3.23.
   BeamNG's detection stub and Steam wrappers for native games.
 - **Auto-close waits 5 s** after the game exits (was 8 s) before stopping the
   bridge and closing the apps.
-- **LMU plugins**: stop installing `LMU.3.8.SharedMemoryMapPlugin.dll`, which
-  LMU 1.4.2 rejects and removes from `CustomPluginVariables.JSON`; keep
-  `rFactor2SharedMemoryMapPlugin64.dll` and set CrewChief to the legacy
-  `$rFactor2SMMP_*` names.
 - Orphan bridge cleanup when ETOL starts.
 
 ## Assets
 
 | Asset | Size | SHA-256 |
 |---|---|---|
-| `ETOL-0.4.0-linux-x86_64-portable.AppImage` | 6.8 MB | `093c6c04fefd73a088352143c48400515469c966eedf9c7ec3dbf9db96e52972` |
-| `ETOL-0.4.0-linux-x86_64-full.AppImage` | 112 MB | `8e36c235ff61cb4dad0a36f53ec26445477265e24e9077fd60cf6e4a582dbc1e` |
+| `ETOL-0.4.0-linux-x86_64-portable.AppImage` | 6.8 MB | `0338751f4503a21e3a0cb9a020c66ffecab07c1d425e4955a7ce56e2fc7ac138` |
+| `ETOL-0.4.0-linux-x86_64-full.AppImage` | 112 MB | `294eea66b0e701890afd12cde02ade4768bc04b36d64dcfe18d12c1b82736f2a` |
 
 ## Install
 
