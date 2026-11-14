@@ -120,6 +120,21 @@ if [[ -f "$ROOT/vendor/ac_process_stub.exe" ]]; then
   install -m 755 "$ROOT/vendor/ac_process_stub.exe" "$DEST/bridge/ac_process_stub.exe"
 fi
 
+# Assetto Corsa Competizione: espejo propio de tres mappings acpmf_*.
+if [[ -d "$ROOT/scripts/juegos/acc" ]]; then
+  cp -a "$ROOT/scripts/juegos/acc/." "$DEST/"
+  rm -f "$DEST/bridge/acc_shm_mirror.cpp" \
+        "$DEST/bridge/build_acc_mirror.sh" \
+        "$DEST/bridge/build_acc_stub.sh"
+  echo "payload: scripts de Assetto Corsa Competizione"
+fi
+if [[ -f "$ROOT/vendor/acc_shm_mirror.exe" ]]; then
+  install -m 755 "$ROOT/vendor/acc_shm_mirror.exe" "$DEST/bridge/acc_shm_mirror.exe"
+fi
+if [[ -f "$ROOT/vendor/acc_process_stub.exe" ]]; then
+  install -m 755 "$ROOT/vendor/acc_process_stub.exe" "$DEST/bridge/acc_process_stub.exe"
+fi
+
 # rFactor 2: scripts propios y plugin SMMP (el arbol de SIMHUB_LINUX no se toca).
 if [[ -d "$ROOT/scripts/juegos/rf2" ]]; then
   cp -a "$ROOT/scripts/juegos/rf2/." "$DEST/"

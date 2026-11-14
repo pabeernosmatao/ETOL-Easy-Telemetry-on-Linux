@@ -77,6 +77,18 @@ pub const GAMES: &[GameDef] = &[
         plugin: None,
     },
     GameDef {
+        id: "acc",
+        name: "Assetto Corsa Competizione",
+        app_id: 805_550,
+        // El launcher es acc.exe; el proceso real es AC2-Win64-Shipping.exe.
+        exes: &["AC2/Binaries/Win64/AC2-Win64-Shipping.exe"],
+        run_subdir: "acc_mirror",
+        port: 8779,
+        apps: APPS_UDP,
+        native: false,
+        plugin: None,
+    },
+    GameDef {
         id: "rf2",
         name: "rFactor 2",
         app_id: 365_960,

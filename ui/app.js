@@ -253,6 +253,12 @@ const GAME_SETUP = {
       y el plugin <code>CrewChiefEx</code>, enlaza la biblioteca de Steam de la
       botella y prepara el <code>python.ini</code> del juego.`,
   },
+  acc: {
+    html: `Deja CrewChief en Assetto Corsa Competizione (<code>ACC</code>) y
+      activa la entrada <code>AssettoCorsaCompetizione</code> de SimHub. El
+      puente publica los tres mappings <code>acpmf_*</code> en la botella; no
+      toca el juego.`,
+  },
   rf2: {
     html: `Copia el plugin <code>rF2 Shared Memory Map</code> a
       <code>Bin64/Plugins</code>, enlaza la biblioteca de Steam de la botella,

@@ -17,7 +17,7 @@ body:
     attributes:
       label: ETOL version
       description: Run `etol --version` or read it in the window title.
-      placeholder: "0.3.23"
+      placeholder: "0.4.0"
     validations:
       required: true
   - type: dropdown

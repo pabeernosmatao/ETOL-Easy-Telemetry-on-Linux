@@ -61,8 +61,8 @@ enum Command {
     },
     /// Lanza los scripts de un juego
     Launch {
-        /// lmu, ams2, acevo, assetto, rf2, dirt2, ets2 o beamng
-        #[arg(value_parser = ["lmu", "ams2", "acevo", "assetto", "rf2", "dirt2", "ets2", "beamng"])]
+        /// lmu, ams2, acevo, assetto, acc, rf2, dirt2, ets2 o beamng
+        #[arg(value_parser = ["lmu", "ams2", "acevo", "assetto", "acc", "rf2", "dirt2", "ets2", "beamng"])]
         game: String,
         /// Solo el ciclo del puente
         #[arg(long)]
@@ -97,8 +97,8 @@ enum Command {
     },
     /// Para el puente y cierra las apps del juego
     Stop {
-        /// lmu, ams2, acevo, assetto, rf2, dirt2, ets2 o beamng
-        #[arg(value_parser = ["lmu", "ams2", "acevo", "assetto", "rf2", "dirt2", "ets2", "beamng"])]
+        /// lmu, ams2, acevo, assetto, acc, rf2, dirt2, ets2 o beamng
+        #[arg(value_parser = ["lmu", "ams2", "acevo", "assetto", "acc", "rf2", "dirt2", "ets2", "beamng"])]
         game: String,
         /// Solo para el puente, sin cerrar las aplicaciones
         #[arg(long)]
@@ -325,7 +325,7 @@ fn cmd_launch(
     let cfg = Config::load()?;
 
     if detect::game_def(&game).is_none() {
-        bail!("juego desconocido: {game} (usa lmu, ams2, acevo, assetto o rf2)");
+        bail!("juego desconocido: {game} (usa lmu, ams2, acevo, assetto, acc o rf2)");
     }
     if !cfg.games.contains_key(&game) {
         bail!("el juego {game} no esta en la configuracion; ejecuta `etol init`");
@@ -347,7 +347,7 @@ fn cmd_stop(game: String, solo_puente: bool) -> Result<()> {
     let cfg = Config::load()?;
 
     if detect::game_def(&game).is_none() {
-        bail!("juego desconocido: {game} (usa lmu, ams2, acevo, assetto o rf2)");
+        bail!("juego desconocido: {game} (usa lmu, ams2, acevo, assetto, acc o rf2)");
     }
     if !cfg.games.contains_key(&game) {
         bail!("el juego {game} no esta en la configuracion; ejecuta `etol init`");

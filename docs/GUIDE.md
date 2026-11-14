@@ -1,6 +1,6 @@
 # ETOL · User guide
 
-**English** · [Español](GUIA.md) · Version 0.3.23
+**English** · [Español](GUIA.md) · Version 0.4.0
 
 Everything ETOL does, how to set up SimHub and CrewChief from scratch and how
 to get the most out of each simulator.
@@ -42,8 +42,8 @@ with one click. It never modifies your games.
 ### Opening the AppImage
 
 ```bash
-chmod +x ETOL-0.3.23-linux-x86_64-portable.AppImage
-./ETOL-0.3.23-linux-x86_64-portable.AppImage
+chmod +x ETOL-0.4.0-linux-x86_64-portable.AppImage
+./ETOL-0.4.0-linux-x86_64-portable.AppImage
 ```
 
 The **portable** build uses the system WebKit and needs `libwebkit2gtk-4.1` and
@@ -154,6 +154,7 @@ the KWin rule used by the dashboards.
 | Automobilista 2 | shared memory | SimHub + CrewChief | |
 | Assetto Corsa EVO | shared memory | SimHub + CrewChief | |
 | Assetto Corsa | shared memory | SimHub + CrewChief | |
+| Assetto Corsa Competizione | shared memory | SimHub + CrewChief | |
 | rFactor 2 | shared memory | SimHub + CrewChief | bundles the SMMP plugin |
 | RaceRoom Racing Experience | shared memory (`$R3E`) | SimHub + CrewChief | raw mirror over UDP 8777 |
 | DiRT Rally 2.0 | UDP (relay 20777) | SimHub + CrewChief | `extradata=3` |

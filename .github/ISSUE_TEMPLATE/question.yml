@@ -18,7 +18,7 @@ body:
     id: etol-version
     attributes:
       label: ETOL version
-      placeholder: "0.3.23"
+      placeholder: "0.4.0"
   - type: input
     id: distro
     attributes:

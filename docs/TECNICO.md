@@ -77,7 +77,7 @@ Comprobaciones con el arreglo exacto al lado. Códigos: `0` todo correcto,
 ./etol stop lmu --solo-puente
 ```
 
-Juegos: `lmu`, `ams2`, `acevo`, `assetto`, `rf2`, `dirt2`, `ets2`, `beamng`.
+Juegos: `lmu`, `ams2`, `acevo`, `assetto`, `acc`, `rf2`, `dirt2`, `ets2`, `beamng`.
 
 ### `hf8` y `setup`
 

@@ -46,11 +46,11 @@ REPLACEMENTS: list[tuple[str, str]] = [
     # RaceRoom en el selector de juegos del configurador.
     (
         "  lmu|ams2|acevo|assetto|rf2|dirt2|ets2|beamng) ;;",
-        "  lmu|ams2|acevo|assetto|rf2|r3e|dirt2|ets2|beamng) ;;",
+        "  lmu|ams2|acevo|assetto|acc|rf2|r3e|dirt2|ets2|beamng) ;;",
     ),
     (
         "uso: $0 <lmu|ams2|acevo|assetto|rf2|dirt2|ets2|beamng>",
-        "uso: $0 <lmu|ams2|acevo|assetto|rf2|r3e|dirt2|ets2|beamng>",
+        "uso: $0 <lmu|ams2|acevo|assetto|acc|rf2|r3e|dirt2|ets2|beamng>",
     ),
     # Botella y wine de Bottles: nunca un nombre fijo.
     (

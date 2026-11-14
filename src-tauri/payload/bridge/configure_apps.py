@@ -115,19 +115,6 @@ def configure_simhub() -> None:
         save_json(game_path, games)
         CHANGES.append("SimHub: LMU con lanzador por defecto")
 
-    if not games["LMU"].get("LauncherSetting"):
-        games["LMU"]["LauncherSetting"] = json.dumps({
-            "SteamLauncherMode": 0,
-            "UseDefault": True,
-            "UseCustom": False,
-            "UseEpic": False,
-            "CustomPath": None,
-            "CustomArguments": None,
-            "SelectedSteamStartupOption": None,
-        }, indent=2)
-        save_json(game_path, games)
-        CHANGES.append("SimHub: LMU con lanzador por defecto")
-
 
 def set_xml_setting(text: str, name: str, value: str) -> tuple[str, bool]:
     pattern = re.compile(
@@ -254,7 +241,7 @@ def configure_crewchief_user_config() -> None:
         write_atomic(user_config, new_text)
         CHANGES.append(
             f"CrewChief: user.config de {user_config.parent.name} "
-            f"({', '.join(values)})"
+            f"({', '.join(n for n in values if n != 'lmu_install_path')})"
         )
 
 
