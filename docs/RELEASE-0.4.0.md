@@ -17,7 +17,8 @@ Assetto Corsa Competizione support, plus all the fixes from 0.3.23.
 - **SimHub**: `AssettoCorsaCompetizione` is visible, preferred (`OrderEx=1`) and
   uses the shared-memory reader (`CurrentReader=null`).
 - **CrewChief**: active game `ACC`, with `enable_auto_detect=False` and
-  `run_immediately=True` so the stub does not leave it waiting.
+  `run_immediately=True` so the stub does not leave it waiting. The setting is
+  written to both `CrewChiefV4.exe.config` and the effective `user.config`.
 - **Rivals, relative and leaderboard**: ETOL writes ACC's `broadcasting.json`
   (`127.0.0.1:9000`, connection password `asd`). SimHub and CrewChief use it
   for opponents and race-control messages. Restart ACC once after the first
@@ -35,14 +36,16 @@ Assetto Corsa Competizione support, plus all the fixes from 0.3.23.
   udev `uaccess` rule and `brltty` mask with one button.
 - **Auto-close fixes**: Proton's `steam.exe` wrapper, the LMU bridge name,
   BeamNG's detection stub and Steam wrappers for native games.
+- **Auto-close waits 5 s** after the game exits (was 8 s) before stopping the
+  bridge and closing the apps.
 - Orphan bridge cleanup when ETOL starts.
 
 ## Assets
 
 | Asset | Size | SHA-256 |
 |---|---|---|
-| `ETOL-0.4.0-linux-x86_64-portable.AppImage` | 6.8 MB | `31d8f1faf6c538361261ac7bdc01c4e28d6a53776c4d733faef134316fd48253` |
-| `ETOL-0.4.0-linux-x86_64-full.AppImage` | 112 MB | `29e45f6812d0d313372ebd2e07d2412115978da42729d59629f4a40f52196982` |
+| `ETOL-0.4.0-linux-x86_64-portable.AppImage` | 6.8 MB | `316a0232a47c76fe59ce6ddb768f255045055a87c1fc6d92f600ffe5dc5c6fd5` |
+| `ETOL-0.4.0-linux-x86_64-full.AppImage` | 112 MB | `41117739371d92db690cb5a2ffb9d074a262dd9635b2d608691d7082c689ec2c` |
 
 ## Install
 

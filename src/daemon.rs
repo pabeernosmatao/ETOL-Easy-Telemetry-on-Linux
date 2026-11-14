@@ -13,7 +13,7 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 /// Margen antes de dar un juego por cerrado (reinicios de sesion).
-pub const CLOSE_GRACE: Duration = Duration::from_secs(8);
+pub const CLOSE_GRACE: Duration = Duration::from_secs(5);
 
 /// Ventana en la que un arranque manual manda y el vigilante no duplica.
 pub const MANUAL_GRACE: Duration = Duration::from_secs(90);

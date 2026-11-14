@@ -316,15 +316,62 @@ def set_xml_setting(text: str, name: str, value: str) -> tuple[str, bool]:
     if count:
         return new_text, True
 
-    marker = "    </CrewChiefV4.Properties.Settings>"
-    if marker not in new_text:
+    marker = re.search(r"[ \t]*</CrewChiefV4\.Properties\.Settings>", new_text)
+    if not marker:
         return new_text, False
     block = (
-        f'      <setting name="{name}" serializeAs="String">\n'
-        f'        <value>{escape(value)}</value>\n'
-        f'      </setting>\n'
+        f'            <setting name="{name}" serializeAs="String">\n'
+        f'                <value>{escape(value)}</value>\n'
+        f'            </setting>\n'
     )
-    return new_text.replace(marker, block + marker, 1), True
+    return new_text[:marker.start()] + block + new_text[marker.start():], True
+
+
+def apply_crewchief_settings(path: Path) -> bool:
+    """Aplica el juego ACC a un XML de CrewChief (exe.config o user.config)."""
+    text = path.read_text(encoding="utf-8-sig")
+    original = text
+    desired = {
+        "last_game_definition": "ACC",
+        "enable_auto_detect": "False",
+        "run_immediately": "True",
+    }
+    for name, value in desired.items():
+        text, ok = set_xml_setting(text, name, value)
+        if not ok:
+            WARNINGS.append(f"no se pudo ajustar {name} en {path.name}")
+
+    m = re.search(
+        r'(<setting\s+name="limit_available_games"\s+serializeAs="String">\s*'
+        r'<value>)(.*?)(</value>)',
+        text,
+        re.S,
+    )
+    if m:
+        games = [x.strip() for x in m.group(2).split(",") if x.strip()]
+        if games == ["ACC"]:
+            text = text[:m.start(2)] + "" + text[m.end(2):]
+        elif games and "ACC" not in games:
+            games.append("ACC")
+            text = text[:m.start(2)] + ",".join(games) + text[m.end(2):]
+
+    if text == original:
+        return False
+    backup(path)
+    write_atomic(path, text)
+    return True
+
+
+def crewchief_user_configs() -> list[Path]:
+    """user.config de CrewChief: es el que manda sobre el exe.config."""
+    users = BOTTLE / "drive_c/users"
+    return sorted(
+        path
+        for path in users.glob(
+            "*/AppData/Local/Britton_IT_Ltd/CrewChiefV4.exe_Url_*/*/user.config"
+        )
+        if path.is_file()
+    )
 
 
 def configure_crewchief_profile(game_id: str = "") -> None:
@@ -493,41 +540,17 @@ def configure_crewchief() -> None:
     if app_running("CrewChiefV4.exe"):
         WARNINGS.append(
             "CrewChief esta abierto: no toco su configuracion (la reescribe al "
-            "cerrarse). Si no esta ya en ACC, cambialo en la app cuando no "
-            "estes en pista."
+            "cerrarse). Cierralo y vuelve a aplicar la configuracion."
         )
         return
 
-    text = config_path.read_text(encoding="utf-8-sig")
-    original = text
-    desired = {
-        "last_game_definition": "ACC",
-        "enable_auto_detect": "False",
-        "run_immediately": "True",
-    }
-    for name, value in desired.items():
-        text, ok = set_xml_setting(text, name, value)
-        if not ok:
-            WARNINGS.append(f"no se pudo ajustar {name}")
-
-    m = re.search(
-        r'(<setting\s+name="limit_available_games"\s+serializeAs="String">\s*'
-        r'<value>)(.*?)(</value>)',
-        text,
-        re.S,
-    )
-    if m:
-        games = [x.strip() for x in m.group(2).split(",") if x.strip()]
-        if games == ["ACC"]:
-            text = text[:m.start(2)] + "" + text[m.end(2):]
-        elif games and "ACC" not in games:
-            games.append("ACC")
-            text = text[:m.start(2)] + ",".join(games) + text[m.end(2):]
-
-    if text != original:
-        backup(config_path)
-        write_atomic(config_path, text)
-        CHANGES.append("CrewChief: juego activo ACC")
+    targets = [config_path, *crewchief_user_configs()]
+    changed = False
+    for path in targets:
+        if apply_crewchief_settings(path):
+            changed = True
+    if changed:
+        CHANGES.append("CrewChief: juego activo ACC (exe.config y user.config)")
     else:
         CHANGES.append("CrewChief: ya estaba configurado para ACC")
 
