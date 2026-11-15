@@ -2019,7 +2019,14 @@ const DISPLAY_RESOLUTIONS = {
   "4K": { width: 3840, height: 2160 },
 };
 
+const DISPLAY_REFRESH_RATES = ["60", "120", "144", "165", "240"];
+/** Opciones activas de serie: conservan el comportamiento anterior. */
+const DEFAULT_DISPLAY_EXTRAS = ["hdr", "vrr"];
+
 const GAMESCOPE_EXTRAS = [
+  { id: "wayland", env: "PROTON_ENABLE_WAYLAND=1 SDL_VIDEODRIVER=wayland" },
+  { id: "hdr", flag: "--hdr-enabled", env: "DXVK_HDR=1" },
+  { id: "vrr", flag: "--adaptive-sync" },
   { id: "grab", flag: "--force-grab-cursor" },
   { id: "mangoapp", flag: "--mangoapp", nativeEnv: "MANGOHUD=1" },
   { id: "forcefs", flag: "--force-windows-fullscreen" },
@@ -2027,10 +2034,14 @@ const GAMESCOPE_EXTRAS = [
   { id: "itm", flag: "--hdr-itm-enabled" },
   { id: "fsr4", env: "PROTON_FSR4_UPGRADE=1" },
   { id: "antilag", env: "ENABLE_LAYER_MESA_ANTI_LAG=1" },
+  { id: "mesathread", env: "mesa_glthread=true" },
+  { id: "radvgpl", env: "RADV_PERFTEST=gpl" },
   { id: "fsr", flag: "-F fsr --sharpness 5" },
   { id: "radv", env: "AMD_VULKAN_ICD=RADV" },
   { id: "nvapi", env: "PROTON_ENABLE_NVAPI=1" },
   { id: "dlss", env: "PROTON_DLSS_UPGRADE=1" },
+  { id: "glsync", env: "__GL_SYNC_TO_VBLANK=0" },
+  { id: "prime", env: "__GLX_VENDOR_LIBRARY_NAME=nvidia" },
   { id: "shadercache", env: "__GL_SHADER_DISK_CACHE=1" },
   { id: "shadercachekeep", env: "__GL_SHADER_DISK_CACHE_SKIP_CLEANUP=1" },
   { id: "nis", flag: "-F nis --sharpness 5" },
@@ -2040,6 +2051,7 @@ const GAMESCOPE_EXTRA_IDS = new Set(GAMESCOPE_EXTRAS.map((extra) => extra.id));
 let displayMode = "gamescope";
 let displayScreens = "1";
 let displayResolution = "1440p";
+let displayRefresh = "144";
 let displayExtras = new Set();
 try {
   const savedMode = localStorage.getItem("etol.display.mode");
@@ -2048,6 +2060,8 @@ try {
   if (savedScreens === "1" || savedScreens === "3") displayScreens = savedScreens;
   const savedRes = localStorage.getItem("etol.display.resolution");
   if (DISPLAY_RESOLUTIONS[savedRes]) displayResolution = savedRes;
+  const savedRefresh = localStorage.getItem("etol.display.refresh");
+  if (DISPLAY_REFRESH_RATES.includes(savedRefresh)) displayRefresh = savedRefresh;
   if (!savedScreens) {
     const oldPreset = localStorage.getItem("etol.gamescope");
     if (oldPreset === "7680x1440") displayScreens = "3";
@@ -2059,6 +2073,12 @@ try {
   );
   if (Array.isArray(savedExtras)) {
     displayExtras = new Set(savedExtras.filter((id) => GAMESCOPE_EXTRA_IDS.has(id)));
+  }
+  // Migracion: HDR y VRR pasan de fijos a opcionales sin apagarlos de golpe.
+  if (localStorage.getItem("etol.display.extrasVersion") !== "2") {
+    DEFAULT_DISPLAY_EXTRAS.forEach((id) => displayExtras.add(id));
+    localStorage.setItem("etol.display.extrasVersion", "2");
+    localStorage.setItem("etol.display.extras", JSON.stringify([...displayExtras]));
   }
 } catch (_) {
   // sin almacenamiento local: valores por defecto
@@ -2078,7 +2098,12 @@ function displayHeight() {
 }
 
 function displayExtrasChosen() {
-  return GAMESCOPE_EXTRAS.filter((extra) => displayExtras.has(extra.id));
+  return GAMESCOPE_EXTRAS.filter(
+    (extra) =>
+      displayExtras.has(extra.id) &&
+      // El HDR inverso no tiene sentido sin la salida HDR.
+      (extra.id !== "itm" || displayExtras.has("hdr"))
+  );
 }
 
 function displayCommand() {
@@ -2099,10 +2124,8 @@ function displayCommand() {
     `-H ${height}`,
     `-w ${width}`,
     `-h ${height}`,
-    "-r 144",
+    `-r ${displayRefresh}`,
     "-b",
-    "--adaptive-sync",
-    "--hdr-enabled",
   ];
   return [...envs, ...base, ...flags, "--", "%command%"].join(" ");
 }
@@ -2121,7 +2144,7 @@ function displayNote() {
     );
   }
   return t(
-    "Gamescope con -b (nunca -f). Ajusta -r si tu monitor no es de 144 Hz. Para los dashboards, activa «Dashboards sobre el juego» en Opciones o usa esta línea como alternativa."
+    "Gamescope con -b (nunca -f). Ajusta la frecuencia, HDR y Adaptive Sync arriba. Para los dashboards, activa «Dashboards sobre el juego» en Opciones o usa esta línea como alternativa."
   );
 }
 
@@ -2135,8 +2158,13 @@ function renderDisplayConfig() {
   document.querySelectorAll("#display-resolution [data-resolution]").forEach((button) => {
     button.classList.toggle("active", button.dataset.resolution === displayResolution);
   });
+  document.querySelectorAll("#display-refresh [data-refresh]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.refresh === displayRefresh);
+  });
   document.querySelectorAll("#display-config input[data-extra]").forEach((input) => {
-    input.checked = displayExtras.has(input.dataset.extra);
+    const itmDisabled = input.dataset.extra === "itm" && !displayExtras.has("hdr");
+    input.checked = displayExtras.has(input.dataset.extra) && !itmDisabled;
+    input.disabled = itmDisabled;
   });
   const note = $("#display-note");
   if (note) note.textContent = displayNote();
@@ -2150,6 +2178,7 @@ function saveDisplayConfig() {
     localStorage.setItem("etol.display.mode", displayMode);
     localStorage.setItem("etol.display.screens", displayScreens);
     localStorage.setItem("etol.display.resolution", displayResolution);
+    localStorage.setItem("etol.display.refresh", displayRefresh);
     localStorage.setItem("etol.display.extras", JSON.stringify([...displayExtras]));
   } catch (_) {
     // sin almacenamiento local: vale para esta sesión
@@ -2203,6 +2232,14 @@ $("#display-resolution").addEventListener("click", (event) => {
   renderDisplayConfig();
 });
 
+$("#display-refresh").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-refresh]");
+  if (!button) return;
+  displayRefresh = button.dataset.refresh;
+  saveDisplayConfig();
+  renderDisplayConfig();
+});
+
 $("#btn-display-config").addEventListener("click", () => {
   renderDisplayConfig();
   const dialog = $("#display-config");
@@ -2230,6 +2267,8 @@ $("#display-config").addEventListener("change", (event) => {
   if (!input) return;
   if (input.checked) displayExtras.add(input.dataset.extra);
   else displayExtras.delete(input.dataset.extra);
+  // Sin HDR no se puede pedir el tonemapping inverso.
+  if (input.dataset.extra === "hdr" && !input.checked) displayExtras.delete("itm");
   saveDisplayConfig();
   renderDisplayConfig();
 });
@@ -2238,7 +2277,8 @@ $("#display-reset").addEventListener("click", () => {
   displayMode = "gamescope";
   displayScreens = "1";
   displayResolution = "1440p";
-  displayExtras.clear();
+  displayRefresh = "144";
+  displayExtras = new Set(DEFAULT_DISPLAY_EXTRAS);
   saveDisplayConfig();
   renderDisplayConfig();
 });

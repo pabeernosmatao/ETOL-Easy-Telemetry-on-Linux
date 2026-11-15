@@ -296,6 +296,16 @@
             <button class="seg" data-resolution="4K">4K</button>
           </div>
         </div>
+        <div class="display-row">
+          <span class="display-label">Frecuencia</span>
+          <div class="segmented" id="display-refresh">
+            <button class="seg" data-refresh="60">60 Hz</button>
+            <button class="seg" data-refresh="120">120 Hz</button>
+            <button class="seg active" data-refresh="144">144 Hz</button>
+            <button class="seg" data-refresh="165">165 Hz</button>
+            <button class="seg" data-refresh="240">240 Hz</button>
+          </div>
+        </div>
         <p class="display-note" id="display-note" data-no-i18n></p>
         <pre class="games-tip-code" id="display-command"></pre>
         <div class="display-actions">
@@ -308,6 +318,22 @@
           <div class="extras-grid">
             <section class="extras-col">
               <h4>Todas las gráficas</h4>
+              <label class="extras-option">
+                <input type="checkbox" data-extra="wayland" />
+                <span><strong>Wayland</strong>
+                  <small>Wayland nativo en Proton y en juegos SDL (<code>PROTON_ENABLE_WAYLAND=1</code>, <code>SDL_VIDEODRIVER=wayland</code>).</small></span>
+              </label>
+              <label class="extras-option">
+                <input type="checkbox" data-extra="hdr" />
+                <span><strong>HDR</strong>
+                  <small>Activa HDR en gamescope y DXVK (<code>--hdr-enabled</code>, <code>DXVK_HDR=1</code>). Requiere monitor y sesión con HDR.</small></span>
+              </label>
+              <label class="extras-option">
+                <input type="checkbox" data-extra="vrr" />
+                <span><strong>Adaptive Sync (VRR)</strong>
+                  <small>Sincroniza la frecuencia con los FPS (<code>--adaptive-sync</code>).</small>
+                  <span class="scope-tag">solo gamescope</span></span>
+              </label>
               <label class="extras-option">
                 <input type="checkbox" data-extra="grab" />
                 <span><strong>Capturar el ratón</strong>
@@ -351,6 +377,16 @@
                   <small>Menos latencia con drivers Mesa (<code>ENABLE_LAYER_MESA_ANTI_LAG=1</code>).</small></span>
               </label>
               <label class="extras-option">
+                <input type="checkbox" data-extra="mesathread" />
+                <span><strong>Mesa multihilo</strong>
+                  <small>Reparte las llamadas OpenGL entre hilos (<code>mesa_glthread=true</code>).</small></span>
+              </label>
+              <label class="extras-option">
+                <input type="checkbox" data-extra="radvgpl" />
+                <span><strong>RADV Pipeline Library</strong>
+                  <small>Menos tirones al compilar shaders (<code>RADV_PERFTEST=gpl</code>).</small></span>
+              </label>
+              <label class="extras-option">
                 <input type="checkbox" data-extra="fsr" />
                 <span><strong>Reescalado FSR 1.0</strong>
                   <small>Si el juego renderiza por debajo de la ventana (<code>-F fsr --sharpness 5</code>).</small>
@@ -375,6 +411,16 @@
                   <small>Descarga la última DLL de DLSS (<code>PROTON_DLSS_UPGRADE=1</code>).</small></span>
               </label>
               <label class="extras-option">
+                <input type="checkbox" data-extra="glsync" />
+                <span><strong>VSync OpenGL</strong>
+                  <small>Desactiva la sincronización vertical en OpenGL (<code>__GL_SYNC_TO_VBLANK=0</code>).</small></span>
+              </label>
+              <label class="extras-option">
+                <input type="checkbox" data-extra="prime" />
+                <span><strong>Forzar NVIDIA (PRIME)</strong>
+                  <small>Fuerza la GPU NVIDIA en portátiles híbridos (<code>__GLX_VENDOR_LIBRARY_NAME=nvidia</code>).</small></span>
+              </label>
+              <label class="extras-option">
                 <input type="checkbox" data-extra="shadercache" />
                 <span><strong>Caché de shaders</strong>
                   <small>Menos tirones al repetir escenas (<code>__GL_SHADER_DISK_CACHE=1</code>).</small></span>
@@ -392,11 +438,7 @@
               </label>
             </section>
           </div>
-          <p class="extras-note">
-            Elige solo las opciones de tu tarjeta. En modo sin gamescope se
-            aplican las variables de AMD/NVIDIA y MangoHud (MANGOHUD=1); las
-            opciones marcadas «solo gamescope» se omiten.
-          </p>
+          <p class="extras-note">Wayland, HDR y Adaptive Sync valen para cualquier tarjeta; las opciones de AMD y NVIDIA solo se aplican si tienes esa GPU. En modo sin gamescope se usan las variables de entorno (Wayland, AMD/NVIDIA y MangoHud) y se omiten las opciones marcadas «solo gamescope».</p>
         </section>
       </div>
     </dialog>

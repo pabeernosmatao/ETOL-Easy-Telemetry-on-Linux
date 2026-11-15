@@ -53,6 +53,19 @@ Assetto Corsa Competizione support, plus all the fixes from 0.3.23.
   the columns stay aligned on games without FFB-HUB.
 - FFB-HUB is proprietary and is downloaded at runtime; it is not bundled.
 
+## Display settings
+
+- The display-settings helper now has independent switches for **Wayland**
+  (`PROTON_ENABLE_WAYLAND=1`, `SDL_VIDEODRIVER=wayland`), **HDR**
+  (`--hdr-enabled`, `DXVK_HDR=1`) and **Adaptive Sync** (`--adaptive-sync`).
+- New **refresh-rate** selector (60/120/144/165/240 Hz) for `gamescope -r`.
+- More common options: AMD multithreaded OpenGL (`mesa_glthread=true`) and RADV
+  Pipeline Library (`RADV_PERFTEST=gpl`); NVIDIA OpenGL VSync off
+  (`__GL_SYNC_TO_VBLANK=0`) and PRIME GPU selection
+  (`__GLX_VENDOR_LIBRARY_NAME=nvidia`).
+- Common options apply to any GPU; gamescope-only switches are omitted in
+  without-gamescope mode. HDR and Adaptive Sync stay enabled by default.
+
 ## From 0.3.23
 
 - **HF8 USB access** card in Devices: serial group (`uucp`/`dialout`),
@@ -67,8 +80,8 @@ Assetto Corsa Competizione support, plus all the fixes from 0.3.23.
 
 | Asset | Size | SHA-256 |
 |---|---|---|
-| `ETOL-0.4.0-linux-x86_64-portable.AppImage` | 6.8 MB | `ea3c7e649f85469ade7d086c986cffaec2dee009e73b2b3a145a53937c863859` |
-| `ETOL-0.4.0-linux-x86_64-full.AppImage` | 112 MB | `cbe6179910d9b708e2a65bf42ce2cbda0d75eae322feb34efa7c82585d614f05` |
+| `ETOL-0.4.0-linux-x86_64-portable.AppImage` | 6.8 MB | `94f5205a1723952ea103d36fe1ff4e27cb2c4d2a93471412bcdf1e36cff8ea80` |
+| `ETOL-0.4.0-linux-x86_64-full.AppImage` | 112 MB | `81f82c3abf85288c6bc3c4a057fc4438a44967dfc6a89a7bbfdadbcba90e7dd7` |
 
 ## Install
 
