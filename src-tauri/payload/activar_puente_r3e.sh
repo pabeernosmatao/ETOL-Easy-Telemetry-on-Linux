@@ -56,7 +56,7 @@ Uso: $0 [opciones]
   --no-config     no tocar la configuracion de SimHub/CrewChief
   --solo-config   solo configura y sale (boton de engranaje)
   --no-stub       no arrancar el proceso inerte RRRE64.exe
-  --no-hf8        compatibilidad (el HF8 lo configura SimHub)
+  --no-hf8        no configurar el pad haptico HF8
   --verbose       logs detallados
   -h, --help      esta ayuda
 EOF
@@ -201,6 +201,19 @@ else
 fi
 
 start_stub
+
+# El stub es un proceso Wine: al arrancar puede regenerar dosdevices y
+# reasignar COM33 a otro tty. El HF8 se configura DESPUES del stub para que
+# SimHub encuentre el pad en el puerto de siempre.
+if [[ "$DO_HF8" == 1 ]]; then
+  HF8_SETUP="$BRIDGE/setup_hf8.sh"
+  if [[ -x "$HF8_SETUP" ]]; then
+    echo "Configurando pad haptico HF8 (ForceFeel)..."
+    SIMHUB_BOTTLE="$BOTTLE" BOTTLE_WINE="$BOTTLE_WINE" \
+      LMU_MIRROR_RUN_DIR="$RUN_DIR" "$HF8_SETUP" || \
+      echo "AVISO: no se pudo configurar el HF8; SimHub seguira sin el pad." >&2
+  fi
+fi
 
 cat <<EOF
 
