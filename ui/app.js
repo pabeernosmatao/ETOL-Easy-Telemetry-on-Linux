@@ -1334,7 +1334,7 @@ function renderDaemonGames() {
         : "";
       return `
         <div class="daemon-game">
-          <span class="daemon-game-name">${esc(game.name)}</span>${crew}${simhub}${ffbhub}
+          <span class="daemon-game-name">${esc(game.name)}</span>${ffbhub}${crew}${simhub}
         </div>`;
     })
     .join("");

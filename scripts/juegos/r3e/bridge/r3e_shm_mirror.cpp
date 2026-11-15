@@ -1,11 +1,15 @@
 // Espejo crudo de un mapping de Windows entre dos prefijos Wine.
 // Para RaceRoom: nombre "$R3E", 45056 bytes.
 //
-//   r3e_shm_mirror.exe --sender   --name "$R3E" --udp 127.0.0.1:8777 --hz 30
+//   r3e_shm_mirror.exe --sender   --name "$R3E" --udp 127.0.0.1:8777 --hz 0
 //   r3e_shm_mirror.exe --receiver --name "$R3E" --bind 127.0.0.1:8777 --size 45056
 //
 // No interpreta los datos: copia bytes. El receptor crea el mapping en el
 // prefijo de Bottles para que SimHub/CrewChief lo lean.
+//
+// Con --hz 0 el emisor publica en cada cambio del mapping (hasta ~1 kHz de
+// sondeo). RaceRoom mezcla datos a 200 Hz con un canal de FFB a 400 Hz;
+// FFB-HUB necesita ver esa cadencia nativa o descarta la fuerza por seguridad.
 #define WIN32_LEAN_AND_MEAN
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -25,6 +29,8 @@ namespace {
 constexpr uint32_t kMagic = 0x52334542u; // "R3EB"
 constexpr uint16_t kVersion = 1;
 constexpr size_t kMaxPayload = 60000;
+/// Sin cambios (menus, pausa) se reenvia igual para mantener el espejo.
+constexpr ULONGLONG kHeartbeatMs = 250;
 
 #pragma pack(push, 1)
 struct Header {
@@ -135,15 +141,15 @@ int runSender(const Options& o) {
     ReadMapping map;
     uint32_t frame = 0;
     bool warned = false;
+    // --hz 0: publicar cada tick del juego (la cadencia nativa de RaceRoom).
+    const bool tickMode = o.hz == 0;
     const int sleepMs = std::max(1, 1000 / std::max(1, o.hz));
-    for (;;) {
-        if (!map.open(o.name)) {
-            if (!warned) { logLine("esperando al mapping %s", o.name.c_str()); warned = true; }
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
-            continue;
-        }
-        warned = false;
-        if (o.verbose || frame == 0) logLine("%s abierto (%zu bytes)", o.name.c_str(), map.size);
+    std::vector<uint8_t> snapshot;
+    std::vector<uint8_t> last;
+    bool haveSnapshot = false;
+    ULONGLONG lastSent = GetTickCount64();
+
+    auto sendFrame = [&](const uint8_t* data) {
         size_t offset = 0;
         while (offset < map.size) {
             size_t chunk = std::min(kMaxPayload, map.size - offset);
@@ -155,15 +161,51 @@ int runSender(const Options& o) {
             std::strncpy(h.name, o.name.c_str(), sizeof(h.name) - 1);
             std::vector<uint8_t> pkt(sizeof(h) + chunk);
             std::memcpy(pkt.data(), &h, sizeof(h));
-            std::memcpy(pkt.data() + sizeof(h), map.view + offset, chunk);
+            std::memcpy(pkt.data() + sizeof(h), data + offset, chunk);
             sendto(sock, reinterpret_cast<const char*>(pkt.data()),
                    static_cast<int>(pkt.size()), 0,
                    reinterpret_cast<const sockaddr*>(&addr), sizeof(addr));
             offset += chunk;
         }
         ++frame;
-        if (o.once) break;
-        std::this_thread::sleep_for(std::chrono::milliseconds(sleepMs));
+    };
+
+    for (;;) {
+        if (!map.open(o.name)) {
+            if (!warned) { logLine("esperando al mapping %s", o.name.c_str()); warned = true; }
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            continue;
+        }
+        warned = false;
+        haveSnapshot = false;
+        if (o.verbose || frame == 0) logLine("%s abierto (%zu bytes)", o.name.c_str(), map.size);
+
+        if (tickMode) {
+            // Instantanea coherente y envio solo si algo cambio. Asi se
+            // conservan los canales de 400 Hz aunque el resto vaya a 200 Hz.
+            if (snapshot.size() != map.size) {
+                snapshot.assign(map.size, 0);
+                last.assign(map.size, 0);
+                haveSnapshot = false;
+            }
+            std::memcpy(snapshot.data(), map.view, map.size);
+            const bool changed =
+                !haveSnapshot || std::memcmp(snapshot.data(), last.data(), map.size) != 0;
+            const ULONGLONG elapsed = GetTickCount64() - lastSent;
+            if (changed || elapsed >= kHeartbeatMs) {
+                sendFrame(snapshot.data());
+                last = snapshot;
+                haveSnapshot = true;
+                lastSent = GetTickCount64();
+            }
+            if (o.once) break;
+            // 1 ms: suficiente para no perder ningun tick de 2,5 ms.
+            Sleep(1);
+        } else {
+            sendFrame(map.view);
+            if (o.once) break;
+            Sleep(static_cast<DWORD>(sleepMs));
+        }
     }
     return 0;
 }

@@ -39,7 +39,7 @@ fi
 
 PORT="${R3E_MIRROR_PORT:-8777}"
 SIZE="${R3E_MIRROR_SIZE:-45056}"
-HZ="${R3E_MIRROR_HZ:-30}"
+HZ="${R3E_MIRROR_HZ:-0}"
 DO_CONFIG=1
 SOLO_CONFIG=0
 DO_STUB=1
@@ -52,7 +52,7 @@ Uso: $0 [opciones]
 
   --port N        puerto UDP local (defecto: $PORT)
   --size N        tamano del mapping en Bottles (defecto: $SIZE)
-  --hz N          frecuencia del espejo (defecto: $HZ)
+  --hz N          frecuencia del espejo; 0 = cada tick del juego (defecto: $HZ)
   --no-config     no tocar la configuracion de SimHub/CrewChief
   --solo-config   solo configura y sale (boton de engranaje)
   --no-stub       no arrancar el proceso inerte RRRE64.exe

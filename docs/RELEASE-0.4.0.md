@@ -44,6 +44,11 @@ Assetto Corsa Competizione support, plus all the fixes from 0.3.23.
   The LMU receiver now also publishes the native `HoldEvent`/`DataEvent`, the
   shared-memory lock and a valid app window, which FFB-HUB needs to consider
   the simulator connected from the ETOL bottle.
+- The RaceRoom mirror now publishes on every change of the mapping instead of
+  a fixed 30 Hz timer. RaceRoom mixes 200 Hz telemetry with a 400 Hz FFB
+  channel; keeping the native cadence avoids FFB-HUB discarding the data.
+- The per-game app switches are ordered as FFB-HUB, CrewChief and SimHub so
+  the columns stay aligned on games without FFB-HUB.
 - FFB-HUB is proprietary and is downloaded at runtime; it is not bundled.
 
 ## From 0.3.23
@@ -60,8 +65,8 @@ Assetto Corsa Competizione support, plus all the fixes from 0.3.23.
 
 | Asset | Size | SHA-256 |
 |---|---|---|
-| `ETOL-0.4.0-linux-x86_64-portable.AppImage` | 6.8 MB | `76efbeabd88326ab1b44b3f4b1642df4d2f975c48839d23a7c94e044f4a56e19` |
-| `ETOL-0.4.0-linux-x86_64-full.AppImage` | 112 MB | `f2dc7ed5a4cee566344a84a73dc456158da2a531d991fa0aee522f2fd40fac3a` |
+| `ETOL-0.4.0-linux-x86_64-portable.AppImage` | 6.8 MB | `1b3ae5986b5970a4910abab2907d2bb5b61fc45052ef3e99ac8021c530e86a63` |
+| `ETOL-0.4.0-linux-x86_64-full.AppImage` | 112 MB | `c1cfc89f26b49cf72929380cecea075ab7b1f8511f1c6341729602378296e6a7` |
 
 ## Install
 
