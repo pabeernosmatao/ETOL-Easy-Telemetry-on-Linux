@@ -35,7 +35,7 @@ with one click.
 - **HF8 pad** (ForceFeel) with its COM port wired inside the bottle.
 - **FFB-HUB (LMUFFB)** optional app for LMU and RaceRoom: installs/updates the
   latest release in the ETOL bottle and launches it manually or with the game.
-- **SimHub dashboards over the game** on KDE/KWin, no gamescope needed.
+- **SimHub dashboards over the game** on KDE/KWin, with or without Gamescope.
 - Interface in **Spanish, Catalan and English**.
 
 ## Screenshots
