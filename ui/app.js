@@ -532,7 +532,62 @@ function renderApps(snapshot) {
   $("#apps-paths").innerHTML = `
     <span class="path" title="${esc(apps.bottle_path ?? "")}">botella: ${esc(apps.bottle_path ?? "no detectada")}</span>
     <span class="path" title="${esc(apps.wine ?? "")}">wine: ${esc(apps.wine ?? "no detectado")}${esc(wineSource)}</span>`;
+  renderFfbHub(apps);
   translateDom(document);
+}
+
+/**
+ * Ficha de FFB-HUB: explicacion, interruptor, estado y botones.
+ *
+ * El interruptor es la activacion global. El boton «Lanzar» es el arranque
+ * manual y «Actualizar» baja el ultimo release oficial. En modo automatico
+ * ETOL solo lo abre si el interruptor esta activo y el juego lo tiene marcado
+ * en Opciones.
+ */
+function renderFfbHub(apps) {
+  const box = $("#ffbhub-card");
+  if (!box) return;
+
+  const info = apps.ffbhub ?? {};
+  const installed = Boolean(apps.ffbhub_installed);
+  const running = Boolean(info.running);
+  const pids = info.pids ?? [];
+  const version = apps.ffbhub_version ? ` · ${apps.ffbhub_version}` : "";
+  const status = !installed
+    ? "No instalado"
+    : running
+      ? `En marcha · pid ${pids.join(", ")}`
+      : "Instalado";
+  const dot = running ? "on" : installed ? "" : "warn";
+
+  box.innerHTML = `
+    <div class="ffbhub-head">
+      <div>
+        <h3>FFB-HUB <span class="tag">LMU / RaceRoom</span></h3>
+        <p class="option-help">Fuerza de dirección basada en telemetría: sustituye
+          el FFB del juego por uno más informativo (subviraje, bloqueo de ruedas,
+          derrapes y carga de dirección). ETOL lo instala en su propia botella,
+          junto a SimHub y CrewChief.</p>
+      </div>
+      <label class="switch" title="Activar FFB-HUB">
+        <input type="checkbox" id="ffbhub-enabled"${apps.ffbhub_enabled ? " checked" : ""}>
+        <span class="switch-track"><span class="switch-thumb"></span></span>
+      </label>
+    </div>
+    <div class="ffbhub-status">
+      <span class="dot ${dot}"></span>
+      <span>${esc(status)}${esc(version)}</span>
+      ${apps.ffbhub_path ? `<span class="path" title="${esc(apps.ffbhub_path)}">${esc(apps.ffbhub_path)}</span>` : ""}
+    </div>
+    <div class="ffbhub-actions">
+      <button class="btn" data-ffbhub="launch"${installed ? "" : " disabled"}>
+        ${running ? "Cerrar" : "Lanzar"}
+      </button>
+      <button class="btn ghost" data-ffbhub="update">
+        ${installed ? "Actualizar" : "Instalar"}
+      </button>
+    </div>`;
+  translateDom(box);
 }
 
 /* -------------------------------------------------------------------- hf8 */
@@ -1269,9 +1324,17 @@ function renderDaemonGames() {
             <span class="daemon-app-name">SimHub</span>
           </label>`
         : "";
+      const ffbhub = supported.includes("ffbhub")
+        ? `
+          <label class="switch small" title="Abrir FFB-HUB con ${esc(game.name)}">
+            <input type="checkbox" data-daemon-game="${esc(game.id)}" data-daemon-app="ffbhub"${choice.ffbhub === true ? " checked" : ""}>
+            <span class="switch-track"><span class="switch-thumb"></span></span>
+            <span class="daemon-app-name">FFB-HUB</span>
+          </label>`
+        : "";
       return `
         <div class="daemon-game">
-          <span class="daemon-game-name">${esc(game.name)}</span>${crew}${simhub}
+          <span class="daemon-game-name">${esc(game.name)}</span>${crew}${simhub}${ffbhub}
         </div>`;
     })
     .join("");
@@ -1453,11 +1516,18 @@ async function stopGame(button, game) {
   }
 }
 
+function appLabel(app) {
+  if (app === "simhub") return "SimHub";
+  if (app === "crewchief") return "CrewChief";
+  if (app === "ffbhub") return "FFB-HUB";
+  return app;
+}
+
 async function openApp(button, app) {
   busy(button, true);
   try {
     const result = await call("start_app", { app });
-    toast(`${app === "simhub" ? "SimHub" : "CrewChief"} arrancando (pid ${result.pid})`, "ok");
+    toast(`${appLabel(app)} arrancando (pid ${result.pid})`, "ok");
     setTimeout(() => refreshStatus(true), 2500);
     setTimeout(() => refreshStatus(true), 9000);
   } catch (error) {
@@ -1467,8 +1537,107 @@ async function openApp(button, app) {
   }
 }
 
+async function setFfbHubEnabled(enabled) {
+  try {
+    const payload = await call("set_config", {
+      key: "apps.ffbhub_enabled",
+      value: enabled ? "true" : "false",
+    });
+    state.config = payload.config;
+    await refreshStatus(true);
+    toast(`FFB-HUB ${enabled ? "activado" : "desactivado"}`, "ok");
+  } catch (error) {
+    fail(error);
+  }
+}
+
+function ffbHubInstallDialog() {
+  openModal({
+    title: "Instalar FFB-HUB",
+    html: `
+      <p><strong>FFB-HUB</strong> (antes LMUFFB) genera la fuerza de dirección a
+      partir de la telemetría de <strong>Le Mans Ultimate</strong> y
+      <strong>RaceRoom</strong>. Sustituye el FFB del juego por uno más
+      informativo: subviraje, bloqueo de ruedas, derrapes y carga de dirección.</p>
+      <p>ETOL descargará el último release oficial y lo instalará en su propia
+      botella (<code>C:\\FFBHUB</code>), no en el prefijo del juego. Se actualiza
+      desde esta misma ficha.</p>
+      <ul>
+        <li>Descarga de unos 2 MB desde el repositorio de coasting-nc.</li>
+        <li>Selecciona tu volante en <em>FFB Device</em> y el juego (LMU o RaceRoom).</li>
+        <li>En LMU, desactiva <em>Use Constant Steering Force Effect</em> y pon
+          <em>FFB Strength</em> al 100 %.</li>
+        <li>En RaceRoom, desactiva el FFB del juego.</li>
+        <li>Usa el juego en modo <em>Borderless</em> o VR.</li>
+      </ul>
+      <p class="option-help">El programa es propietario y se descarga bajo su
+      propia licencia; ETOL no lo redistribuye. Puedes desactivarlo cuando
+      quieras con el interruptor de la ficha.</p>`,
+    actions: [
+      { label: "Cancelar", onClick: () => $("#modal").close() },
+      {
+        label: "Instalar ahora",
+        primary: true,
+        onClick: () => {
+          $("#modal").close();
+          installFfbHub(false);
+        },
+      },
+    ],
+  });
+}
+
+async function installFfbHub(update) {
+  toast(update ? "Actualizando FFB-HUB…" : "Instalando FFB-HUB…");
+  try {
+    const result = await call("install_ffbhub", { update });
+    // Instalar o actualizar implica querer usarlo: deja el interruptor activo.
+    await call("set_config", {
+      key: "apps.ffbhub_enabled",
+      value: "true",
+    });
+    toast(
+      `FFB-HUB ${result.version} ${result.updated ? "actualizado" : "instalado"}`,
+      "ok",
+    );
+    await refreshStatus(true);
+  } catch (error) {
+    fail(error);
+    await refreshStatus(true);
+  }
+}
+
+async function toggleFfbHubLaunch(button) {
+  busy(button, true);
+  try {
+    await refreshStatus(true);
+    const apps = state.snapshot?.apps ?? {};
+    if (!apps.ffbhub_installed) {
+      ffbHubInstallDialog();
+      return;
+    }
+    if (apps.ffbhub?.running) {
+      const report = await call("stop_app", { app: "ffbhub" });
+      toast(
+        report.closed ? "FFB-HUB cerrado" : `FFB-HUB: ${report.detail}`,
+        report.closed ? "ok" : "error",
+      );
+    } else {
+      const result = await call("start_app", { app: "ffbhub" });
+      toast(`FFB-HUB arrancando (pid ${result.pid})`, "ok");
+    }
+    setTimeout(() => refreshStatus(true), 1200);
+    setTimeout(() => refreshStatus(true), 6000);
+  } catch (error) {
+    fail(error);
+  } finally {
+    busy(button, false);
+  }
+}
+
 function appRunningGlobal(app) {
   const apps = state.snapshot?.apps ?? {};
+  if (app === "ffbhub") return Boolean(apps.ffbhub?.running);
   return app === "simhub"
     ? Boolean(apps.simhub?.running)
     : Boolean(apps.crewchief?.running);
@@ -1488,7 +1657,7 @@ function activeGameName() {
 }
 
 async function toggleApp(button, app) {
-  const name = app === "simhub" ? "SimHub" : "CrewChief";
+  const name = appLabel(app);
   const gameId = button.dataset.game;
   busy(button, true);
   try {
@@ -1580,6 +1749,16 @@ document.addEventListener("click", (event) => {
   const configButton = event.target.closest("[data-config]");
   if (configButton) {
     configGameDialog(configButton.dataset.config);
+    return;
+  }
+
+  const ffbhubButton = event.target.closest("[data-ffbhub]");
+  if (ffbhubButton) {
+    if (ffbhubButton.dataset.ffbhub === "launch") {
+      toggleFfbHubLaunch(ffbhubButton);
+    } else if (ffbhubButton.dataset.ffbhub === "update") {
+      installFfbHub(Boolean(state.snapshot?.apps?.ffbhub_installed));
+    }
     return;
   }
 
@@ -1781,6 +1960,19 @@ $("#opt-language").addEventListener("click", async (event) => {
   }
 });
 
+$("#ffbhub-card").addEventListener("change", async (event) => {
+  const input = event.target.closest("#ffbhub-enabled");
+  if (!input) return;
+  const enabled = input.checked;
+  const apps = state.snapshot?.apps ?? {};
+  if (enabled && !apps.ffbhub_installed) {
+    input.checked = false;
+    ffbHubInstallDialog();
+    return;
+  }
+  await setFfbHubEnabled(enabled);
+});
+
 $("#daemon-games").addEventListener("change", async (event) => {
   const input = event.target.closest("input[data-daemon-game]");
   if (!input) return;
@@ -1795,7 +1987,7 @@ $("#daemon-games").addEventListener("change", async (event) => {
     state.config = payload.config;
     renderDaemonGames();
     toast(
-      `${app === "crewchief" ? "CrewChief" : "SimHub"} ${value ? "activado" : "desactivado"} para ${game}`,
+      `${appLabel(app)} ${value ? "activado" : "desactivado"} para ${game}`,
       "ok"
     );
   } catch (error) {

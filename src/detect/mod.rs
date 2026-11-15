@@ -30,6 +30,8 @@ pub struct GameDef {
 pub const APPS_UDP: &[&str] = &["crewchief", "simhub"];
 /// Juegos con un solo lector en SimHub (camiones y BeamNG): sin CrewChief.
 pub const APPS_SIMHUB_ONLY: &[&str] = &["simhub"];
+/// Simuladores compatibles con FFB-HUB: LMU y RaceRoom.
+pub const APPS_UDP_FFB: &[&str] = &["crewchief", "simhub", "ffbhub"];
 
 pub const GAMES: &[GameDef] = &[
     GameDef {
@@ -39,7 +41,7 @@ pub const GAMES: &[GameDef] = &[
         exes: &["Le Mans Ultimate.exe"],
         run_subdir: "lmu_mirror",
         port: 8772,
-        apps: APPS_UDP,
+        apps: APPS_UDP_FFB,
         native: false,
         plugin: None,
     },
@@ -106,7 +108,7 @@ pub const GAMES: &[GameDef] = &[
         exes: &["Game/x64/RRRE64.exe", "RRRE64.exe", "RRRE.exe"],
         run_subdir: "r3e_mirror",
         port: 8777,
-        apps: APPS_UDP,
+        apps: APPS_UDP_FFB,
         native: false,
         plugin: None,
     },
@@ -350,7 +352,19 @@ pub fn detect() -> Config {
         cfg.games.insert(def.id.to_string(), game);
     }
 
-    if let Some(apps) = detect_apps() {
+    if let Some(mut apps) = detect_apps() {
+        // La deteccion no debe perder la preferencia de FFB-HUB ni su ruta
+        // si el ejecutable ya estaba instalado y la busqueda no lo encuentra.
+        if let Some(prev) = &previous {
+            apps.ffbhub_enabled = prev.apps.ffbhub_enabled;
+            if apps.ffbhub_exe.is_none() {
+                if let Some(exe) = &prev.apps.ffbhub_exe {
+                    if exe.is_file() {
+                        apps.ffbhub_exe = Some(exe.clone());
+                    }
+                }
+            }
+        }
         cfg.apps = apps;
     }
 
@@ -394,6 +408,7 @@ pub fn detect_apps() -> Option<Apps> {
     });
 
     let (bottle, simhub, crewchief) = candidates.remove(0);
+    let ffbhub = bottles::find_program(&bottle, "FFBHUB.exe");
     let reason = if candidates.is_empty() {
         "unica botella con SimHub".to_string()
     } else {
@@ -425,6 +440,8 @@ pub fn detect_apps() -> Option<Apps> {
         wine_source: resolution.source.map(|source| source.as_str().to_string()),
         simhub_exe: Some(simhub),
         crewchief_exe: crewchief,
+        ffbhub_exe: ffbhub,
+        ffbhub_enabled: false,
     })
 }
 

@@ -253,6 +253,7 @@ pub struct Launched {
 pub enum AppKind {
     SimHub,
     CrewChief,
+    FfbHub,
 }
 
 impl AppKind {
@@ -260,6 +261,7 @@ impl AppKind {
         match raw.trim().to_lowercase().as_str() {
             "simhub" => Some(AppKind::SimHub),
             "crewchief" | "crew" => Some(AppKind::CrewChief),
+            "ffbhub" | "ffb-hub" | "lmuffb" => Some(AppKind::FfbHub),
             _ => None,
         }
     }
@@ -268,6 +270,7 @@ impl AppKind {
         match self {
             AppKind::SimHub => "simhub",
             AppKind::CrewChief => "crewchief",
+            AppKind::FfbHub => "ffbhub",
         }
     }
 
@@ -275,6 +278,7 @@ impl AppKind {
         match self {
             AppKind::SimHub => "SimHub",
             AppKind::CrewChief => "CrewChief",
+            AppKind::FfbHub => "FFB-HUB",
         }
     }
 
@@ -282,6 +286,7 @@ impl AppKind {
         match self {
             AppKind::SimHub => "SimHubWPF.exe",
             AppKind::CrewChief => "CrewChiefV4.exe",
+            AppKind::FfbHub => "FFBHUB.exe",
         }
     }
 }
@@ -368,8 +373,15 @@ pub fn start_app(cfg: &Config, kind: AppKind) -> Result<Launched> {
     let exe = match kind {
         AppKind::SimHub => cfg.apps.simhub_exe.clone(),
         AppKind::CrewChief => cfg.apps.crewchief_exe.clone(),
+        AppKind::FfbHub => cfg.apps.ffbhub_exe.clone(),
     }
-    .with_context(|| format!("no se conoce el ejecutable de {}", kind.tag()))?;
+    .with_context(|| {
+        if kind == AppKind::FfbHub {
+            "FFB-HUB no esta instalado; instalalo desde Aplicaciones".to_string()
+        } else {
+            format!("no se conoce el ejecutable de {}", kind.tag())
+        }
+    })?;
 
     if !exe.is_file() {
         bail!("no existe {}", exe.display());
@@ -539,7 +551,10 @@ pub fn stop_bridge(cfg: &Config, game_id: &str) -> Result<String> {
 /// ultimo SIGTERM/SIGKILL a los procesos Linux. Nunca se usa `wineserver -k`:
 /// la botella se comparte con otras aplicaciones.
 pub fn stop_apps(cfg: &Config) -> Vec<AppReport> {
-    close_apps(cfg, &[AppKind::SimHub, AppKind::CrewChief])
+    close_apps(
+        cfg,
+        &[AppKind::SimHub, AppKind::CrewChief, AppKind::FfbHub],
+    )
 }
 
 /// Apps que usa un juego, segun su definicion (`simhub`, `crewchief`).

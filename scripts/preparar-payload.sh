@@ -205,6 +205,13 @@ if [[ -f "$ROOT/vendor/rFactor2SharedMemoryMapPlugin64.LICENSE.txt" ]]; then
     "$DEST/bridge/rFactor2SharedMemoryMapPlugin64.LICENSE.txt"
 fi
 
+# FFB-HUB (LMUFFB): instalador/actualizador que descarga el release oficial.
+if [[ -d "$ROOT/payload/ffbhub" ]]; then
+  mkdir -p "$DEST/ffbhub"
+  cp -a "$ROOT/payload/ffbhub/." "$DEST/ffbhub/"
+  echo "payload: instalador de FFB-HUB"
+fi
+
 # Scripts propios de ETOL (instalacion de Bottles Flatpak y del prefijo).
 if [[ -d "$ROOT/scripts/sistema" ]]; then
   mkdir -p "$DEST/sistema"

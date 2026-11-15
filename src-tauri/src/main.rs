@@ -405,6 +405,103 @@ async fn stop_app(app: String) -> Result<launch::AppReport, String> {
 }
 
 #[derive(Serialize)]
+struct FfbHubInstall {
+    version: String,
+    exe: String,
+    dest: String,
+    updated: bool,
+}
+
+/// Instala o actualiza FFB-HUB en la botella de ETOL.
+///
+/// Descarga el ultimo release del repositorio oficial y lo descomprime en
+/// `C:\FFBHUB`. Conserva `config.ini` y los perfiles del usuario.
+#[tauri::command]
+async fn install_ffbhub(update: bool) -> Result<FfbHubInstall, String> {
+    blocking(move || {
+        let mut cfg = Config::load()?;
+        let bottle = cfg
+            .apps
+            .bottle
+            .clone()
+            .context("no se conoce la botella de ETOL")?;
+        let app_dir = cfg
+            .app_dir()
+            .context("no se conoce la carpeta de scripts; usa Redetectar")?
+            .to_path_buf();
+        let script = app_dir.join("ffbhub/instalar_ffbhub.py");
+        if !script.is_file() {
+            bail!("no existe {}", script.display());
+        }
+
+        let mut command = Command::new("python3");
+        command
+            .arg(&script)
+            .arg("--bottle")
+            .arg(&bottle)
+            .arg("--json")
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+        launch::clean_child_env(&mut command);
+
+        let output = command
+            .output()
+            .with_context(|| format!("no se pudo ejecutar {}", script.display()))?;
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        if !output.status.success() {
+            let detail = if stderr.trim().is_empty() {
+                stdout.trim()
+            } else {
+                stderr.trim()
+            };
+            bail!("no se pudo instalar FFB-HUB: {detail}");
+        }
+
+        let value: serde_json::Value = serde_json::from_str(stdout.trim())
+            .with_context(|| format!("respuesta inesperada del instalador: {}", stdout.trim()))?;
+        let version = value
+            .get("version")
+            .and_then(|value| value.as_str())
+            .unwrap_or("")
+            .to_string();
+        let exe = value
+            .get("exe")
+            .and_then(|value| value.as_str())
+            .unwrap_or("")
+            .to_string();
+        let dest = value
+            .get("dest")
+            .and_then(|value| value.as_str())
+            .unwrap_or("")
+            .to_string();
+        if exe.is_empty() {
+            bail!("el instalador no devolvio la ruta de FFBHUB.exe");
+        }
+
+        cfg.apps.ffbhub_exe = Some(PathBuf::from(&exe));
+        cfg.save()?;
+        logs::info(
+            "ffbhub",
+            format!(
+                "{} {} en {}",
+                if update { "actualizado" } else { "instalado" },
+                version,
+                exe
+            ),
+        );
+        Ok(FfbHubInstall {
+            version,
+            exe,
+            dest,
+            updated: update,
+        })
+    })
+    .await
+}
+
+#[derive(Serialize)]
 struct GameAppStart {
     launched: Launched,
     bridge_started: bool,
@@ -1683,6 +1780,7 @@ fn main() {
             start_app,
             start_app_for_game,
             stop_app,
+            install_ffbhub,
             configure_hf8,
             fix_usb_access,
             env_preview,

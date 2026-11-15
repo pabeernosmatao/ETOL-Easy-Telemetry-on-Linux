@@ -117,6 +117,11 @@ pub struct Apps {
     pub simhub_exe: Option<PathBuf>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub crewchief_exe: Option<PathBuf>,
+    /// FFB-HUB (LMUFFB) instalado en la botella.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ffbhub_exe: Option<PathBuf>,
+    /// FFB-HUB activado en Aplicaciones: permite el arranque automatico.
+    pub ffbhub_enabled: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -208,6 +213,7 @@ impl Daemon {
         if let Some(def) = crate::detect::game_def(id) {
             choice.crewchief &= def.has_app("crewchief");
             choice.simhub &= def.has_app("simhub");
+            choice.ffbhub &= def.has_app("ffbhub");
         }
         choice
     }
@@ -218,6 +224,8 @@ impl Daemon {
 pub struct DaemonGame {
     pub crewchief: bool,
     pub simhub: bool,
+    /// FFB-HUB es opcional: por defecto no se abre con el juego.
+    pub ffbhub: bool,
 }
 
 impl Default for DaemonGame {
@@ -225,6 +233,7 @@ impl Default for DaemonGame {
         Self {
             crewchief: true,
             simhub: true,
+            ffbhub: false,
         }
     }
 }
@@ -452,6 +461,8 @@ impl Config {
             ["apps", "wine_source"] => self.apps.wine_source = Some(value.to_string()),
             ["apps", "simhub_exe"] => self.apps.simhub_exe = Some(util::expand(value)),
             ["apps", "crewchief_exe"] => self.apps.crewchief_exe = Some(util::expand(value)),
+            ["apps", "ffbhub_exe"] => self.apps.ffbhub_exe = Some(util::expand(value)),
+            ["apps", "ffbhub_enabled"] => self.apps.ffbhub_enabled = parse_bool(value)?,
             ["hf8", "enabled"] => self.hf8.enabled = parse_bool(value)?,
             ["hf8", "device"] => self.hf8.device = Some(util::expand(value)),
             ["hf8", "com_port"] => self.hf8.com_port = value.trim().to_uppercase(),
@@ -485,6 +496,7 @@ impl Config {
                 match *field {
                     "crewchief" => entry.crewchief = parse_bool(value)?,
                     "simhub" => entry.simhub = parse_bool(value)?,
+                    "ffbhub" => entry.ffbhub = parse_bool(value)?,
                     other => bail!("campo de vigilancia desconocido: {other}"),
                 }
             }

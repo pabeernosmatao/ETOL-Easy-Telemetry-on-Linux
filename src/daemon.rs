@@ -212,6 +212,17 @@ impl Watcher {
                 if choice.simhub {
                     actions.push(Action::StartApp(id.clone(), AppKind::SimHub));
                 }
+                if choice.ffbhub
+                    && cfg.apps.ffbhub_enabled
+                    && cfg
+                        .apps
+                        .ffbhub_exe
+                        .as_ref()
+                        .map(|path| path.is_file())
+                        .unwrap_or(false)
+                {
+                    actions.push(Action::StartApp(id.clone(), AppKind::FfbHub));
+                }
             }
         }
 
@@ -434,7 +445,14 @@ mod tests {
         let mut cfg = Config::default();
         cfg.daemon
             .games
-            .insert("rf2".into(), DaemonGame { crewchief: true, simhub: false });
+            .insert(
+                "rf2".into(),
+                DaemonGame {
+                    crewchief: true,
+                    simhub: false,
+                    ffbhub: false,
+                },
+            );
         let choice = cfg.daemon.game("rf2");
         assert!(choice.crewchief && !choice.simhub);
     }
@@ -494,7 +512,14 @@ mod tests {
         // Aunque la configuracion diga lo contrario, se recorta al juego.
         cfg.daemon
             .games
-            .insert("ets2".into(), DaemonGame { crewchief: true, simhub: true });
+            .insert(
+                "ets2".into(),
+                DaemonGame {
+                    crewchief: true,
+                    simhub: true,
+                    ffbhub: false,
+                },
+            );
         let choice = cfg.daemon.game("ets2");
         assert!(!choice.crewchief);
         assert!(choice.simhub);

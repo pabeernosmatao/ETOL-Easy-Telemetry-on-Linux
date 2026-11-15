@@ -482,6 +482,7 @@ fn print_detected(cfg: &Config) {
     }
     field_path("SimHub", cfg.apps.simhub_exe.as_deref());
     field_path("CrewChief", cfg.apps.crewchief_exe.as_deref());
+    field_path("FFB-HUB", cfg.apps.ffbhub_exe.as_deref());
 
     util::section("Pad HF8");
     if cfg.hf8.enabled {
@@ -541,6 +542,7 @@ fn print_status(cfg: &Config) {
     }
     process_field("SimHub", &snapshot.apps.simhub);
     process_field("CrewChief", &snapshot.apps.crewchief);
+    process_field("FFB-HUB", &snapshot.apps.ffbhub);
 
     util::section("Pad HF8");
     if !snapshot.hf8.enabled {

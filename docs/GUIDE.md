@@ -71,7 +71,7 @@ step 5 says.
 | Tab | What it is for |
 |---|---|
 | **Games** | One card per installed simulator: state, port, prefix, launch/app buttons and the configuration gear. |
-| **Applications** | SimHub and CrewChief with their processes, the selected bottle and the paths. |
+| **Applications** | SimHub and CrewChief, the FFB-HUB card (install, update, launch and enable), the selected bottle and the paths. |
 | **Devices** | The HF8 pad, its COM port and the link inside the bottle. |
 | **Diagnostics** | Checks with the exact fix next to them. |
 | **Options** | Language, automatic watchdog, per-game apps, dashboards, logs, USB and displays. |
@@ -100,6 +100,9 @@ sees something wrong. Click it once per game.
 - **Launch**: starts the bridge and the game's apps. If it is already running,
   it becomes **Stop**.
 - **CrewChief** / **SimHub**: open or close only that application.
+- **FFB-HUB** (in Applications): install or update it from its card and launch
+  it manually. In automatic mode it only starts if the Applications switch and
+  the game checkbox in Options are both enabled.
 
 On games that only use SimHub (ETS2 and BeamNG.drive) the two buttons take
 **half the width each**.
@@ -150,13 +153,13 @@ the KWin rule used by the dashboards.
 
 | Game | Telemetry | Apps | Notes |
 |---|---|---|---|
-| Le Mans Ultimate | shared memory | SimHub + CrewChief | |
+| Le Mans Ultimate | shared memory | SimHub + CrewChief (+ FFB-HUB) | |
 | Automobilista 2 | shared memory | SimHub + CrewChief | |
 | Assetto Corsa EVO | shared memory | SimHub + CrewChief | |
 | Assetto Corsa | shared memory | SimHub + CrewChief | |
 | Assetto Corsa Competizione | shared memory | SimHub + CrewChief | |
 | rFactor 2 | shared memory | SimHub + CrewChief | bundles the SMMP plugin |
-| RaceRoom Racing Experience | shared memory (`$R3E`) | SimHub + CrewChief | raw mirror over UDP 8777 |
+| RaceRoom Racing Experience | shared memory (`$R3E`) | SimHub + CrewChief (+ FFB-HUB) | raw mirror over UDP 8777 |
 | DiRT Rally 2.0 | UDP (relay 20777) | SimHub + CrewChief | `extradata=3` |
 | Euro Truck Simulator 2 | native Linux, `/dev/shm` | SimHub | installs the SCS plugin |
 | BeamNG.drive | native Linux, OutGauge UDP | SimHub | |

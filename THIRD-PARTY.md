@@ -105,15 +105,28 @@ cargo tree --format "{p} {l}"
 
 ---
 
-## 5. Lo que **no** se distribuye
+## 5. FFB-HUB (LMUFFB)
 
-SimHub, CrewChief, Bottles, Steam, Proton y los propios simuladores **no** van
-dentro de ETOL. El usuario los instala por su cuenta y ETOL solo los detecta,
-configura y lanza. Sus licencias son las de cada fabricante.
+FFB-HUB es una aplicación **propietaria** de coasting-nc. ETOL **no la
+redistribuye**: la descarga bajo demanda del release oficial
+(`https://github.com/coasting-nc/LMUFFB/releases`) y la instala en la botella
+del usuario. Su uso se rige por su EULA y su licencia, que se incluyen en la
+propia descarga (`EULA and Licenses/`).
+
+ETOL solo guarda el instalador (`payload/ffbhub/instalar_ffbhub.py`), que
+descarga el ZIP oficial en tiempo de ejecución.
 
 ---
 
-## 6. Cómo cumplir al redistribuir
+## 6. Lo que **no** se distribuye
+
+SimHub, CrewChief, FFB-HUB, Bottles, Steam, Proton y los propios simuladores
+**no** van dentro de ETOL. El usuario los instala por su cuenta y ETOL solo los
+detecta, configura y lanza. Sus licencias son las de cada fabricante.
+
+---
+
+## 7. Cómo cumplir al redistribuir
 
 Si publicas un fork o un AppImage modificado:
 

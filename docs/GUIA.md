@@ -72,7 +72,7 @@ desmarca lo que se indica en el paso 5.
 | Pestaña | Para qué sirve |
 |---|---|
 | **Juegos** | Una ficha por simulador instalado: estado, puerto, prefijo, botones de lanzar/apps y el engranaje de configuración. |
-| **Aplicaciones** | SimHub y CrewChief, con sus procesos, la botella elegida y las rutas. |
+| **Aplicaciones** | SimHub y CrewChief, la ficha de FFB-HUB (instalar, actualizar, lanzar y activar), la botella elegida y las rutas. |
 | **Dispositivos** | El pad HF8, su puerto COM y el enlace dentro de la botella. |
 | **Diagnóstico** | Comprobaciones con el arreglo exacto al lado. |
 | **Opciones** | Idioma, vigilancia automática, apps por juego, dashboards, logs, USB y pantallas. |
@@ -101,6 +101,9 @@ Púlsalo una vez por juego.
 - **Lanzar**: arranca el puente y las apps del juego. Si ya está en marcha, se
   convierte en **Parar**.
 - **CrewChief** / **SimHub**: abren o cierran solo esa aplicación.
+- **FFB-HUB** (en Aplicaciones): se instala o actualiza desde su ficha y se
+  lanza a mano. En modo automático solo arranca si el interruptor de
+  Aplicaciones y la casilla del juego en Opciones están activos.
 
 En los juegos que solo usan SimHub (ETS2 y BeamNG.drive) los dos botones ocupan
 **la mitad cada uno**.
@@ -149,13 +152,13 @@ desactiva la regla de KWin de los dashboards.
 
 | Juego | Telemetría | Apps | Notas |
 |---|---|---|---|
-| Le Mans Ultimate | memoria compartida | SimHub + CrewChief | |
+| Le Mans Ultimate | memoria compartida | SimHub + CrewChief (+ FFB-HUB) | |
 | Automobilista 2 | memoria compartida | SimHub + CrewChief | |
 | Assetto Corsa EVO | memoria compartida | SimHub + CrewChief | |
 | Assetto Corsa | memoria compartida | SimHub + CrewChief | |
 | Assetto Corsa Competizione | memoria compartida | SimHub + CrewChief | |
 | rFactor 2 | memoria compartida | SimHub + CrewChief | incluye el plugin SMMP |
-| RaceRoom Racing Experience | memoria compartida (`$R3E`) | SimHub + CrewChief | espejo crudo por UDP 8777 |
+| RaceRoom Racing Experience | memoria compartida (`$R3E`) | SimHub + CrewChief (+ FFB-HUB) | espejo crudo por UDP 8777 |
 | DiRT Rally 2.0 | UDP (relay 20777) | SimHub + CrewChief | `extradata=3` |
 | Euro Truck Simulator 2 | Linux nativo, `/dev/shm` | SimHub | instala el plugin SCS |
 | BeamNG.drive | Linux nativo, OutGauge UDP | SimHub | |

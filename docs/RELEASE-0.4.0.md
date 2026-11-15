@@ -30,6 +30,19 @@ Assetto Corsa Competizione support, plus all the fixes from 0.3.23.
   the bridge, the stubs, CrewChief and SimHub.
 - Tested with Proton-CachyOS, the Bottles GE-Proton runner and SimHub/CrewChief.
 
+## FFB-HUB (LMUFFB)
+
+- New **FFB-HUB** card in Applications: description, enable switch, manual
+  **Launch** and **Update** buttons.
+- The first activation offers the automatic installation. ETOL downloads the
+  latest official release (`coasting-nc/LMUFFB`) and installs it in the ETOL
+  bottle (`C:\FFBHUB`), not in the game prefix. Updates preserve `config.ini`
+  and the user profiles.
+- **Automatic mode** launches FFB-HUB with LMU or RaceRoom only when it is
+  enabled in Applications **and** its per-game checkbox in Options is on.
+- Works with the shared memory that ETOL already mirrors for LMU and RaceRoom.
+  FFB-HUB is proprietary and is downloaded at runtime; it is not bundled.
+
 ## From 0.3.23
 
 - **HF8 USB access** card in Devices: serial group (`uucp`/`dialout`),
@@ -44,8 +57,8 @@ Assetto Corsa Competizione support, plus all the fixes from 0.3.23.
 
 | Asset | Size | SHA-256 |
 |---|---|---|
-| `ETOL-0.4.0-linux-x86_64-portable.AppImage` | 6.8 MB | `0338751f4503a21e3a0cb9a020c66ffecab07c1d425e4955a7ce56e2fc7ac138` |
-| `ETOL-0.4.0-linux-x86_64-full.AppImage` | 112 MB | `294eea66b0e701890afd12cde02ade4768bc04b36d64dcfe18d12c1b82736f2a` |
+| `ETOL-0.4.0-linux-x86_64-portable.AppImage` | 6.8 MB | `c326351c4c88c3351bd4d3bba1abe6bef5f65f6967719570743b1079f510881e` |
+| `ETOL-0.4.0-linux-x86_64-full.AppImage` | 112 MB | `e985bb858396d0748a67a2372b224a9eda4c1dbc25c73d14a5e1032ac40b35aa` |
 
 ## Install
 

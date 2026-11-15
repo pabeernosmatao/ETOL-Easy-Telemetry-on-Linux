@@ -890,6 +890,64 @@ h2 {
   box-shadow: 0 0 10px rgba(255, 178, 74, 0.5);
 }
 
+.ffbhub-panel {
+  margin-top: 14px;
+}
+
+.ffbhub-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.ffbhub-head h3 {
+  margin: 0 0 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ffbhub-head .option-help {
+  margin: 0;
+  max-width: 72ch;
+}
+
+.ffbhub-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 0;
+  border-top: 1px solid var(--line-soft);
+  border-bottom: 1px solid var(--line-soft);
+  margin: 14px 0;
+}
+
+.ffbhub-status .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #34455a;
+  flex-shrink: 0;
+}
+
+.ffbhub-status .dot.on {
+  background: var(--accent);
+  box-shadow: 0 0 10px rgba(56, 225, 176, 0.65);
+}
+
+.ffbhub-status .dot.warn {
+  background: var(--warn);
+  box-shadow: 0 0 10px rgba(255, 178, 74, 0.5);
+}
+
+.ffbhub-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .row-main {
   min-width: 0;
   flex: 1;

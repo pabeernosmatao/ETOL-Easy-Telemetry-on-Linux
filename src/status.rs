@@ -43,6 +43,11 @@ pub struct AppsStatus {
     pub wine_source: Option<String>,
     pub simhub: ProcessStatus,
     pub crewchief: ProcessStatus,
+    pub ffbhub: ProcessStatus,
+    pub ffbhub_installed: bool,
+    pub ffbhub_enabled: bool,
+    pub ffbhub_path: Option<String>,
+    pub ffbhub_version: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -339,6 +344,20 @@ pub fn snapshot(cfg: &Config) -> Snapshot {
             wine_source: cfg.apps.wine_source.clone(),
             simhub: process_status("SimHubWPF.exe"),
             crewchief: process_status("CrewChiefV4.exe"),
+            ffbhub: process_status("FFBHUB.exe"),
+            ffbhub_installed: cfg
+                .apps
+                .ffbhub_exe
+                .as_ref()
+                .map(|path| path.is_file())
+                .unwrap_or(false),
+            ffbhub_enabled: cfg.apps.ffbhub_enabled,
+            ffbhub_path: cfg
+                .apps
+                .ffbhub_exe
+                .as_ref()
+                .map(|path| path.display().to_string()),
+            ffbhub_version: ffbhub_version(cfg),
         },
         hf8: Hf8Status {
             enabled: cfg.hf8.enabled,
@@ -376,5 +395,18 @@ fn process_status(needle: &str) -> ProcessStatus {
     ProcessStatus {
         running: !pids.is_empty(),
         pids,
+    }
+}
+
+/// Version instalada de FFB-HUB, escrita por el instalador en `version.txt`.
+fn ffbhub_version(cfg: &crate::config::Config) -> Option<String> {
+    let exe = cfg.apps.ffbhub_exe.as_ref()?;
+    let dir = exe.parent()?;
+    let text = std::fs::read_to_string(dir.join("version.txt")).ok()?;
+    let version = text.trim();
+    if version.is_empty() {
+        None
+    } else {
+        Some(version.to_string())
     }
 }

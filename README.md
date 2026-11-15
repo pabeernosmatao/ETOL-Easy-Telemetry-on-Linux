@@ -33,6 +33,8 @@ with one click.
 - **Automatic watchdog**: opening a simulator starts its bridge and apps;
   closing it stops everything. Switching games switches everything.
 - **HF8 pad** (ForceFeel) with its COM port wired inside the bottle.
+- **FFB-HUB (LMUFFB)** optional app for LMU and RaceRoom: installs/updates the
+  latest release in the ETOL bottle and launches it manually or with the game.
 - **SimHub dashboards over the game** on KDE/KWin, no gamescope needed.
 - Interface in **Spanish, Catalan and English**.
 
@@ -67,13 +69,13 @@ The two installers are interactive (they are Windows installers), so you click
 
 | Game | Telemetry | Apps | Notes |
 |---|---|---|---|
-| **Le Mans Ultimate** | shared memory | SimHub + CrewChief | |
+| **Le Mans Ultimate** | shared memory | SimHub + CrewChief (+ FFB-HUB) | |
 | **Automobilista 2** | shared memory | SimHub + CrewChief | |
 | **Assetto Corsa EVO** | shared memory | SimHub + CrewChief | |
 | **Assetto Corsa** | shared memory | SimHub + CrewChief | |
 | **Assetto Corsa Competizione** | shared memory | SimHub + CrewChief | |
 | **rFactor 2** | shared memory | SimHub + CrewChief | bundles the SMMP plugin |
-| **RaceRoom Racing Experience** | shared memory (`$R3E`) | SimHub + CrewChief | raw mirror over UDP 8777 |
+| **RaceRoom Racing Experience** | shared memory (`$R3E`) | SimHub + CrewChief (+ FFB-HUB) | raw mirror over UDP 8777 |
 | **DiRT Rally 2.0** | UDP relay (20777) | SimHub + CrewChief | `extradata=3` |
 | **Euro Truck Simulator 2** | native Linux, `/dev/shm` | SimHub | installs the SCS plugin |
 | **BeamNG.drive** | native Linux, OutGauge UDP | SimHub | |
