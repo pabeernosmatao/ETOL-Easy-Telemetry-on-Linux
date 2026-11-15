@@ -404,6 +404,10 @@ pub fn start_app(cfg: &Config, kind: AppKind) -> Result<Launched> {
         bail!("no existe {}", wine.display());
     }
 
+    if kind == AppKind::CrewChief {
+        prepare_crewchief_audio(cfg, bottle);
+    }
+
     let exe_dir = exe
         .parent()
         .context("el ejecutable no tiene carpeta padre")?;
@@ -447,6 +451,55 @@ pub fn start_app(cfg: &Config, kind: AppKind) -> Result<Launched> {
         game: kind.tag().to_string(),
         mode: "app".to_string(),
     })
+}
+
+/// Deja CrewChief en WASAPI con un endpoint valido de Wine.
+///
+/// CrewChief guarda el ID del dispositivo en su `user.config`. Si esta en
+/// WASAPI pero el ID esta vacio, NAudio falla y no reproduce mensajes. El
+/// script lee el endpoint de `user.reg` y lo escribe antes de abrir la app.
+/// Nunca impide arrancar CrewChief: si falla, se registra y se sigue.
+fn prepare_crewchief_audio(cfg: &Config, bottle: &Path) {
+    let Some(app_dir) = cfg.app_dir() else {
+        return;
+    };
+    let script = app_dir.join("crewchief/configurar_audio_crewchief.py");
+    if !script.is_file() {
+        return;
+    }
+
+    let mut command = Command::new("python3");
+    command
+        .arg(&script)
+        .arg("--bottle")
+        .arg(bottle)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    clean_child_env(&mut command);
+
+    match command.output() {
+        Ok(output) if output.status.success() => {
+            let text = String::from_utf8_lossy(&output.stdout);
+            let text = text.trim().replace('\n', " · ");
+            if !text.is_empty() {
+                crate::logs::info("crewchief", text);
+            }
+        }
+        Ok(output) => {
+            let detail = String::from_utf8_lossy(&output.stderr);
+            crate::logs::warn(
+                "crewchief",
+                format!("audio no configurado: {}", detail.trim()),
+            );
+        }
+        Err(error) => {
+            crate::logs::warn(
+                "crewchief",
+                format!("no se pudo preparar el audio: {error}"),
+            );
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------

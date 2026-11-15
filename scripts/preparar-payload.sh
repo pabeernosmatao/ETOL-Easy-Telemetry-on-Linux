@@ -205,6 +205,13 @@ if [[ -f "$ROOT/vendor/rFactor2SharedMemoryMapPlugin64.LICENSE.txt" ]]; then
     "$DEST/bridge/rFactor2SharedMemoryMapPlugin64.LICENSE.txt"
 fi
 
+# CrewChief: deja WASAPI con el endpoint valido de Wine antes de abrirlo.
+if [[ -d "$ROOT/payload/crewchief" ]]; then
+  mkdir -p "$DEST/crewchief"
+  cp -a "$ROOT/payload/crewchief/." "$DEST/crewchief/"
+  echo "payload: ajuste de audio de CrewChief"
+fi
+
 # FFB-HUB (LMUFFB): instalador/actualizador que descarga el release oficial.
 if [[ -d "$ROOT/payload/ffbhub" ]]; then
   mkdir -p "$DEST/ffbhub"

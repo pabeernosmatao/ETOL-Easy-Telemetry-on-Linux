@@ -66,6 +66,17 @@ Assetto Corsa Competizione support, plus all the fixes from 0.3.23.
 - Common options apply to any GPU; gamescope-only switches are omitted in
   without-gamescope mode. HDR and Adaptive Sync stay enabled by default.
 
+## CrewChief audio
+
+- Before opening CrewChief, ETOL ensures **WASAPI** has a valid device.
+  CrewChief could keep an empty endpoint ID after switching from WaveOut, so
+  NAudio called `GetDevice("")` and message playback died while background
+  sounds fell back to WindowsMediaPlayer.
+- ETOL reads Wine's `ActiveMovie\devenum` keys from `user.reg` and writes the
+  **PulseAudio Output** endpoint into both message and background devices.
+  WaveOut configurations are left untouched; if no endpoint exists, ETOL
+  reverts WASAPI to WaveOut instead of leaving CrewChief silent.
+
 ## From 0.3.23
 
 - **HF8 USB access** card in Devices: serial group (`uucp`/`dialout`),
@@ -80,8 +91,8 @@ Assetto Corsa Competizione support, plus all the fixes from 0.3.23.
 
 | Asset | Size | SHA-256 |
 |---|---|---|
-| `ETOL-0.4.0-linux-x86_64-portable.AppImage` | 6.8 MB | `94f5205a1723952ea103d36fe1ff4e27cb2c4d2a93471412bcdf1e36cff8ea80` |
-| `ETOL-0.4.0-linux-x86_64-full.AppImage` | 112 MB | `81f82c3abf85288c6bc3c4a057fc4438a44967dfc6a89a7bbfdadbcba90e7dd7` |
+| `ETOL-0.4.0-linux-x86_64-portable.AppImage` | 6.8 MB | `d3517919e50be5bca82c84532977d2b2b69e2d65068192e1f6e7c9ad2d4b4cab` |
+| `ETOL-0.4.0-linux-x86_64-full.AppImage` | 112 MB | `4fedce3c9bc7833b9018595476f24572b916db093b401fce517645554156f082` |
 
 ## Install
 
