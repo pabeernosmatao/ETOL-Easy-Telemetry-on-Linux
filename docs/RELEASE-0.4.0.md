@@ -41,7 +41,10 @@ Assetto Corsa Competizione support, plus all the fixes from 0.3.23.
 - **Automatic mode** launches FFB-HUB with LMU or RaceRoom only when it is
   enabled in Applications **and** its per-game checkbox in Options is on.
 - Works with the shared memory that ETOL already mirrors for LMU and RaceRoom.
-  FFB-HUB is proprietary and is downloaded at runtime; it is not bundled.
+  The LMU receiver now also publishes the native `HoldEvent`/`DataEvent`, the
+  shared-memory lock and a valid app window, which FFB-HUB needs to consider
+  the simulator connected from the ETOL bottle.
+- FFB-HUB is proprietary and is downloaded at runtime; it is not bundled.
 
 ## From 0.3.23
 
@@ -57,8 +60,8 @@ Assetto Corsa Competizione support, plus all the fixes from 0.3.23.
 
 | Asset | Size | SHA-256 |
 |---|---|---|
-| `ETOL-0.4.0-linux-x86_64-portable.AppImage` | 6.8 MB | `c326351c4c88c3351bd4d3bba1abe6bef5f65f6967719570743b1079f510881e` |
-| `ETOL-0.4.0-linux-x86_64-full.AppImage` | 112 MB | `e985bb858396d0748a67a2372b224a9eda4c1dbc25c73d14a5e1032ac40b35aa` |
+| `ETOL-0.4.0-linux-x86_64-portable.AppImage` | 6.8 MB | `d2a21f599d83d6df207d7a78086dcae406aed000f75fe0c68f95c1191b90af45` |
+| `ETOL-0.4.0-linux-x86_64-full.AppImage` | 112 MB | `713a889f253fa97a18ae753ee80f74d859e3e9d15c3fbe53dc798003cb96d3ed` |
 
 ## Install
 
