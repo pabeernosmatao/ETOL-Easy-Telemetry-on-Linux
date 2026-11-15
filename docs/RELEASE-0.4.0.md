@@ -77,6 +77,14 @@ Assetto Corsa Competizione support, plus all the fixes from 0.3.23.
   WaveOut configurations are left untouched; if no endpoint exists, ETOL
   reverts WASAPI to WaveOut instead of leaving CrewChief silent.
 
+## CrewChief LMU telemetry
+
+- The LMU bridge now publishes `$LMU.3.8.*` with the buffer sizes CrewChief
+  reserves (`241680`, `75312`, `45272`, `10152`) and keeps the full LMU 3.8
+  buffers under `$rFactor2SMMP_*` for SimHub. This removes CrewChief's
+  `Destination array was not long enough` exception and restores its live
+  telemetry in LMU.
+
 ## From 0.3.23
 
 - **HF8 USB access** card in Devices: serial group (`uucp`/`dialout`),
@@ -91,8 +99,8 @@ Assetto Corsa Competizione support, plus all the fixes from 0.3.23.
 
 | Asset | Size | SHA-256 |
 |---|---|---|
-| `ETOL-0.4.0-linux-x86_64-portable.AppImage` | 6.8 MB | `d3517919e50be5bca82c84532977d2b2b69e2d65068192e1f6e7c9ad2d4b4cab` |
-| `ETOL-0.4.0-linux-x86_64-full.AppImage` | 112 MB | `4fedce3c9bc7833b9018595476f24572b916db093b401fce517645554156f082` |
+| `ETOL-0.4.0-linux-x86_64-portable.AppImage` | 6.8 MB | `08df1f45e30e040c0ea3a73d83f53de5f9f832730eb97607012d1f2519045b0a` |
+| `ETOL-0.4.0-linux-x86_64-full.AppImage` | 112 MB | `af6b72df53162f3750208c975dd06f62a3e23a3b0879efd1a4791a8685ec5740` |
 
 ## Install
 

@@ -64,23 +64,26 @@ static_assert(sizeof(PacketHeader) == 88, "cabecera UDP inesperada");
 struct SmmpSpec {
     const char* name;
     bool partial;
-    size_t fallbackSize;
-    // SimHub (RfactorReader.LMUManager) usa el lector rF2 legado de CrewChief,
-    // que abre los nombres $rFactor2SMMP_*. LMU publica ambos juegos de buffers
-    // con el mismo contenido; el receptor crea el alias para no duplicar UDP.
+    /// Tamano que reserva CrewChief para $LMU.3.8.* (menor que LMU 3.8).
+    size_t crewchiefSize;
+    // SimHub (RfactorReader.LMUManager) usa el lector rF2 legado, que abre los
+    // nombres $rFactor2SMMP_*. Se publica el buffer completo de LMU 3.8.
     const char* alias;
+    size_t simhubSize;
 };
 
-// Buffers que necesita CrewChief ($LMU.3.8...) y SimHub ($rFactor2SMMP_*).
-// Los tamanos son los que publica LMU 3.8; el emisor usa el tamano real del
-// mapping si esta disponible.
+// CrewChief dimensiona sus arrays con el layout LMU 3.8 que el conoce:
+// 241680/75312/45272/10152. LMU publica 4080/2512/3880/2136 bytes mas; si el
+// mapping de $LMU.3.8.* tiene el tamano grande, CrewChief falla con
+// "Destination array was not long enough" y no lee la telemetria.
+// SimHub sigue recibiendo el buffer completo bajo $rFactor2SMMP_*.
 const SmmpSpec kSmmpSpecs[] = {
-    {"$LMU.3.8.SMMP_Telemetry$", true, 245760, "$rFactor2SMMP_Telemetry$"},
-    {"$LMU.3.8.SMMP_Scoring$", true, 77824, "$rFactor2SMMP_Scoring$"},
-    {"$LMU.3.8.SMMP_Rules$", true, 49152, "$rFactor2SMMP_Rules$"},
-    {"$LMU.3.8.SMMP_Extended$", false, 12288, "$rFactor2SMMP_Extended$"},
-    {"$LMU.3.8.SMMP_ForceFeedback$", false, 4096, "$rFactor2SMMP_ForceFeedback$"},
-    {"$LMU.3.8.SMMP_Graphics$", false, 4096, "$rFactor2SMMP_Graphics$"},
+    {"$LMU.3.8.SMMP_Telemetry$", true, 241680, "$rFactor2SMMP_Telemetry$", 245760},
+    {"$LMU.3.8.SMMP_Scoring$", true, 75312, "$rFactor2SMMP_Scoring$", 77824},
+    {"$LMU.3.8.SMMP_Rules$", true, 45272, "$rFactor2SMMP_Rules$", 49152},
+    {"$LMU.3.8.SMMP_Extended$", false, 10152, "$rFactor2SMMP_Extended$", 12288},
+    {"$LMU.3.8.SMMP_ForceFeedback$", false, 4096, "$rFactor2SMMP_ForceFeedback$", 4096},
+    {"$LMU.3.8.SMMP_Graphics$", false, 4096, "$rFactor2SMMP_Graphics$", 4096},
 };
 
 uint64_t nowMs() {
@@ -154,6 +157,24 @@ struct WriteMapping {
 
     bool ensure(const char* name, size_t wanted) {
         if (handle && view && size >= wanted) return true;
+        close();
+        if (wanted == 0 || wanted > 16u * 1024u * 1024u) return false;
+        handle = CreateFileMappingA(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE,
+                                    0, static_cast<DWORD>(wanted), name);
+        if (!handle) return false;
+        view = static_cast<uint8_t*>(MapViewOfFile(handle, FILE_MAP_ALL_ACCESS, 0, 0, wanted));
+        if (!view) {
+            close();
+            return false;
+        }
+        size = wanted;
+        return true;
+    }
+
+    /// Como ensure, pero el mapping debe tener exactamente `wanted` bytes.
+    /// Los buffers de CrewChief y SimHub comparten contenido pero no tamano.
+    bool ensureExact(const char* name, size_t wanted) {
+        if (handle && view && size == wanted) return true;
         close();
         if (wanted == 0 || wanted > 16u * 1024u * 1024u) return false;
         handle = CreateFileMappingA(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE,
@@ -387,7 +408,7 @@ int runSender(const SenderOptions& opt) {
                     }
                     announced[spec.name] = true;
 
-                    size_t size = smmp[i].size ? smmp[i].size : spec.fallbackSize;
+                    size_t size = smmp[i].size ? smmp[i].size : spec.simhubSize;
                     if (size < 8) continue;
                     const uint32_t* srcHdr = reinterpret_cast<const uint32_t*>(smmp[i].view);
                     if (srcHdr[0] != srcHdr[1]) continue;
@@ -536,19 +557,19 @@ int runReceiver(const ReceiverOptions& opt) {
     }
     for (const SmmpSpec& spec : kSmmpSpecs) {
         WriteMapping& primary = smmpMappings[spec.name];
-        if (!primary.ensure(spec.name, spec.fallbackSize)) {
+        if (!primary.ensureExact(spec.name, spec.crewchiefSize)) {
             logLine("ERROR: no se pudo crear %s inicial: %lu", spec.name,
                     static_cast<unsigned long>(GetLastError()));
         } else {
-            stampInitialHeader(primary, spec.partial, spec.fallbackSize);
+            stampInitialHeader(primary, spec.partial, spec.crewchiefSize);
         }
         if (spec.alias && std::strcmp(spec.alias, spec.name) != 0) {
             WriteMapping& alias = smmpMappings[spec.alias];
-            if (!alias.ensure(spec.alias, spec.fallbackSize)) {
+            if (!alias.ensureExact(spec.alias, spec.simhubSize)) {
                 logLine("ERROR: no se pudo crear %s inicial: %lu", spec.alias,
                         static_cast<unsigned long>(GetLastError()));
             } else {
-                stampInitialHeader(alias, spec.partial, spec.fallbackSize);
+                stampInitialHeader(alias, spec.partial, spec.simhubSize);
             }
         }
     }
@@ -666,27 +687,29 @@ int runReceiver(const ReceiverOptions& opt) {
             }
             const bool partial = spec ? spec->partial : true;
 
-            auto publish = [&](const char* target) -> bool {
+            auto publish = [&](const char* target, size_t wanted) -> bool {
                 WriteMapping& wm = smmpMappings[target];
-                if (!wm.ensure(target, a.total)) {
+                if (!wm.ensureExact(target, wanted)) {
                     logLine("ERROR: no se pudo crear/mapear %s (%zu bytes): %lu",
-                            target, a.total,
+                            target, wanted,
                             static_cast<unsigned long>(GetLastError()));
                     return false;
                 }
+                const size_t copy = std::min(a.total, wm.size);
+                if (copy < 8) return false;
                 uint32_t v = ++wm.version;
                 if (v == 0) v = ++wm.version;
                 uint32_t* hdr = reinterpret_cast<uint32_t*>(wm.view);
                 hdr[0] = v;
                 hdr[1] = v - 1;
-                std::memcpy(wm.view + 8, a.data.data() + 8, a.total - 8);
+                std::memcpy(wm.view + 8, a.data.data() + 8, copy - 8);
                 hdr[1] = v;
                 return true;
             };
 
-            bool ok = publish(name.c_str());
+            bool ok = publish(name.c_str(), spec ? spec->crewchiefSize : a.total);
             if (ok && spec && spec->alias && name != spec->alias) {
-                ok = publish(spec->alias);
+                ok = publish(spec->alias, std::max(spec->simhubSize, a.total));
             }
             if (!ok) {
                 a.active = false;
@@ -695,8 +718,9 @@ int runReceiver(const ReceiverOptions& opt) {
             if (!announced[name]) {
                 announced[name] = true;
                 if (spec && spec->alias) {
-                    logLine("%s publicado (%zu bytes; alias %s).",
-                            name.c_str(), a.total, spec->alias);
+                    logLine("%s publicado (%zu bytes; alias %s %zu).",
+                            name.c_str(), spec->crewchiefSize, spec->alias,
+                            spec->simhubSize);
                 } else {
                     logLine("%s publicado (%zu bytes).", name.c_str(), a.total);
                 }

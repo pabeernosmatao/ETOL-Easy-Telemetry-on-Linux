@@ -43,6 +43,10 @@ ETOL detecta tus juegos, prepara SimHub (y CrewChief) y lo lanza todo con un cli
 
 *Pestaña Juegos: una ficha por simulador. BeamNG.drive (Linux) muestra su puente UDP y solo el botón de SimHub.*
 
+<img src="docs/capturas/aplicaciones.png" width="820" alt="Pestaña de aplicaciones de ETOL">
+
+*Pestaña Aplicaciones: SimHub, CrewChief y FFB-HUB, con su estado, la botella de ETOL y las rutas.*
+
 <img src="docs/capturas/opciones.png" width="820" alt="Pestaña de opciones de ETOL">
 
 *Opciones: idioma, vigilancia automática, apps por juego y dashboards sobre el juego.*

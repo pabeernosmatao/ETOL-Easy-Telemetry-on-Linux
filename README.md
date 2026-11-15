@@ -44,6 +44,10 @@ with one click.
 
 *Games tab: one card per simulator. BeamNG.drive (Linux) shows its UDP bridge and only the SimHub button.*
 
+<img src="docs/capturas/aplicaciones.png" width="820" alt="ETOL applications tab">
+
+*Applications: SimHub, CrewChief and FFB-HUB, with their status, the ETOL bottle and the paths.*
+
 <img src="docs/capturas/opciones.png" width="820" alt="ETOL options tab">
 
 *Options: language, automatic monitoring, per-game apps and dashboards over the game.*
