@@ -398,6 +398,12 @@ pub fn start_app(cfg: &Config, kind: AppKind) -> Result<Launched> {
         bail!("{} ya esta en marcha", kind.tag());
     }
 
+    // Wine 11 sustituye el descriptor HID del pedal por un mando SDL. Antes
+    // de abrir la utilidad se asegura el uso de hidraw en esa botella.
+    if kind == AppKind::DcPedals {
+        crate::dcpedals::ensure_for_launch(cfg)?;
+    }
+
     let bottle = cfg
         .apps
         .bottle

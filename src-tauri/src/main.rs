@@ -590,6 +590,22 @@ async fn install_dcpedals(update: bool) -> Result<DcPedalsInstall, String> {
                 exe
             ),
         );
+        // La utilidad necesita el HID real: se prepara WineBus al instalar,
+        // antes de que se abra por primera vez.
+        if let (Some(bottle), Some(wine)) = (cfg.apps.bottle.as_ref(), cfg.apps.wine.as_ref()) {
+            match etol::dcpedals::prepare_wine(bottle, wine) {
+                Ok(true) => logs::info(
+                    "dcpedals",
+                    "WineBus: SDL desactivado y hidraw preferido para el pedal",
+                ),
+                Ok(false) => {}
+                Err(error) => logs::warn(
+                    "dcpedals",
+                    format!("no se pudo preparar WineBus: {error:#}"),
+                ),
+            }
+        }
+
         Ok(DcPedalsInstall {
             version,
             exe,
@@ -680,7 +696,24 @@ async fn fix_usb_access() -> Result<String, String> {
 
 #[tauri::command]
 async fn fix_dcpedals_access() -> Result<String, String> {
-    blocking(|| etol::dcpedals::fix()).await
+    blocking(|| {
+        let mut text = etol::dcpedals::fix()?;
+        let cfg = Config::load()?;
+        let (Some(bottle), Some(wine)) = (cfg.apps.bottle.as_ref(), cfg.apps.wine.as_ref()) else {
+            return Ok(text);
+        };
+        match etol::dcpedals::prepare_wine(bottle, wine) {
+            Ok(true) => text.push_str(
+                "\nWine: SDL desactivado en la botella y HID real del pedal preferido.",
+            ),
+            Ok(false) => {}
+            Err(error) => {
+                text.push_str(&format!("\nAviso: no se pudo ajustar Wine: {error:#}"))
+            }
+        }
+        Ok(text)
+    })
+    .await
 }
 
 #[tauri::command]

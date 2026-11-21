@@ -21,6 +21,15 @@ app and a hardware access card.
   `pkexec` (the `70-` prefix runs before systemd's `uaccess` builtin). It only
   grants user access: **no report is written to the pedals**. If access remains
   denied, reconnect the USB cable.
+- ETOL also adjusts the Wine bottle used by the utilities:
+  `Enable SDL=0` and `EnableHidraw=0444:20DC` in
+  `HKLM\System\CurrentControlSet\Services\WineBus`. Wine 11 exposed the pedals
+  through its SDL backend, which replaces the real HID descriptor with a
+  generic empty joystick; with these values Wine uses `hidraw` and delivers the
+  pedal's 57-byte reports. It only affects that bottle (games use their own
+  prefix). The change is applied at install time and before launching the
+  utility; if SimHub/CrewChief are open, they must be closed once so Wine can
+  reload the setting.
 - The calibration utility is **manual only**; it is not started with games.
   The Diagnostics tab warns when the pedals are present but the udev rule or
   access is missing.
@@ -47,8 +56,8 @@ app and a hardware access card.
 
 | Asset | Size | SHA-256 |
 |---|---|---|
-| `ETOL-0.5.0-linux-x86_64-portable.AppImage` | 6.9 MB | `73275025e260e3eddc80ccebdc0cf1571e466078531021b0f5494c31b48c0378` |
-| `ETOL-0.5.0-linux-x86_64-full.AppImage` | 113 MB | `2124eb7a51e6b25d1eefc19f0af3fb39c879ea9b454a0a7809483d55a5c857d6` |
+| `ETOL-0.5.0-linux-x86_64-portable.AppImage` | 6.9 MB | `156417822c177b3edc4bf5fee028e242fb352eb774ebbc820bf3e550eb8ea604` |
+| `ETOL-0.5.0-linux-x86_64-full.AppImage` | 113 MB | `25dbc57e04074656d82d708213e5a8fceb3018f38806cd850c901c9ff02a4e92` |
 
 ## Install
 

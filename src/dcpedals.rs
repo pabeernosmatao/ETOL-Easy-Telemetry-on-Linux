@@ -8,17 +8,24 @@
 //! Este modulo solo lee sysfs y prepara permisos: nunca abre ni escribe en el
 //! dispositivo.
 
+use crate::config::Config;
 use anyhow::{bail, Context, Result};
 use serde::Serialize;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
+use std::time::Duration;
 
 /// Debe ir antes de `73-seat-late.rules`, que ejecuta el builtin `uaccess`.
 /// Un fichero `99-...` anade la etiqueta demasiado tarde y no crea la ACL.
 pub const RULE_PATH: &str = "/etc/udev/rules.d/70-etol-dcpedals.rules";
 pub const VENDOR_ID: u32 = 0x0444;
 pub const PRODUCT_ID: u32 = 0x20dc;
+
+/// Clave del servicio WineBus dentro del prefijo.
+const WINEBUS_KEY: &str = r"HKLM\System\CurrentControlSet\Services\WineBus";
+/// Entrada de `EnableHidraw` que fuerza el HID real del pedal.
+const HIDRAW_ENTRY: &str = "0444:20DC";
 
 #[derive(Debug, Clone, Serialize)]
 pub struct DcPedals {
@@ -180,6 +187,266 @@ fn command_exists(name: &str) -> bool {
         return false;
     };
     std::env::split_paths(&path).any(|dir| dir.join(name).is_file())
+}
+
+/// Prepara WineBus para que la utilidad reciba el HID real del pedal.
+///
+/// Wine 11 expone los mandos con su backend SDL, que **sustituye** el
+/// descriptor del dispositivo por un joystick generico. La utilidad abre el
+/// primer HID que coincide con el VID/PID y acaba leyendo un dispositivo sin
+/// datos: el indicador sale en rojo o los ejes no se mueven.
+///
+/// Con `Enable SDL = 0` y el VID:PID en `EnableHidraw`, Wine ignora el mando
+/// SDL y usa `hidraw`, entregando los informes reales (57 bytes, ID 0 + 56).
+/// Solo afecta a esa botella; los juegos usan su propio prefijo.
+///
+/// Devuelve `true` si ha cambiado algo: Wine solo aplica estos valores al
+/// arrancar el prefijo.
+pub fn prepare_wine(bottle: &Path, wine: &Path) -> Result<bool> {
+    let mut changed = false;
+
+    if !reg_dword_is(wine, bottle, "Enable SDL", 0)? {
+        reg(
+            wine,
+            bottle,
+            &[
+                "add",
+                WINEBUS_KEY,
+                "/v",
+                "Enable SDL",
+                "/t",
+                "REG_DWORD",
+                "/d",
+                "0",
+                "/f",
+            ],
+        )?;
+        changed = true;
+    }
+
+    let mut hidraw = reg_multisz(wine, bottle, "EnableHidraw")?;
+    if !hidraw
+        .iter()
+        .any(|entry| entry.eq_ignore_ascii_case(HIDRAW_ENTRY))
+    {
+        hidraw.push(HIDRAW_ENTRY.to_string());
+        // `reg.exe` separa las cadenas de REG_MULTI_SZ con la secuencia \0.
+        let data = hidraw.join("\\0");
+        reg(
+            wine,
+            bottle,
+            &[
+                "add",
+                WINEBUS_KEY,
+                "/v",
+                "EnableHidraw",
+                "/t",
+                "REG_MULTI_SZ",
+                "/d",
+                &data,
+                "/f",
+            ],
+        )?;
+        changed = true;
+    }
+
+    Ok(changed)
+}
+
+/// Garantiza el ajuste de Wine antes de lanzar la utilidad.
+///
+/// Si hay que cambiar algo y otro programa de la botella esta abierto, Wine
+/// no puede releer la configuracion: se avisa y no se cierra nada del usuario.
+/// Si no hay nada mas abierto, se reinicia el prefijo para aplicarlo.
+pub fn ensure_for_launch(cfg: &Config) -> Result<()> {
+    let (Some(bottle), Some(wine)) = (cfg.apps.bottle.as_ref(), cfg.apps.wine.as_ref()) else {
+        return Ok(());
+    };
+    let was_running = prefix_running(bottle);
+    let changed = prepare_wine(bottle, wine)?;
+    if changed {
+        crate::logs::info(
+            "dcpedals",
+            "WineBus: SDL desactivado y hidraw preferido para el pedal",
+        );
+    }
+
+    let others = [
+        ("SimHub", "SimHubWPF.exe"),
+        ("CrewChief", "CrewChiefV4.exe"),
+        ("FFB-HUB", "FFBHUB.exe"),
+    ];
+    let running: Vec<&str> = others
+        .iter()
+        .filter(|(_, needle)| !crate::state::running_windows_exe(needle).is_empty())
+        .map(|(name, _)| *name)
+        .collect();
+    if !running.is_empty() {
+        if changed {
+            bail!(
+                "Wine tiene que reiniciar la botella para aplicar el acceso HID del pedal. \
+                 Cierra {} y vuelve a abrir DC Pedals.",
+                running.join(" y ")
+            );
+        }
+        return Ok(());
+    }
+
+    // Sin otras apps, se reinicia el prefijo para que WineBus relea siempre la
+    // configuracion (tambien si el servidor venia de antes del ajuste). Si el
+    // prefijo estaba parado y no habia nada que cambiar, el servidor que acaba
+    // de arrancar ya leyo los valores correctos y no hace falta matarlo.
+    if (changed || was_running) && prefix_running(bottle) {
+        restart_prefix(bottle, wine);
+    }
+    Ok(())
+}
+
+/// Hay un `wineserver` vivo para este prefijo.
+fn prefix_running(bottle: &Path) -> bool {
+    let Ok(entries) = fs::read_dir("/proc") else {
+        return false;
+    };
+    let wanted = format!("WINEPREFIX={}", bottle.display());
+    for entry in entries.flatten() {
+        if !entry
+            .file_name()
+            .to_string_lossy()
+            .chars()
+            .all(|c| c.is_ascii_digit())
+        {
+            continue;
+        }
+        let Ok(exe) = fs::read_link(entry.path().join("exe")) else {
+            continue;
+        };
+        if exe.file_name().map(|name| name != "wineserver").unwrap_or(true) {
+            continue;
+        }
+        let Ok(env) = fs::read(entry.path().join("environ")) else {
+            continue;
+        };
+        if env
+            .split(|byte| *byte == 0)
+            .any(|value| value == wanted.as_bytes())
+        {
+            return true;
+        }
+    }
+    false
+}
+
+/// `wineserver -k` del prefijo. Best effort: si no existe, se sigue igual.
+fn restart_prefix(bottle: &Path, wine: &Path) {
+    let Some(server) = wine
+        .parent()
+        .map(|dir| dir.join("wineserver"))
+        .filter(|path| path.is_file())
+    else {
+        return;
+    };
+    let mut command = Command::new(server);
+    command
+        .arg("-k")
+        .env("WINEPREFIX", bottle)
+        .env("WINEDEBUG", "-all")
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
+    crate::launch::clean_child_env(&mut command);
+    let _ = command.status();
+    std::thread::sleep(Duration::from_millis(1200));
+}
+
+fn reg(wine: &Path, bottle: &Path, args: &[&str]) -> Result<String> {
+    let mut command = Command::new(wine);
+    command
+        .arg(r"C:\windows\system32\reg.exe")
+        .args(args)
+        .env("WINEPREFIX", bottle)
+        .env("WINEDEBUG", "-all")
+        .stdin(Stdio::null());
+    crate::launch::clean_child_env(&mut command);
+
+    let output = command
+        .output()
+        .with_context(|| format!("no se pudo ejecutar {} reg.exe", wine.display()))?;
+    if !output.status.success() {
+        let detail = String::from_utf8_lossy(&output.stderr);
+        bail!("reg.exe {} fallo: {}", args.first().copied().unwrap_or(""), detail.trim());
+    }
+    Ok(String::from_utf8_lossy(&output.stdout).to_string())
+}
+
+/// Consulta un valor. `None` si no existe o no se puede leer.
+fn reg_value(wine: &Path, bottle: &Path, name: &str) -> Result<Option<(String, String)>> {
+    let mut command = Command::new(wine);
+    command
+        .arg(r"C:\windows\system32\reg.exe")
+        .args(["query", WINEBUS_KEY, "/v", name])
+        .env("WINEPREFIX", bottle)
+        .env("WINEDEBUG", "-all")
+        .stdin(Stdio::null());
+    crate::launch::clean_child_env(&mut command);
+
+    let output = command
+        .output()
+        .with_context(|| format!("no se pudo ejecutar {} reg.exe", wine.display()))?;
+    if !output.status.success() {
+        return Ok(None);
+    }
+    let text = String::from_utf8_lossy(&output.stdout);
+    Ok(parse_reg_value(&text, name))
+}
+
+/// Formato de `reg query`: `    Nombre    REG_TIPO    datos`.
+fn parse_reg_value(text: &str, name: &str) -> Option<(String, String)> {
+    for line in text.lines() {
+        if !line.contains(name) {
+            continue;
+        }
+        let Some(pos) = line.find("REG_") else {
+            continue;
+        };
+        let rest = &line[pos + 4..];
+        let mut parts = rest.splitn(2, |c: char| c.is_whitespace());
+        let kind = parts.next()?.to_string();
+        let data = parts.next().unwrap_or("").trim().to_string();
+        return Some((kind, data));
+    }
+    None
+}
+
+fn reg_dword_is(wine: &Path, bottle: &Path, name: &str, expected: u32) -> Result<bool> {
+    let Some((kind, data)) = reg_value(wine, bottle, name)? else {
+        return Ok(false);
+    };
+    if !kind.eq_ignore_ascii_case("DWORD") {
+        return Ok(false);
+    }
+    let parsed = data
+        .trim_start_matches("0x")
+        .trim_start_matches("0X")
+        .trim_start_matches('0');
+    if parsed.is_empty() {
+        return Ok(expected == 0);
+    }
+    Ok(u32::from_str_radix(parsed, 16).ok() == Some(expected))
+}
+
+fn reg_multisz(wine: &Path, bottle: &Path, name: &str) -> Result<Vec<String>> {
+    let Some((kind, data)) = reg_value(wine, bottle, name)? else {
+        return Ok(Vec::new());
+    };
+    if !kind.eq_ignore_ascii_case("MULTI_SZ") {
+        return Ok(Vec::new());
+    }
+    Ok(data
+        .split("\\0")
+        .map(str::trim)
+        .filter(|entry| !entry.is_empty())
+        .map(ToOwned::to_owned)
+        .collect())
 }
 
 /// Script fijo, sin datos del usuario interpolados.

@@ -1092,6 +1092,16 @@ KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0444", ATTRS{idProduct
           "Después recargará las reglas udev. Se pedirá tu contraseña con pkexec. No se escribe nada en los pedales: solo se concede acceso al usuario.",
         ),
       )}</p>
+      <p>${esc(
+        t(
+          "Además, ETOL ajustará Wine en la botella de las utilidades para que la app reciba los informes reales del pedal. Wine 11 lo sustituía por un mando virtual SDL vacío; los juegos usan su propio prefijo y no se ven afectados.",
+        ),
+      )}</p>
+      <p class="option-help">${esc(
+        t(
+          "Si SimHub o CrewChief están abiertos, ciérralos una vez para que Wine aplique el cambio.",
+        ),
+      )}</p>
       <p class="option-help">${esc(
         t(
           "Si el acceso sigue denegado, desconecta y vuelve a conectar el USB de los pedales.",
