@@ -17,9 +17,10 @@ app and a hardware access card.
   shows its `/dev/hidraw*` node and the user's access, and explains the exact
   udev rule before applying it:
   `KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0444", ATTRS{idProduct}=="20dc", TAG+="uaccess"`.
-- The rule is written to `/etc/udev/rules.d/99-etol-dcpedals.rules` with
-  `pkexec`. It only grants user access: **no report is written to the pedals**.
-  If access remains denied, reconnect the USB cable.
+- The rule is written to `/etc/udev/rules.d/70-etol-dcpedals.rules` with
+  `pkexec` (the `70-` prefix runs before systemd's `uaccess` builtin). It only
+  grants user access: **no report is written to the pedals**. If access remains
+  denied, reconnect the USB cable.
 - The calibration utility is **manual only**; it is not started with games.
   The Diagnostics tab warns when the pedals are present but the udev rule or
   access is missing.
@@ -46,8 +47,8 @@ app and a hardware access card.
 
 | Asset | Size | SHA-256 |
 |---|---|---|
-| `ETOL-0.5.0-linux-x86_64-portable.AppImage` | 6.9 MB | `9ff61369d2e06c33c7b0bca825b8ebca6cadf8b0dc71454a3b229184878f232a` |
-| `ETOL-0.5.0-linux-x86_64-full.AppImage` | 113 MB | `70b23bb2263672a67e0733cef66c1b07d8c7bfc9f30590215de32945879534e3` |
+| `ETOL-0.5.0-linux-x86_64-portable.AppImage` | 6.9 MB | `73275025e260e3eddc80ccebdc0cf1571e466078531021b0f5494c31b48c0378` |
+| `ETOL-0.5.0-linux-x86_64-full.AppImage` | 113 MB | `2124eb7a51e6b25d1eefc19f0af3fb39c879ea9b454a0a7809483d55a5c857d6` |
 
 ## Install
 

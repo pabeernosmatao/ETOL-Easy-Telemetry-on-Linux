@@ -14,7 +14,9 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-pub const RULE_PATH: &str = "/etc/udev/rules.d/99-etol-dcpedals.rules";
+/// Debe ir antes de `73-seat-late.rules`, que ejecuta el builtin `uaccess`.
+/// Un fichero `99-...` anade la etiqueta demasiado tarde y no crea la ACL.
+pub const RULE_PATH: &str = "/etc/udev/rules.d/70-etol-dcpedals.rules";
 pub const VENDOR_ID: u32 = 0x0444;
 pub const PRODUCT_ID: u32 = 0x20dc;
 
@@ -183,7 +185,9 @@ fn command_exists(name: &str) -> bool {
 /// Script fijo, sin datos del usuario interpolados.
 const FIX_SCRIPT: &str = r#"set -eu
 mkdir -p /etc/udev/rules.d
-cat > /etc/udev/rules.d/99-etol-dcpedals.rules <<'EOF'
+# Limpia la version antigua (99-), que llegaba tarde al builtin uaccess.
+rm -f /etc/udev/rules.d/99-etol-dcpedals.rules
+cat > /etc/udev/rules.d/70-etol-dcpedals.rules <<'EOF'
 # ETOL: DC Simracing pedals (DC2/DC3) - acceso HID para Wine.
 KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0444", ATTRS{idProduct}=="20dc", TAG+="uaccess"
 EOF

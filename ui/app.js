@@ -1084,7 +1084,7 @@ function dcPedalsAccessDialog(after = null) {
           "Wine necesita permiso para abrir el dispositivo HID de los pedales (VID 0444, PID 20DC). ETOL creará esta regla udev:",
         ),
       )}</p>
-      <pre class="games-tip-code">${esc(`/etc/udev/rules.d/99-etol-dcpedals.rules
+      <pre class="games-tip-code">${esc(`/etc/udev/rules.d/70-etol-dcpedals.rules
 # ETOL: DC Simracing pedals (DC2/DC3) - acceso HID para Wine.
 KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0444", ATTRS{idProduct}=="20dc", TAG+="uaccess"`)}</pre>
       <p>${esc(
