@@ -96,17 +96,30 @@ dashboards and a polished hardware/UI experience.
 
 ## Requirements
 
+### Always required
+
 - Linux x86_64, glibc **2.39+** (portable) or **2.44+** (full).
 - `python3` and `curl`.
-- `bsdtar` (libarchive), `7z` or `unrar` to install the DC Pedals RAR.
 - Portable: `libwebkit2gtk-4.1` + `libgtk-3`.
-- `pkexec` and a polkit agent to apply the udev rules and the LAN-only firewall
-  button.
-- `hid-fanatecff` (packaged as **fanatec-dkms**) and the module loaded for the
-  Fanatec card. `ufw` or `firewalld` is only needed for the port 8888 button.
 - Steam with the games; Bottles with SimHub (ETOL can prepare both).
-- KDE Plasma for dashboards over the game.
-- A StatusNotifier host for the tray icon.
+
+### Only if you use that hardware or feature
+
+- **Fanatec CSL DD**: `hid-fanatecff` (packaged as **fanatec-dkms**) loaded and
+  `pkexec` for the write rule. ETOL runs normally without it; the Fanatec card
+  is simply unavailable.
+- **DC Pedals**: `bsdtar`/`7z`/`unrar` for the official RAR and `pkexec` for the
+  udev rule.
+- **HF8**: no extra packages; `pkexec` only for the optional USB access rule.
+- **Port 8888 / wifi dashboards**: `ufw` or `firewalld` only for the **Open port
+  8888** button.
+- **KDE Plasma** for dashboards over the game and a **StatusNotifier** host for
+  the tray icon. Without them ETOL works the same; only the overlay or tray icon
+  is missing.
+
+`pkexec` and a polkit agent are only used by the actions that change system
+permissions (udev rules and firewall). None of the optional items is needed to
+open ETOL, detect games or run the telemetry bridges.
 
 ## Assets
 

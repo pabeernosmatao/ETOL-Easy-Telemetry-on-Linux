@@ -151,20 +151,35 @@ Without FUSE2:
 
 ## Requirements
 
+### Always required
+
 - Linux x86_64 with **glibc 2.39 or newer**.
 - `python3` (the telemetry bridges) and `curl` (downloads the installers).
 - **Steam** with the games installed.
 - **Bottles** (Flatpak or native) with a bottle that has **SimHub**; CrewChief
   is optional. ETOL can install and prepare both (see above).
-- **KDE Plasma** for dashboards above the game.
-- `bsdtar` (libarchive), `7z` or `unrar` to install the DC Pedals RAR.
-- `hid-fanatecff` (packaged as **fanatec-dkms**) for the Fanatec card; the
-  driver must be loaded. Fanatec, DC Pedals and the HF8 are optional.
-- `pkexec` and a polkit agent for the udev rules and the LAN-only firewall
-  button. `ufw` or `firewalld` is only needed if you use the port 8888 button.
+
+### Only if you use that hardware or feature
+
+- **KDE Plasma** for dashboards above the game. Without it ETOL works the same;
+  you just do not get the overlay.
 - A desktop with **StatusNotifierItem** support for the tray icon (Plasma, a
   niri bar with a tray module, or GNOME with the AppIndicator extension).
   Without it ETOL works the same, only the tray icon is missing.
+- **HF8 pad**: no extra packages; ETOL detects it. `pkexec` is only needed for
+  the optional USB access rule.
+- **DC Pedals**: `bsdtar`/`7z`/`unrar` for the official RAR and `pkexec` for the
+  udev rule.
+- **Fanatec CSL DD**: the **`hid-fanatecff`** driver (packaged as
+  **fanatec-dkms**) must be loaded, and `pkexec` is used for the write rule.
+  Without the driver ETOL still runs normally; the Fanatec card is simply not
+  available.
+- **Port 8888 / wifi dashboards**: `ufw` or `firewalld` only for the
+  **Open port 8888** button.
+
+`pkexec` and a polkit agent are only used by the actions that change system
+permissions (udev rules and firewall). Nothing in this second list is needed to
+open ETOL, detect games or run the telemetry bridges.
 
 ## The window
 

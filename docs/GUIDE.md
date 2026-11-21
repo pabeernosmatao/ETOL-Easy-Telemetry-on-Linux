@@ -38,7 +38,18 @@ with one click. It never modifies your games.
 - **Steam** with the games installed.
 - **Bottles** with a bottle that has SimHub. If you do not have one, ETOL
   creates and prepares it for you.
-- Optional: the **HF8** pad and KDE Plasma for the dashboards above the game.
+- **Optional**: the HF8 pad, the DC2/DC3 pedals, the Fanatec CSL DD wheelbase and
+  KDE Plasma for the dashboards. None of this is needed to open ETOL.
+
+### Only if you use optional hardware or features
+
+- **Fanatec CSL DD**: the `hid-fanatecff` driver (packaged as `fanatec-dkms`)
+  must be loaded, and `pkexec` is used for the write rule. Without the driver
+  ETOL works the same and the Fanatec card is not available.
+- **DC Pedals**: `bsdtar`/`7z`/`unrar` for the official RAR and `pkexec` for the
+  udev rule.
+- **HF8**: no extra packages; `pkexec` only for the USB access rule.
+- **Port 8888**: `ufw` or `firewalld` only for the Open port button.
 
 ### Opening the AppImage
 

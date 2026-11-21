@@ -149,20 +149,35 @@ Sin FUSE2:
 
 ## Requisitos
 
+### Siempre necesarios
+
 - Linux x86_64 con **glibc 2.39 o superior**.
 - `python3` (los puentes de telemetría) y `curl` (descarga los instaladores).
 - **Steam** con los juegos instalados.
 - **Bottles** (Flatpak o nativo) con una botella que tenga **SimHub**; CrewChief
   es opcional. ETOL puede instalar y preparar ambos (ver arriba).
-- **KDE Plasma** si quieres los dashboards por encima del juego.
-- `bsdtar` (libarchive), `7z` o `unrar` para instalar el RAR de DC Pedals.
-- `hid-fanatecff` (empaquetado como **fanatec-dkms**) para la ficha Fanatec; el
-  driver debe estar cargado. Fanatec, DC Pedals y el HF8 son opcionales.
-- `pkexec` y un agente polkit para las reglas udev y el botón de firewall
-  LAN. `ufw` o `firewalld` solo hacen falta si usas el botón del puerto 8888.
+
+### Solo si usas ese hardware o función
+
+- **KDE Plasma** si quieres los dashboards por encima del juego. Sin él ETOL
+  funciona igual; simplemente no tienes el overlay.
 - Un escritorio con soporte de **StatusNotifierItem** para el icono de bandeja
   (Plasma, una barra de niri con módulo de bandeja, o GNOME con la extensión
   AppIndicator). Sin él ETOL funciona igual, solo falta el icono.
+- **Pad HF8**: no necesita paquetes extra; ETOL lo detecta. `pkexec` solo hace
+  falta para la regla opcional de acceso USB.
+- **DC Pedals**: `bsdtar`/`7z`/`unrar` para el RAR oficial y `pkexec` para la
+  regla udev.
+- **Fanatec CSL DD**: el driver **`hid-fanatecff`** (empaquetado como
+  **fanatec-dkms**) debe estar cargado, y `pkexec` se usa para la regla de
+  escritura. Sin el driver ETOL funciona igual; la ficha Fanatec simplemente no
+  está disponible.
+- **Puerto 8888 / dashboards por wifi**: `ufw` o `firewalld` solo para el botón
+  **Abrir puerto 8888**.
+
+`pkexec` y un agente polkit solo se usan en las acciones que cambian permisos
+del sistema (reglas udev y firewall). Nada de esta segunda lista hace falta para
+abrir ETOL, detectar juegos o ejecutar los puentes de telemetría.
 
 ## La ventana
 
