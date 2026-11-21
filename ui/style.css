@@ -1118,6 +1118,55 @@ h2 {
   font-family: var(--mono);
 }
 
+/* Perfiles por juego dentro de la ficha Fanatec. */
+.fanatec-game {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card-2);
+  margin-top: 10px;
+  padding: 0 12px;
+}
+
+.fanatec-game-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  cursor: pointer;
+  list-style: none;
+}
+
+.fanatec-game-head::-webkit-details-marker {
+  display: none;
+}
+
+.fanatec-game-name {
+  font-weight: 600;
+  margin-right: auto;
+}
+
+.fanatec-game .chevron {
+  color: var(--dim);
+  font-size: 18px;
+  line-height: 1;
+  transition: transform 0.15s ease;
+}
+
+.fanatec-game[open] .chevron {
+  transform: rotate(90deg);
+}
+
+.fanatec-game-body {
+  padding-bottom: 12px;
+}
+
+.fanatec-game-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
 .setting-value {
   margin-top: 3px;
   font-family: var(--mono);

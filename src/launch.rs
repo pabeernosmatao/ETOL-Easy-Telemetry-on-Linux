@@ -317,6 +317,21 @@ pub fn spawn(
         .get(game_id)
         .with_context(|| format!("el juego {game_id} no esta en la configuracion"))?;
 
+    // Perfil del volante para este juego, antes de que arranque el script.
+    if mode != Mode::Stop && cfg.apps.fanatec_enabled {
+        match crate::fanatec::apply_profile(cfg, game_id) {
+            Ok(applied) if applied > 0 => crate::logs::info(
+                "fanatec",
+                format!("perfil {game_id}: {applied} ajustes aplicados"),
+            ),
+            Ok(_) => {}
+            Err(error) => crate::logs::warn(
+                "fanatec",
+                format!("perfil {game_id}: {error:#}"),
+            ),
+        }
+    }
+
     let run_dir = if game.run_dir.as_os_str().is_empty() {
         cfg.bridge.run_base.join(format!("{game_id}_mirror"))
     } else {

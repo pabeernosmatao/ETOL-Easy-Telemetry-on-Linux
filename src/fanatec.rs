@@ -4,8 +4,10 @@
 //! (`/sys/class/ftec_tuning`). Esta ficha solo **lee** esos valores: no abre
 //! el HID ni escribe en el volante. El firmware queda fuera de ETOL.
 
+use crate::config::Config;
 use anyhow::{bail, Context, Result};
 use serde::Serialize;
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -39,6 +41,8 @@ pub struct Fanatec {
     pub range: Option<i64>,
     pub firmware: Option<String>,
     pub wheel_id: Option<String>,
+    /// Perfiles por juego cargados desde la configuracion.
+    pub profiles: BTreeMap<String, BTreeMap<String, i64>>,
     pub settings: Vec<Setting>,
     pub detail: Option<String>,
 }
@@ -163,6 +167,7 @@ pub fn inspect() -> Fanatec {
         range,
         firmware,
         wheel_id,
+        profiles: BTreeMap::new(),
         settings,
         detail,
     }
@@ -174,14 +179,7 @@ pub fn inspect() -> Fanatec {
 /// `FEI` redondean a pasos de 10).
 pub fn set(key: &str, value: i64) -> Result<i64> {
     let dir = tuning_node().context("no se detecto el menu de tuning del volante")?;
-    let attr = ATTRS
-        .iter()
-        .find(|attr| attr.key == key)
-        .with_context(|| format!("ajuste desconocido: {key}"))?;
-    if value < attr.min || value > attr.max {
-        bail!("valor fuera de rango ({}..{})", attr.min, attr.max);
-    }
-
+    let attr = checked(key, value)?;
     let path = dir.join(attr.key);
     if !path.is_file() {
         bail!("el volante no expone el ajuste {key}");
@@ -190,9 +188,104 @@ pub fn set(key: &str, value: i64) -> Result<i64> {
         bail!("sin permiso de escritura sobre los ajustes del volante; prepara el acceso desde ETOL");
     }
 
-    fs::write(&path, format!("{value}\n"))
-        .with_context(|| format!("no se pudo aplicar {key}"))?;
+    write_setting(&dir, attr.key, value)?;
     read_i64(&dir, attr.key).context("el driver no devolvio el valor aplicado")
+}
+
+/// Guarda un ajuste en el perfil de un juego.
+///
+/// Si el juego aun no tiene perfil, se copian primero los valores actuales del
+/// volante y despues se aplica el cambio, para que el perfil sea completo.
+pub fn set_profile(cfg: &mut Config, game: &str, key: &str, value: i64) -> Result<()> {
+    crate::detect::game_def(game).with_context(|| format!("juego desconocido: {game}"))?;
+    checked(key, value)?;
+    let profile = cfg
+        .fanatec
+        .profiles
+        .entry(game.to_string())
+        .or_insert_with(current_values);
+    profile.insert(key.to_string(), value);
+    Ok(())
+}
+
+/// Guarda en el perfil todos los valores que tiene ahora el volante.
+pub fn copy_profile(cfg: &mut Config, game: &str) -> Result<()> {
+    crate::detect::game_def(game).with_context(|| format!("juego desconocido: {game}"))?;
+    let values = current_values();
+    if values.is_empty() {
+        bail!("no se pudieron leer los ajustes del volante");
+    }
+    cfg.fanatec.profiles.insert(game.to_string(), values);
+    Ok(())
+}
+
+/// Aplica el perfil del juego al SET activo. Devuelve cuantos ajustes escribio.
+pub fn apply_profile(cfg: &Config, game: &str) -> Result<usize> {
+    if !cfg.apps.fanatec_enabled {
+        bail!("Fanatec esta desactivado");
+    }
+    let Some(profile) = cfg.fanatec.profiles.get(game) else {
+        return Ok(0);
+    };
+    if profile.is_empty() {
+        return Ok(0);
+    }
+
+    let dir = tuning_node().context("no se detecto el menu de tuning del volante")?;
+    if !has_write_access(&dir) {
+        bail!("sin permiso de escritura sobre los ajustes del volante");
+    }
+
+    let mut applied = 0;
+    for attr in ATTRS {
+        let Some(value) = profile.get(attr.key) else {
+            continue;
+        };
+        if *value < attr.min || *value > attr.max {
+            continue;
+        }
+        if !dir.join(attr.key).is_file() {
+            continue;
+        }
+        write_setting(&dir, attr.key, *value)?;
+        applied += 1;
+    }
+    Ok(applied)
+}
+
+fn checked(key: &str, value: i64) -> Result<&'static Attr> {
+    let attr = ATTRS
+        .iter()
+        .find(|attr| attr.key == key)
+        .with_context(|| format!("ajuste desconocido: {key}"))?;
+    if value < attr.min || value > attr.max {
+        bail!("valor fuera de rango ({}..{})", attr.min, attr.max);
+    }
+    Ok(attr)
+}
+
+fn write_setting(dir: &Path, key: &str, value: i64) -> Result<()> {
+    fs::write(dir.join(key), format!("{value}\n"))
+        .with_context(|| format!("no se pudo aplicar {key}"))
+}
+
+fn current_values() -> BTreeMap<String, i64> {
+    let Some(dir) = tuning_node() else {
+        return BTreeMap::new();
+    };
+    ATTRS
+        .iter()
+        .filter_map(|attr| read_i64(&dir, attr.key).map(|value| (attr.key.to_string(), value)))
+        .collect()
+}
+
+fn has_write_access(dir: &Path) -> bool {
+    ATTRS
+        .iter()
+        .map(|attr| dir.join(attr.key))
+        .find(|path| path.is_file())
+        .map(|path| can_write(&path))
+        .unwrap_or(false)
 }
 
 /// Crea la regla udev que da al usuario escritura sobre `ftec_tuning`.

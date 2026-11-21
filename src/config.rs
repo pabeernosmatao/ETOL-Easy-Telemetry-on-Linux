@@ -76,7 +76,16 @@ pub struct Config {
     pub daemon: Daemon,
     pub overlays: Overlays,
     pub ui: Ui,
+    pub fanatec: FanatecSettings,
     pub games: BTreeMap<String, Game>,
+}
+
+/// Perfiles del menu de tuning del volante, uno por juego.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
+pub struct FanatecSettings {
+    /// id del juego -> clave del ajuste (SEN, FF...) -> valor.
+    pub profiles: BTreeMap<String, BTreeMap<String, i64>>,
 }
 
 

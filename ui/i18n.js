@@ -343,6 +343,17 @@ const I18N = {
     "Actívalo para leer los ajustes del volante.": "Activa'l per llegir els ajustos del volant.",
     "Actívalo en Dispositivos → Fanatec CSL DD.": "Activa'l a Dispositius → Fanatec CSL DD.",
 
+    "Perfil": "Perfil",
+    "Sin perfil": "Sense perfil",
+    "Cargar en el volante": "Carrega al volant",
+    "Copiar del volante": "Copia del volant",
+    "Perfil guardado": "Perfil desat",
+    "Perfil copiado del volante": "Perfil copiat del volant",
+    "{0} ajustes cargados en el volante": "{0} ajustos carregats al volant",
+    "No hay perfil guardado para este juego.": "No hi ha cap perfil desat per a aquest joc.",
+    "Los ajustes se guardan por juego y se cargan al arrancar el juego.": "Els ajustos es desen per joc i es carreguen en arrencar el joc.",
+    "No hay juegos instalados; instala un juego para crear su perfil.": "No hi ha jocs instal·lats; instal·la un joc per crear-ne el perfil.",
+
   },
   en: {
     "Guía de uso": "User guide",
@@ -682,6 +693,17 @@ const I18N = {
     "Activar": "Enable",
     "Actívalo para leer los ajustes del volante.": "Enable it to read the wheel settings.",
     "Actívalo en Dispositivos → Fanatec CSL DD.": "Enable it in Devices → Fanatec CSL DD.",
+
+    "Perfil": "Profile",
+    "Sin perfil": "No profile",
+    "Cargar en el volante": "Load into wheel",
+    "Copiar del volante": "Copy from wheel",
+    "Perfil guardado": "Profile saved",
+    "Perfil copiado del volante": "Profile copied from the wheel",
+    "{0} ajustes cargados en el volante": "{0} settings loaded into the wheel",
+    "No hay perfil guardado para este juego.": "There is no saved profile for this game.",
+    "Los ajustes se guardan por juego y se cargan al arrancar el juego.": "Settings are saved per game and loaded when the game starts.",
+    "No hay juegos instalados; instala un juego para crear su perfil.": "No games are installed; install a game to create its profile.",
 
   },
 };

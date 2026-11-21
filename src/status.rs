@@ -397,7 +397,11 @@ pub fn snapshot(cfg: &Config) -> Snapshot {
         },
         usb,
         dcpedals: crate::dcpedals::inspect(),
-        fanatec: crate::fanatec::inspect(),
+        fanatec: {
+            let mut fanatec = crate::fanatec::inspect();
+            fanatec.profiles = cfg.fanatec.profiles.clone();
+            fanatec
+        },
         setup: SetupStatus {
             flatpak,
             bottle_ready,

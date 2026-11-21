@@ -36,11 +36,17 @@ app and a hardware access card.
 
 ## Fanatec CSL DD
 
-- **Applications → Fanatec CSL DD** is the native configuration card. It reads
-  the tuning menu exposed by the out-of-tree `hid-fanatecff` driver at
-  `/sys/class/ftec_tuning/<device>` (`SEN`, `FF`, `FEI`, `FOR`, `SPR`, `DPR`,
-  `NDP`, `NFR`, `NIN`, `INT`, `FFS`, `FUL`, `SHO`, `BLI`, `brF`, `ACP`, `DRI`
-  and `advanced_mode`) and shows sliders/switches for the active `SET`.
+- **Applications → Fanatec CSL DD** groups the tuning menu exposed by
+  `hid-fanatecff` (`SEN`, `FF`, `FEI`, `FOR`, `SPR`, `DPR`, `NDP`, `NFR`, `NIN`,
+  `INT`, `FFS`, `FUL`, `SHO`, `BLI`, `brF`, `ACP`, `DRI`, `advanced_mode`) in a
+  collapsible section per **installed game**. Each game has its own sliders;
+  changes are saved under `[fanatec.profiles.<game>]` in the configuration.
+- The game profile is applied to the active `SET` when ETOL launches the game
+  (and when the daemon starts the bridge), before the game script. **Load into
+  wheel** applies it immediately; **Copy from wheel** copies the current values
+  into that game's profile. A game without a profile shows the current wheel
+  values and is marked "No profile"; the first edit creates a complete profile
+  from the current values plus the change.
 - **Devices → Fanatec CSL DD** shows the hardware state (`/dev/hidraw*`, driver,
   active SET, range, firmware, access) and has an enable switch. Enabling it
   explains what will be prepared and asks for confirmation: ETOL installs
@@ -74,8 +80,8 @@ app and a hardware access card.
 
 | Asset | Size | SHA-256 |
 |---|---|---|
-| `ETOL-0.5.0-linux-x86_64-portable.AppImage` | 6.9 MB | `695d54c8ee82736daa32b69d38427582df16cd7da39e90cf6609a6d33f532373` |
-| `ETOL-0.5.0-linux-x86_64-full.AppImage` | 113 MB | `8eb86bcafb883899bb8ee9f44156e3ba1b5ee8be1bce3f853f770a2ed854221c` |
+| `ETOL-0.5.0-linux-x86_64-portable.AppImage` | 6.9 MB | `08223af0c99aa94f5aa9090b2d74355ec00adea13f7952d24eb33fe9083af1ca` |
+| `ETOL-0.5.0-linux-x86_64-full.AppImage` | 113 MB | `673817135eac162938ae50603af8f880231eb501f1c28be11e4b036f3de059c2` |
 
 ## Install
 

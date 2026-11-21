@@ -719,6 +719,43 @@ async fn fix_fanatec_access() -> Result<String, String> {
 }
 
 #[tauri::command]
+async fn set_fanatec_profile(game: String, key: String, value: i64) -> Result<(), String> {
+    blocking(move || {
+        let mut cfg = Config::load()?;
+        if !cfg.apps.fanatec_enabled {
+            bail!("Fanatec esta desactivado; activalo en Dispositivos");
+        }
+        etol::fanatec::set_profile(&mut cfg, &game, &key, value)?;
+        cfg.save()?;
+        Ok(())
+    })
+    .await
+}
+
+#[tauri::command]
+async fn copy_fanatec_profile(game: String) -> Result<(), String> {
+    blocking(move || {
+        let mut cfg = Config::load()?;
+        if !cfg.apps.fanatec_enabled {
+            bail!("Fanatec esta desactivado; activalo en Dispositivos");
+        }
+        etol::fanatec::copy_profile(&mut cfg, &game)?;
+        cfg.save()?;
+        Ok(())
+    })
+    .await
+}
+
+#[tauri::command]
+async fn apply_fanatec_profile(game: String) -> Result<usize, String> {
+    blocking(move || {
+        let cfg = Config::load()?;
+        etol::fanatec::apply_profile(&cfg, &game)
+    })
+    .await
+}
+
+#[tauri::command]
 async fn fix_dcpedals_access() -> Result<String, String> {
     blocking(|| {
         let mut text = etol::dcpedals::fix()?;
@@ -1948,6 +1985,9 @@ fn main() {
             fix_dcpedals_access,
             set_fanatec_setting,
             fix_fanatec_access,
+            set_fanatec_profile,
+            copy_fanatec_profile,
+            apply_fanatec_profile,
             env_preview,
             open_path,
             open_guide,

@@ -1202,16 +1202,17 @@ function renderFanatecStatus(fan, enabled) {
   translateDom(box);
 }
 
-function fanatecControl(setting, writable) {
+function fanatecControl(setting, writable, game = "") {
   const key = esc(setting.key);
   const name = esc(t(setting.label));
+  const gameAttr = game ? ` data-fanatec-game="${esc(game)}"` : "";
   const disabled = writable ? "" : " disabled";
   if (setting.kind === "toggle") {
-    return `<div class="setting" data-fanatec-setting="${key}">
+    return `<div class="setting" data-fanatec-setting="${key}"${gameAttr}>
       <div class="setting-head">
         <span class="setting-name">${name}</span>
         <label class="switch small">
-          <input type="checkbox" data-fanatec-key="${key}" data-fanatec-kind="toggle"${setting.value ? " checked" : ""}${disabled}>
+          <input type="checkbox" data-fanatec-key="${key}"${gameAttr} data-fanatec-kind="toggle"${setting.value ? " checked" : ""}${disabled}>
           <span class="switch-track"><span class="switch-thumb"></span></span>
         </label>
       </div>
@@ -1220,13 +1221,56 @@ function fanatecControl(setting, writable) {
   }
   const max = setting.max > 0 ? setting.max : 1080;
   const range = setting.max > 0 ? ` title="${setting.min}–${max}"` : "";
-  return `<div class="setting" data-fanatec-setting="${key}"${range}>
+  return `<div class="setting" data-fanatec-setting="${key}"${gameAttr}${range}>
     <div class="setting-head">
       <span class="setting-name">${name} <span class="setting-key">${key}</span></span>
       <span class="setting-value" data-fanatec-value>${esc(fanatecValue(setting))}</span>
     </div>
-    <input type="range" min="${setting.min}" max="${max}" step="${fanatecStep(setting.key)}" value="${setting.value}" data-fanatec-key="${key}" data-fanatec-kind="${esc(setting.kind)}"${disabled}>
+    <input type="range" min="${setting.min}" max="${max}" step="${fanatecStep(setting.key)}" value="${setting.value}" data-fanatec-key="${key}"${gameAttr} data-fanatec-kind="${esc(setting.kind)}"${disabled}>
   </div>`;
+}
+
+/** Perfil de un juego: desplegable con sus propios deslizables. */
+function fanatecGameSection(fan, game, writable) {
+  const profile = fan.profiles?.[game.id] ?? {};
+  const hasProfile = Object.keys(profile).length > 0;
+  const running = Boolean(game.bridge_running);
+  const tagText = running
+    ? t("En marcha")
+    : hasProfile
+      ? t("Perfil")
+      : t("Sin perfil");
+  const tagClass = running || hasProfile ? "ok" : "";
+  const canApply = writable && hasProfile;
+  const id = esc(game.id);
+  const controls = (fan.settings ?? [])
+    .map((setting) =>
+      fanatecControl(
+        { ...setting, value: profile[setting.key] ?? setting.value },
+        writable,
+        game.id,
+      ),
+    )
+    .join("");
+
+  return `<details class="fanatec-game" data-fanatec-game="${id}">
+    <summary class="fanatec-game-head">
+      <span class="fanatec-game-name">${esc(game.name)}</span>
+      <span class="tag ${tagClass}">${esc(tagText)}</span>
+      <span class="chevron" aria-hidden="true">›</span>
+    </summary>
+    <div class="fanatec-game-body">
+      <div class="settings-grid">${controls}</div>
+      <div class="fanatec-game-actions">
+        <button class="btn" data-fanatec-apply="${id}"${canApply ? "" : " disabled"}>
+          <span class="icon">⬇</span> ${esc(t("Cargar en el volante"))}
+        </button>
+        <button class="btn ghost" data-fanatec-copy="${id}">
+          <span class="icon">⧉</span> ${esc(t("Copiar del volante"))}
+        </button>
+      </div>
+    </div>
+  </details>`;
 }
 
 function renderFanatecConfig(fan, enabled) {
@@ -1262,7 +1306,7 @@ function renderFanatecConfig(fan, enabled) {
         : !ready
           ? t("El driver no expone el menú de tuning.")
           : writable
-            ? t("Los cambios se aplican al SET activo del volante.")
+            ? t("Los ajustes se guardan por juego y se cargan al arrancar el juego.")
             : t("Solo lectura: los ajustes se leen del volante. Cambia de SET en el propio volante.");
   }
   const access = $("#btn-fanatec-access");
@@ -1299,12 +1343,27 @@ function renderFanatecConfig(fan, enabled) {
         .map((item) => `<span>${esc(item)}</span>`)
         .join("")}</div>`
     : "";
-  const grid = (fan.settings ?? []).length
-    ? `<div class="settings-grid">${fan.settings
-        .map((setting) => fanatecControl(setting, writable))
-        .join("")}</div>`
-    : "";
-  box.innerHTML = header + grid;
+
+  const games = (state.snapshot?.games ?? []).filter((game) => game.installed);
+  const sections = games
+    .map((game) => fanatecGameSection(fan, game, writable))
+    .join("");
+  const empty = sections
+    ? ""
+    : `<p class="option-help">${esc(
+        t("No hay juegos instalados; instala un juego para crear su perfil."),
+      )}</p>`;
+
+  // Conserva que un juego estuviera desplegado tras guardar o refrescar.
+  const openGames = new Set(
+    [...box.querySelectorAll("details.fanatec-game[open]")].map(
+      (details) => details.dataset.fanatecGame,
+    ),
+  );
+  box.innerHTML = header + sections + empty;
+  box.querySelectorAll("details.fanatec-game").forEach((details) => {
+    if (openGames.has(details.dataset.fanatecGame)) details.open = true;
+  });
   translateDom(box);
 }
 
@@ -1332,19 +1391,63 @@ function bindFanatecControls() {
     const input = event.target.closest("[data-fanatec-key]");
     if (!input) return;
     const key = input.dataset.fanatecKey;
+    const game = input.dataset.fanatecGame;
     const value =
       input.type === "checkbox" ? (input.checked ? 1 : 0) : Number(input.value);
     input.disabled = true;
     try {
-      const applied = await call("set_fanatec_setting", { key, value });
-      const tile = input.closest("[data-fanatec-setting]");
-      const out = tile?.querySelector("[data-fanatec-value]");
-      if (out) out.textContent = fanatecFormat(input.dataset.fanatecKind, applied);
-      toast(t("Ajuste aplicado"), "ok");
+      if (game) {
+        await call("set_fanatec_profile", { game, key, value });
+        toast(t("Perfil guardado"), "ok");
+      } else {
+        const applied = await call("set_fanatec_setting", { key, value });
+        const tile = input.closest("[data-fanatec-setting]");
+        const out = tile?.querySelector("[data-fanatec-value]");
+        if (out) out.textContent = fanatecFormat(input.dataset.fanatecKind, applied);
+        toast(t("Ajuste aplicado"), "ok");
+      }
       await refreshStatus(true);
     } catch (error) {
       fail(error);
       await refreshStatus(true);
+    }
+  });
+
+  box.addEventListener("click", async (event) => {
+    const apply = event.target.closest("[data-fanatec-apply]");
+    if (apply) {
+      apply.disabled = true;
+      try {
+        const applied = await call("apply_fanatec_profile", {
+          game: apply.dataset.fanatecApply,
+        });
+        toast(
+          applied > 0
+            ? tf("{0} ajustes cargados en el volante", applied)
+            : t("No hay perfil guardado para este juego."),
+          "ok",
+        );
+        await refreshStatus(true);
+      } catch (error) {
+        fail(error);
+        apply.disabled = false;
+      }
+      return;
+    }
+
+    const copy = event.target.closest("[data-fanatec-copy]");
+    if (copy) {
+      copy.disabled = true;
+      try {
+        await call("copy_fanatec_profile", {
+          game: copy.dataset.fanatecCopy,
+        });
+        toast(t("Perfil copiado del volante"), "ok");
+        await refreshStatus(true);
+      } catch (error) {
+        fail(error);
+        copy.disabled = false;
+      }
     }
   });
 }
