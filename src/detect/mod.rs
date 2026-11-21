@@ -316,6 +316,8 @@ pub fn detect() -> Config {
         cfg.daemon = prev.daemon.clone();
         cfg.overlays = prev.overlays.clone();
         cfg.ui = prev.ui.clone();
+        // Los perfiles del volante no se pierden al redetectar.
+        cfg.fanatec = prev.fanatec.clone();
     }
     let _ = cfg.ensure_run_base();
     let steam_apps = steam::apps();
@@ -372,6 +374,7 @@ pub fn detect() -> Config {
                     }
                 }
             }
+            apps.fanatec_enabled = prev.apps.fanatec_enabled;
         }
         cfg.apps = apps;
     }
