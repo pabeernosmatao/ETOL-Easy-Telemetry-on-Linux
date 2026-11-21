@@ -1,7 +1,7 @@
 # ETOL 0.5.0
 
-DC Simracing pedals (DC2/DC3) support, with an optional official calibration
-app and a hardware access card.
+DC Simracing pedals (DC2/DC3), native Fanatec CSL DD configuration, LAN-only
+dashboards and a polished hardware/UI experience.
 
 ## DC Pedals
 
@@ -55,6 +55,7 @@ app and a hardware access card.
 - Enabling requires the out-of-tree `hid-fanatecff` driver (module
   `hid_fanatec`, packaged as `fanatec-dkms`); the popup warns when it is not
   detected. Without it the cards report that the tuning menu is not available.
+- The card shows the setting key next to each slider (`SEN`, `FF`, `FEI`...).
 - Writes go to the active SET only. Firmware updates are out of scope: ETOL
   does not install drivers or flash the wheel.
 
@@ -69,12 +70,29 @@ app and a hardware access card.
   active it only reports that the port is already open. It never enables
   Internet access.
 
+## Hardware and UI
+
+- Applications cards are collapsible and remember their state; FFB-HUB, DC
+  Pedals and Fanatec are independent cards. Devices cards are collapsible too,
+  with the same 14 px separation everywhere.
+- DC Pedals and Fanatec have enable switches. Enabling Fanatec explains the
+  udev write rule and the `hid-fanatecff`/`fanatec-dkms` requirement before
+  applying it with `pkexec`.
+- HF8 shows a **Ready** / **Check** / **Not detected** / **Disabled** tag, next
+  to its switch.
+- Hardware access and FFB-HUB/DC Pedals/Fanatec popups are translated into
+  Spanish, Catalan and English. App switches and profiles survive a re-detection
+  of the bottle or the games.
+
 ## Upgrading from 0.4.0
 
-- Existing games, bridges, FFB-HUB, SimHub, CrewChief and the HF8 configuration
-  are preserved.
+- Existing games, bridges, FFB-HUB, SimHub, CrewChief, HF8 configuration and
+  Fanatec profiles are preserved. The Fanatec switch and profiles are not lost
+  when ETOL re-detects the bottle or the installed games.
 - DC Pedals is optional and starts disabled. Install it from Applications and
   prepare the HID access from Devices.
+- Fanatec is optional and starts disabled. Enable it in Devices, authorise the
+  write rule and create a profile per game in Applications.
 
 ## Requirements
 
@@ -82,7 +100,10 @@ app and a hardware access card.
 - `python3` and `curl`.
 - `bsdtar` (libarchive), `7z` or `unrar` to install the DC Pedals RAR.
 - Portable: `libwebkit2gtk-4.1` + `libgtk-3`.
-- `pkexec` and a polkit agent to apply the udev rule.
+- `pkexec` and a polkit agent to apply the udev rules and the LAN-only firewall
+  button.
+- `hid-fanatecff` (packaged as **fanatec-dkms**) and the module loaded for the
+  Fanatec card. `ufw` or `firewalld` is only needed for the port 8888 button.
 - Steam with the games; Bottles with SimHub (ETOL can prepare both).
 - KDE Plasma for dashboards over the game.
 - A StatusNotifier host for the tray icon.
@@ -91,8 +112,8 @@ app and a hardware access card.
 
 | Asset | Size | SHA-256 |
 |---|---|---|
-| `ETOL-0.5.0-linux-x86_64-portable.AppImage` | 6.9 MB | `7963549aa1c6be7f87524d8254423d6743afe6aae81aeceeda1dcf6d31be1f08` |
-| `ETOL-0.5.0-linux-x86_64-full.AppImage` | 113 MB | `629f40744e3bb92545113c3e0c490498fc580574790e4f87f58811a4f2a00d1d` |
+| `ETOL-0.5.0-linux-x86_64-portable.AppImage` | 6.9 MB | `ccede473576439c08424d7050292efb42f6bbc0934cdefc8755914116c60449b` |
+| `ETOL-0.5.0-linux-x86_64-full.AppImage` | 113 MB | `9ba572ff22302b7e05f054c175c0b2217f293b80f29f8b3b960d549e5f331cb7` |
 
 ## Install
 

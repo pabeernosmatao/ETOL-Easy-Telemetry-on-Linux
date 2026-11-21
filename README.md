@@ -38,8 +38,14 @@ with one click.
 - **DC Pedals (DC2/DC3)** optional calibration app: detects the HID device,
   prepares the udev access rule and installs/launches the official DC Simracing
   utility in the ETOL bottle.
+- **Fanatec CSL DD** optional native configuration: reads and writes the tuning
+  menu exposed by `hid-fanatecff` (no Wine, no official app, no firmware) and
+  keeps a profile per installed game, loaded when the game starts.
+- **Dashboards over wifi**: port 8888 is only opened to your local network.
+  Diagnostics can check the port and apply the LAN-only rule with one click.
 - **SimHub dashboards over the game** on KDE/KWin, with or without Gamescope.
-- Interface in **Spanish, Catalan and English**.
+- Collapsible cards that remember their state; interface in **Spanish, Catalan
+  and English**.
 
 ## Screenshots
 
@@ -49,7 +55,11 @@ with one click.
 
 <img src="docs/capturas/aplicaciones.png" width="820" alt="ETOL applications tab">
 
-*Applications: SimHub, CrewChief and FFB-HUB, with their status, the ETOL bottle and the paths.*
+*Applications: SimHub and CrewChief, FFB-HUB, DC Pedals and the Fanatec CSL DD per-game profiles, with the ETOL bottle and paths.*
+
+<img src="docs/capturas/dispositivos.png" width="820" alt="ETOL devices tab">
+
+*Devices: USB access, DC Pedals, Fanatec CSL DD and HF8, with their switches and status tags.*
 
 <img src="docs/capturas/opciones.png" width="820" alt="ETOL options tab">
 
@@ -92,15 +102,21 @@ The two installers are interactive (they are Windows installers), so you click
 | Device | Type | Connection | What ETOL does |
 |---|---|---|---|
 | **HF8 / ForceFeel** | haptic pad | USB `04d8:ee96` | detects it, links its COM port inside the Bottles bottle and writes the Windows keys SimHub needs |
+| **DC Pedals (DC2/DC3)** | pedals | USB HID `0444:20DC` | installs the official DC Simracing calibration utility, prepares the udev rule and fixes Wine's HID path. The utility only writes to the pedals when you press **Send settings** |
+| **Fanatec CSL DD** | wheelbase | USB HID `0eb7:0020` | native tuning through `hid-fanatecff` (fanatec-dkms): per-game profiles, sliders in Applications and an enable switch in Devices. No firmware |
 
-Planned: support for **DC2/DC3 pedals** (not implemented yet).
+Other Fanatec wheelbases supported by `hid-fanatecff` use the same card. DC
+Pedals and Fanatec are optional and disabled until you enable them.
 
 ## How to use it
 
-1. **Detect.** ETOL finds Steam, Bottles, SimHub and the HF8 pad.
+1. **Detect.** ETOL finds Steam, Bottles, SimHub and the USB devices.
 2. **Configure.** Press the gear on each card (once per game).
 3. **Play.** Open the simulator and press **Launch**, or let the automatic
    watchdog do it when it sees the game.
+4. **Hardware (optional).** Enable DC Pedals and Fanatec in **Devices** and
+   prepare their access. For Fanatec, edit a profile per game in
+   **Applications → Fanatec CSL DD**; ETOL applies it when the game starts.
 
 ## Installation
 
@@ -142,7 +158,10 @@ Without FUSE2:
   is optional. ETOL can install and prepare both (see above).
 - **KDE Plasma** for dashboards above the game.
 - `bsdtar` (libarchive), `7z` or `unrar` to install the DC Pedals RAR.
-- The **HF8** pad and **DC Pedals** are optional.
+- `hid-fanatecff` (packaged as **fanatec-dkms**) for the Fanatec card; the
+  driver must be loaded. Fanatec, DC Pedals and the HF8 are optional.
+- `pkexec` and a polkit agent for the udev rules and the LAN-only firewall
+  button. `ufw` or `firewalld` is only needed if you use the port 8888 button.
 - A desktop with **StatusNotifierItem** support for the tray icon (Plasma, a
   niri bar with a tray module, or GNOME with the AppIndicator extension).
   Without it ETOL works the same, only the tray icon is missing.
@@ -151,9 +170,12 @@ Without FUSE2:
 
 - **Games**: one card per simulator with its status, app buttons and the
   configuration gear.
-- **Applications**: SimHub and CrewChief with their processes.
-- **Devices**: the HF8 pad and its COM link.
-- **Diagnostics**: checks with the exact fix next to them.
+- **Applications**: SimHub and CrewChief, FFB-HUB, DC Pedals and the Fanatec
+  CSL DD card with one collapsible section per installed game.
+- **Devices**: USB access, DC Pedals, Fanatec CSL DD and the HF8 pad, with their
+  switches and status tags.
+- **Diagnostics**: checks with the exact fix next to them, including the port
+  8888 check and the LAN-only **Open port 8888** button.
 - **Options**: language, automatic watchdog, dashboards, logs and USB.
 
 ## Desktop support

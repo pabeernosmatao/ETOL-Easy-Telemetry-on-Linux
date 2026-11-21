@@ -258,6 +258,7 @@
       <a href="#instalacion">Des de zero<span>Bottles, SimHub i CrewChief</span></a>
       <a href="#simuladores">Simuladors<span>Telemetria i apps</span></a>
       <a href="#escritorio">Escriptori<span>Què funciona a cada un</span></a>
+      <a href="#fanatec">Fanatec CSL DD<span>Configuració nativa</span></a>
       <a href="#hf8">Pad HF8<span>Maquinari opcional</span></a>
       <a href="#bandeja">Safata<span>Icona i menú</span></a>
       <a href="#logs">Logs<span>Diagnòstic i captura</span></a>
@@ -324,9 +325,9 @@
     <thead><tr><th>Pestanya</th><th>Per a què serveix</th></tr></thead>
     <tbody>
       <tr><td><strong>Jocs</strong></td><td>Una fitxa per simulador instal·lat: estat, port, prefix, botons de llançar/apps i l'engranatge de configuració.</td></tr>
-      <tr><td><strong>Aplicacions</strong></td><td>SimHub i CrewChief, la fitxa de FFB-HUB i la de DC Pedals (instal·lar, actualitzar, llançar i activar), l'ampolla triada i les rutes.</td></tr>
-      <tr><td><strong>Dispositius</strong></td><td>El pad HF8, els pedals DC2/DC3 (detecció HID i regla udev), el port COM i l'enllaç dins de l'ampolla.</td></tr>
-      <tr><td><strong>Diagnòstic</strong></td><td>Comprovacions amb l'arranjament exacte al costat: payload, permisos, scripts, ports, Python…</td></tr>
+      <tr><td><strong>Aplicacions</strong></td><td>SimHub i CrewChief, FFB-HUB, DC Pedals i la fitxa del Fanatec CSL DD amb un desplegable per joc instal·lat, l'ampolla triada i les rutes.</td></tr>
+      <tr><td><strong>Dispositius</strong></td><td>Accés USB, DC Pedals, Fanatec CSL DD (interruptor i regla udev) i el pad HF8, amb el seu estat, el port COM i l'enllaç dins de l'ampolla.</td></tr>
+      <tr><td><strong>Diagnòstic</strong></td><td>Comprovacions amb l'arranjament exacte al costat: payload, permisos, scripts, ports, Python… Inclou el port 8888 i el botó per obrir-lo només a la xarxa local.</td></tr>
       <tr><td><strong>Opcions</strong></td><td>Idioma, vigilància automàtica, apps per joc, dashboards, logs, USB i configuració de pantalles.</td></tr>
     </tbody>
   </table>
@@ -488,8 +489,47 @@
   de CrewChief. Es crea en arrencar; no cal executar res a mà.</p>
 </section>
 
+<section id="fanatec">
+  <h2><span class="num">08</span>Volant Fanatec CSL DD (opcional)</h2>
+  <p>ETOL pot llegir i ajustar el menú de tuning de les bases Fanatec
+  compatibles amb el controlador <code>hid-fanatecff</code> (paquet
+  <code>fanatec-dkms</code>). No fa servir Wine ni l'aplicació oficial i
+  <strong>no actualitza firmware</strong>.</p>
+
+  <h3>Activar-lo</h3>
+  <p>A <strong>Dispositius → Fanatec CSL DD</strong> prem l'interruptor. ETOL
+  explica què prepararà i demana confirmació: crea
+  <code>/etc/udev/rules.d/70-etol-fanatec.rules</code> amb <code>pkexec</code>
+  per donar-te permís d'escriptura sobre els ajustos del controlador. Sense
+  aquest permís la fitxa funciona en només lectura. Si el controlador no està
+  carregat, la fitxa ho indica; instal·la
+  <code>hid-fanatecff</code>/<code>fanatec-dkms</code> abans de fer-la servir.</p>
+
+  <h3>Perfils per joc</h3>
+  <p>A <strong>Aplicacions → Fanatec CSL DD</strong> cada joc instal·lat té el
+  seu propi desplegable amb els ajustos del SET actiu: <code>SEN</code>,
+  <code>FF</code>, <code>FEI</code>, <code>FOR</code>, <code>SPR</code>,
+  <code>DPR</code>, <code>NDP</code>, <code>NFR</code>, <code>NIN</code>,
+  <code>INT</code>, <code>FFS</code>, <code>FUL</code>, <code>SHO</code>,
+  <code>BLI</code>, <code>brF</code>, <code>ACP</code>, <code>DRI</code> i
+  <code>advanced_mode</code>. Els canvis es desen per joc a
+  <code>[fanatec.profiles.&lt;joc&gt;]</code>.</p>
+  <ul>
+    <li><strong>Carrega al volant</strong>: aplica el perfil ara.</li>
+    <li><strong>Copia del volant</strong>: desa els valors actuals al perfil del
+        joc.</li>
+    <li>Sense perfil, els lliscadors mostren els valors actuals i l'etiqueta
+        <strong>Sense perfil</strong>; el primer canvi crea un perfil complet.</li>
+    <li>En llançar el joc des d'ETOL (o en aixecar el pont la vigilància
+        automàtica), ETOL aplica el perfil abans de l'script del joc. S'aplica al
+        <strong>SET actiu</strong>; ETOL no canvia de SET ni toca el firmware.</li>
+  </ul>
+  <p class="small muted"><code>SLOT</code> i <code>RESET</code> no s'exposen des
+  d'ETOL.</p>
+</section>
+
 <section id="hf8">
-  <h2><span class="num">08</span>Pad HF8 (opcional)</h2>
+  <h2><span class="num">09</span>Pad HF8 (opcional)</h2>
   <p>L'HF8 (ForceFeel) és un pad hàptic USB. ETOL el detecta, enllaça el seu
   port COM dins de l'ampolla de Bottles i escriu les claus que necessita
   SimHub. No és obligatori: si no hi és, ETOL funciona igual i el diagnòstic
@@ -503,7 +543,7 @@
 </section>
 
 <section id="bandeja">
-  <h2><span class="num">09</span>La safata</h2>
+  <h2><span class="num">10</span>La safata</h2>
   <p>ETOL fa servir <strong>StatusNotifierItem</strong> (l'estàndard de safata de
   Linux), així que la icona la pinta el teu escriptori: Plasma de forma nativa,
   la barra de niri si té mòdul de safata, o GNOME amb l'extensió AppIndicator.</p>
@@ -519,7 +559,7 @@
 </section>
 
 <section id="logs">
-  <h2><span class="num">10</span>Logs i diagnòstic</h2>
+  <h2><span class="num">11</span>Logs i diagnòstic</h2>
   <p>A <strong>Diagnòstic</strong> tens les comprovacions amb l'arranjament al
   costat. A <strong>Opcions</strong> pots activar la captura de logs i triar
   quants dies conservar-los.</p>
@@ -531,13 +571,27 @@
     <li><code>run-AAAA-MM-DD/</code>: còpia dels logs del pont i de
         SimHub/CrewChief.</li>
   </ul>
+  <h3>Port 8888 i dashboards per wifi</h3>
+  <p>A <strong>Diagnòstic</strong> pots comprovar el port 8888 de SimHub. Si el
+  tallafocs el bloqueja, el resultat mostra la comanda exacta restringida a la
+  teva xarxa local i un botó <strong>Obre el port 8888</strong>:</p>
+  <ul>
+    <li>Detecta si fas servir <code>ufw</code> o <code>firewalld</code> i la
+        xarxa local (per exemple <code>192.168.1.0/24</code>).</li>
+    <li>Mostra la comanda i l'aplica amb <code>pkexec</code>.</li>
+    <li>Només obre el port a la LAN; mai a Internet.</li>
+    <li>Si no hi ha tallafocs actiu, avisa que el port ja està obert.</li>
+  </ul>
+  <p>Després d'aplicar-lo, torna a prémer <strong>Comprova 8888</strong> per
+  confirmar-ho.</p>
+
   <p>Si alguna cosa falla, el més útil és enviar la carpeta de logs completa. El
   script <code>recoger-logs.sh</code> del repositori l'empaqueta en un
   <code>.tar.gz</code>.</p>
 </section>
 
 <section id="problemas">
-  <h2><span class="num">11</span>Problemes freqüents</h2>
+  <h2><span class="num">12</span>Problemes freqüents</h2>
 
   <h3>No apareix cap simulador</h3>
   <p>Comprova que Steam els té instal·lats i prem <strong>Torna a detectar</strong>.
@@ -567,6 +621,21 @@
   <p>Aquesta funció és exclusiva de KDE Plasma (regla de KWin). A GNOME i niri
   no està disponible. A Plasma no cal gamescope: funciona amb o sense.</p>
 
+  <h3>Fanatec apareix en només lectura o no deixa editar</h3>
+  <p>Activa'l a Dispositius i autoritza la regla udev amb <code>pkexec</code>.
+  Si el controlador <code>hid-fanatecff</code>/<code>fanatec-dkms</code> no està
+  carregat, la fitxa no pot llegir el menú de tuning.</p>
+
+  <h3>El perfil de Fanatec no es carrega en arrencar el joc</h3>
+  <p>Comprova que el joc té perfil desat, que està actiu l'interruptor de Fanatec
+  i que llança el joc des d'ETOL (o amb la vigilància automàtica). El perfil
+  s'aplica al SET actiu del volant.</p>
+
+  <h3>El mòbil no arriba al port 8888</h3>
+  <p>Prem <strong>Obre el port 8888</strong> a Diagnòstic; la regla es limita a
+  la teva xarxa local. Si no hi ha tallafocs actiu, l'avís ho indica. Després
+  torna a comprovar el port.</p>
+
   <h3>Vull començar de zero</h3>
   <p>Tanca ETOL i esborra <code>~/.config/etol</code> (configuració i payload).
   Les ampolles de Bottles i els jocs no es toquen. En tornar a obrir, ETOL
@@ -574,7 +643,7 @@
 </section>
 
 <section id="archivos">
-  <h2><span class="num">12</span>On és cada cosa</h2>
+  <h2><span class="num">13</span>On és cada cosa</h2>
   <table>
     <thead><tr><th>Què</th><th>On</th></tr></thead>
     <tbody>
@@ -584,6 +653,8 @@
       <tr><td>Entorn generat</td><td><code>~/.config/etol/generated/entorno.sh</code></td></tr>
       <tr><td>Ampolles, runners i prefixos</td><td><code>~/.var/app/com.usebottles.bottles/</code></td></tr>
       <tr><td>Descàrregues d'instal·ladors</td><td><code>~/Descargas/ETOL/</code></td></tr>
+      <tr><td>Perfils Fanatec</td><td><code>~/.config/etol/config.toml</code> (<code>[fanatec.profiles.&lt;joc&gt;]</code>)</td></tr>
+      <tr><td>Regles udev de maquinari</td><td><code>/etc/udev/rules.d/70-etol-dcpedals.rules</code> i <code>70-etol-fanatec.rules</code></td></tr>
     </tbody>
   </table>
   <p class="small muted">ETOL no guarda res dins de la carpeta de Steam ni dels

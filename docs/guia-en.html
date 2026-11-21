@@ -257,6 +257,7 @@
       <a href="#instalacion">From scratch<span>Bottles, SimHub and CrewChief</span></a>
       <a href="#simuladores">Simulators<span>Telemetry and apps</span></a>
       <a href="#escritorio">Desktop<span>What works on each one</span></a>
+      <a href="#fanatec">Fanatec CSL DD<span>Native configuration</span></a>
       <a href="#hf8">HF8 pad<span>Optional hardware</span></a>
       <a href="#bandeja">Tray<span>Icon and menu</span></a>
       <a href="#logs">Logs<span>Diagnostics and capture</span></a>
@@ -324,9 +325,9 @@
     <thead><tr><th>Tab</th><th>What it is for</th></tr></thead>
     <tbody>
       <tr><td><strong>Games</strong></td><td>One card per installed simulator: state, port, prefix, launch/app buttons and the configuration gear.</td></tr>
-      <tr><td><strong>Applications</strong></td><td>SimHub and CrewChief, the FFB-HUB and DC Pedals cards (install, update, launch and enable), the selected bottle and the paths.</td></tr>
-      <tr><td><strong>Devices</strong></td><td>The HF8 pad, the DC2/DC3 pedals (HID detection and udev rule), the COM port and the link inside the bottle.</td></tr>
-      <tr><td><strong>Diagnostics</strong></td><td>Checks with the exact fix next to them: payload, permissions, scripts, ports, Python…</td></tr>
+      <tr><td><strong>Applications</strong></td><td>SimHub and CrewChief, FFB-HUB, DC Pedals and the Fanatec CSL DD card with one collapsible section per installed game, the selected bottle and the paths.</td></tr>
+      <tr><td><strong>Devices</strong></td><td>USB access, DC Pedals, Fanatec CSL DD (switch and udev rule) and the HF8 pad, with their state, COM port and the link inside the bottle.</td></tr>
+      <tr><td><strong>Diagnostics</strong></td><td>Checks with the exact fix next to them: payload, permissions, scripts, ports, Python… including port 8888 and the button to open it to the local network only.</td></tr>
       <tr><td><strong>Options</strong></td><td>Language, automatic watchdog, per-game apps, dashboards, logs, USB and display configuration.</td></tr>
     </tbody>
   </table>
@@ -488,8 +489,48 @@
   It is created on startup; nothing has to be run by hand.</p>
 </section>
 
+<section id="fanatec">
+  <h2><span class="num">08</span>Fanatec CSL DD (optional)</h2>
+  <p>ETOL can read and adjust the tuning menu of Fanatec wheelbases supported by
+  the <code>hid-fanatecff</code> driver (packaged as <code>fanatec-dkms</code>).
+  It does not use Wine or the official app, and <strong>does not update
+  firmware</strong>.</p>
+
+  <h3>Enabling it</h3>
+  <p>In <strong>Devices → Fanatec CSL DD</strong> turn the switch on. ETOL
+  explains what it will prepare and asks for confirmation: it creates
+  <code>/etc/udev/rules.d/70-etol-fanatec.rules</code> with <code>pkexec</code>
+  to give you write access to the driver settings. Without it the card is
+  read-only. If the driver is not loaded the card says so; install
+  <code>hid-fanatecff</code>/<code>fanatec-dkms</code> before using it.</p>
+
+  <h3>Per-game profiles</h3>
+  <p>In <strong>Applications → Fanatec CSL DD</strong> every installed game has
+  its own collapsible section with the active <code>SET</code> settings:
+  <code>SEN</code>, <code>FF</code>, <code>FEI</code>, <code>FOR</code>,
+  <code>SPR</code>, <code>DPR</code>, <code>NDP</code>, <code>NFR</code>,
+  <code>NIN</code>, <code>INT</code>, <code>FFS</code>, <code>FUL</code>,
+  <code>SHO</code>, <code>BLI</code>, <code>brF</code>, <code>ACP</code>,
+  <code>DRI</code> and <code>advanced_mode</code>. Changes are saved per game in
+  <code>[fanatec.profiles.&lt;game&gt;]</code>.</p>
+  <ul>
+    <li><strong>Load into wheel</strong>: applies the profile now.</li>
+    <li><strong>Copy from wheel</strong>: saves the current values into that
+        game's profile.</li>
+    <li>Without a profile the sliders show the current values and the
+        <strong>No profile</strong> tag; the first change creates a complete
+        profile.</li>
+    <li>When ETOL launches the game (or the watchdog starts the bridge), ETOL
+        applies the profile before the game script. It applies to the
+        <strong>active SET</strong>; ETOL does not change SET or touch
+        firmware.</li>
+  </ul>
+  <p class="small muted"><code>SLOT</code> and <code>RESET</code> are not
+  exposed by ETOL.</p>
+</section>
+
 <section id="hf8">
-  <h2><span class="num">08</span>HF8 pad (optional)</h2>
+  <h2><span class="num">09</span>HF8 pad (optional)</h2>
   <p>The HF8 (ForceFeel) is a USB haptic pad. ETOL detects it, links its COM
   port inside the Bottles bottle and writes the keys SimHub needs. It is not
   mandatory: without it ETOL works the same and the diagnostics only show a
@@ -503,7 +544,7 @@
 </section>
 
 <section id="bandeja">
-  <h2><span class="num">09</span>The tray</h2>
+  <h2><span class="num">10</span>The tray</h2>
   <p>ETOL uses <strong>StatusNotifierItem</strong> (the Linux tray standard), so
   the icon is drawn by your desktop: Plasma natively, the niri bar if it has a
   tray module, or GNOME with the AppIndicator extension.</p>
@@ -520,7 +561,7 @@
 </section>
 
 <section id="logs">
-  <h2><span class="num">10</span>Logs and diagnostics</h2>
+  <h2><span class="num">11</span>Logs and diagnostics</h2>
   <p>In <strong>Diagnostics</strong> you have the checks with the fix next to
   them. In <strong>Options</strong> you can enable log capture and choose how
   many days to keep.</p>
@@ -532,13 +573,26 @@
     <li><code>run-YYYY-MM-DD/</code>: copy of the bridge and SimHub/CrewChief
         logs.</li>
   </ul>
+  <h3>Port 8888 and wifi dashboards</h3>
+  <p>In <strong>Diagnostics</strong> you can check SimHub's port 8888. If the
+  firewall blocks it, the result shows the exact command restricted to your
+  local network and an <strong>Open port 8888</strong> button:</p>
+  <ul>
+    <li>It detects whether you use <code>ufw</code> or <code>firewalld</code> and
+        your local network (for example <code>192.168.1.0/24</code>).</li>
+    <li>It shows the command and applies it with <code>pkexec</code>.</li>
+    <li>It only opens the port to the LAN; never to the Internet.</li>
+    <li>If no firewall is active it tells you the port is already open.</li>
+  </ul>
+  <p>After applying it, press <strong>Check 8888</strong> again to confirm.</p>
+
   <p>If something fails, the most useful thing is to send the whole logs
   folder. The <code>recoger-logs.sh</code> script in the repository packs it
   into a <code>.tar.gz</code>.</p>
 </section>
 
 <section id="problemas">
-  <h2><span class="num">11</span>Common problems</h2>
+  <h2><span class="num">12</span>Common problems</h2>
 
   <h3>No simulator appears</h3>
   <p>Check that Steam has them installed and click <strong>Detect again</strong>.
@@ -570,6 +624,21 @@
   on GNOME or niri. On Plasma gamescope is not needed: it works with or without
   it.</p>
 
+  <h3>Fanatec is read-only and I cannot edit it</h3>
+  <p>Enable it in Devices and authorise the udev rule with <code>pkexec</code>.
+  If the <code>hid-fanatecff</code>/<code>fanatec-dkms</code> driver is not
+  loaded, the card cannot read the tuning menu.</p>
+
+  <h3>The Fanatec profile is not loaded when the game starts</h3>
+  <p>Check that the game has a saved profile, that the Fanatec switch is on and
+  that you launch the game from ETOL (or with the watchdog). The profile applies
+  to the wheel's active SET.</p>
+
+  <h3>My phone cannot reach port 8888</h3>
+  <p>Press <strong>Open port 8888</strong> in Diagnostics; the rule is restricted
+  to your local network. If no firewall is active the message says so. Then
+  check the port again.</p>
+
   <h3>I want to start over</h3>
   <p>Close ETOL and delete <code>~/.config/etol</code> (configuration and
   payload). Bottles bottles and games are not touched. On the next start ETOL
@@ -577,7 +646,7 @@
 </section>
 
 <section id="archivos">
-  <h2><span class="num">12</span>Where everything lives</h2>
+  <h2><span class="num">13</span>Where everything lives</h2>
   <table>
     <thead><tr><th>What</th><th>Where</th></tr></thead>
     <tbody>
@@ -587,6 +656,8 @@
       <tr><td>Generated environment</td><td><code>~/.config/etol/generated/entorno.sh</code></td></tr>
       <tr><td>Bottles, runners and prefixes</td><td><code>~/.var/app/com.usebottles.bottles/</code></td></tr>
       <tr><td>Installer downloads</td><td><code>~/Descargas/ETOL/</code></td></tr>
+      <tr><td>Fanatec profiles</td><td><code>~/.config/etol/config.toml</code> (<code>[fanatec.profiles.&lt;game&gt;]</code>)</td></tr>
+      <tr><td>Hardware udev rules</td><td><code>/etc/udev/rules.d/70-etol-dcpedals.rules</code> and <code>70-etol-fanatec.rules</code></td></tr>
     </tbody>
   </table>
   <p class="small muted">ETOL does not store anything inside the Steam folder
