@@ -81,9 +81,13 @@ function translateTextNode(node) {
   }
   const trimmed = original.trim();
   if (!trimmed) return;
+  // Las plantillas HTML parten las frases en varias lineas. La clave se busca
+  // con espacios normalizados para que las traducciones no dependan del
+  // sangrado del template.
+  const lookup = trimmed.replace(/\s+/g, " ");
   const translated =
-    state.lang === "es" ? trimmed : translateValue(trimmed);
-  if (translated === trimmed) {
+    state.lang === "es" ? trimmed : translateValue(lookup);
+  if (translated === lookup) {
     node.nodeValue = original;
     return;
   }
@@ -597,26 +601,39 @@ function renderDcPedals(apps) {
 /** Explica la descarga oficial antes de instalar DC Pedals. */
 function dcPedalsInstallDialog() {
   openModal({
-    title: "Instalar DC Pedals",
+    title: t("Instalar DC Pedals"),
     html: `
-      <p><strong>DC Pedals Calibration</strong> es la utilidad oficial de
-      DC Simracing para calibrar los pedales DC2/DC3. ETOL descargará el
-      paquete oficial (~0,9 MB, RAR) desde <code>dcsimracing.com</code>.</p>
+      <p>${esc(
+        t(
+          "DC Pedals Calibration es la utilidad oficial de DC Simracing para calibrar los pedales DC2/DC3. ETOL descargará el paquete oficial (~0,9 MB, RAR) desde dcsimracing.com.",
+        ),
+      )}</p>
       <ul>
-        <li>Se instala en <code>C:\\DC Pedals Calibration</code>, dentro de la
-          botella de ETOL. No se toca el juego ni su prefijo.</li>
-        <li>Solo se reemplazan el ejecutable y <code>mcHID.dll</code>; tus
-          presets <code>.txt</code> se conservan al actualizar.</li>
-        <li>Es software de DC Simracing: ETOL no lo redistribuye; se descarga
-          bajo su licencia.</li>
-        <li>Para que Wine vea el pedal, prepara el acceso HID en
-          <strong>Dispositivos → DC Pedals</strong>. La instalación no escribe
-          nada en los pedales.</li>
+        <li>${esc(
+          t(
+            "Se instala en C:\\DC Pedals Calibration, dentro de la botella de ETOL. No se toca el juego ni su prefijo.",
+          ),
+        )}</li>
+        <li>${esc(
+          t(
+            "Solo se reemplazan el ejecutable y mcHID.dll; tus presets .txt se conservan al actualizar.",
+          ),
+        )}</li>
+        <li>${esc(
+          t(
+            "Es software de DC Simracing: ETOL no lo redistribuye; se descarga bajo su licencia.",
+          ),
+        )}</li>
+        <li>${esc(
+          t(
+            "Para que Wine vea el pedal, prepara el acceso HID en Dispositivos → DC Pedals. La instalación no escribe nada en los pedales.",
+          ),
+        )}</li>
       </ul>`,
     actions: [
-      { label: "Cancelar", onClick: () => $("#modal").close() },
+      { label: t("Cancelar"), onClick: () => $("#modal").close() },
       {
-        label: "Instalar ahora",
+        label: t("Instalar ahora"),
         primary: true,
         onClick: () => {
           $("#modal").close();
@@ -1053,31 +1070,40 @@ function renderDcPedalsHardware(snapshot) {
 /** Explica exactamente que regla udev se va a crear. */
 function dcPedalsAccessDialog(after = null) {
   const extra = after
-    ? `<p class="option-help">Si prefieres no crearla ahora, puedes abrir la
-       utilidad igualmente; no vera el pedal hasta que el acceso este
-       preparado.</p>`
+    ? `<p class="option-help">${esc(
+        t(
+          "Si prefieres no crearla ahora, puedes abrir la utilidad igualmente; no verá el pedal hasta que el acceso esté preparado.",
+        ),
+      )}</p>`
     : "";
   openModal({
-    title: "Preparar acceso HID de DC Pedals",
+    title: t("Preparar acceso HID de DC Pedals"),
     html: `
-      <p>Wine necesita permiso para abrir el dispositivo HID de los pedales
-      (VID <code>0444</code>, PID <code>20DC</code>). ETOL creará esta regla
-      udev:</p>
+      <p>${esc(
+        t(
+          "Wine necesita permiso para abrir el dispositivo HID de los pedales (VID 0444, PID 20DC). ETOL creará esta regla udev:",
+        ),
+      )}</p>
       <pre class="games-tip-code">${esc(`/etc/udev/rules.d/99-etol-dcpedals.rules
 # ETOL: DC Simracing pedals (DC2/DC3) - acceso HID para Wine.
 KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0444", ATTRS{idProduct}=="20dc", TAG+="uaccess"`)}</pre>
-      <p>Después recargará las reglas udev. Se pedirá tu contraseña con
-      <code>pkexec</code>. <strong>No se escribe nada en los pedales</strong>:
-      solo se concede acceso al usuario.</p>
-      <p class="option-help">Si el acceso sigue denegado, desconecta y vuelve a
-      conectar el USB de los pedales.</p>
+      <p>${esc(
+        t(
+          "Después recargará las reglas udev. Se pedirá tu contraseña con pkexec. No se escribe nada en los pedales: solo se concede acceso al usuario.",
+        ),
+      )}</p>
+      <p class="option-help">${esc(
+        t(
+          "Si el acceso sigue denegado, desconecta y vuelve a conectar el USB de los pedales.",
+        ),
+      )}</p>
       ${extra}`,
     actions: [
-      { label: "Cancelar", onClick: () => $("#modal").close() },
+      { label: t("Cancelar"), onClick: () => $("#modal").close() },
       ...(after
         ? [
             {
-              label: "Abrir sin acceso",
+              label: t("Abrir sin acceso"),
               onClick: () => {
                 $("#modal").close();
                 after();
@@ -1086,7 +1112,7 @@ KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0444", ATTRS{idProduct
           ]
         : []),
       {
-        label: "Preparar acceso",
+        label: t("Preparar acceso"),
         primary: true,
         onClick: () => {
           $("#modal").close();
@@ -1877,30 +1903,34 @@ async function setFfbHubEnabled(enabled) {
 
 function ffbHubInstallDialog() {
   openModal({
-    title: "Instalar FFB-HUB",
+    title: t("Instalar FFB-HUB"),
     html: `
-      <p><strong>FFB-HUB</strong> (antes LMUFFB) genera la fuerza de dirección a
-      partir de la telemetría de <strong>Le Mans Ultimate</strong> y
-      <strong>RaceRoom</strong>. Sustituye el FFB del juego por uno más
-      informativo: subviraje, bloqueo de ruedas, derrapes y carga de dirección.</p>
-      <p>ETOL descargará el último release oficial y lo instalará en su propia
-      botella (<code>C:\\FFBHUB</code>), no en el prefijo del juego. Se actualiza
-      desde esta misma ficha.</p>
+      <p>${esc(
+        t(
+          "FFB-HUB (antes LMUFFB) genera la fuerza de dirección a partir de la telemetría de Le Mans Ultimate y RaceRoom. Sustituye el FFB del juego por uno más informativo: subviraje, bloqueo de ruedas, derrapes y carga de dirección.",
+        ),
+      )}</p>
+      <p>${esc(
+        t(
+          "ETOL descargará el último release oficial y lo instalará en su propia botella (C:\\FFBHUB), no en el prefijo del juego. Se actualiza desde esta misma ficha.",
+        ),
+      )}</p>
       <ul>
-        <li>Descarga de unos 2 MB desde el repositorio de coasting-nc.</li>
-        <li>Selecciona tu volante en <em>FFB Device</em> y el juego (LMU o RaceRoom).</li>
-        <li>En LMU, desactiva <em>Use Constant Steering Force Effect</em> y pon
-          <em>FFB Strength</em> al 100 %.</li>
-        <li>En RaceRoom, desactiva el FFB del juego.</li>
-        <li>Usa el juego en modo <em>Borderless</em> o VR.</li>
+        <li>${esc(t("Descarga de unos 2 MB desde el repositorio de coasting-nc."))}</li>
+        <li>${esc(t("Selecciona tu volante en FFB Device y el juego (LMU o RaceRoom)."))}</li>
+        <li>${esc(t("En LMU, desactiva Use Constant Steering Force Effect y pon FFB Strength al 100 %."))}</li>
+        <li>${esc(t("En RaceRoom, desactiva el FFB del juego."))}</li>
+        <li>${esc(t("Usa el juego en modo Borderless o VR."))}</li>
       </ul>
-      <p class="option-help">El programa es propietario y se descarga bajo su
-      propia licencia; ETOL no lo redistribuye. Puedes desactivarlo cuando
-      quieras con el interruptor de la ficha.</p>`,
+      <p class="option-help">${esc(
+        t(
+          "El programa es propietario y se descarga bajo su propia licencia; ETOL no lo redistribuye. Puedes desactivarlo cuando quieras con el interruptor de la ficha.",
+        ),
+      )}</p>`,
     actions: [
-      { label: "Cancelar", onClick: () => $("#modal").close() },
+      { label: t("Cancelar"), onClick: () => $("#modal").close() },
       {
-        label: "Instalar ahora",
+        label: t("Instalar ahora"),
         primary: true,
         onClick: () => {
           $("#modal").close();
