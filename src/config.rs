@@ -437,7 +437,13 @@ impl Config {
                 if let Some(name) = &apps.bottle_name {
                     eprintln!("etol: la botella configurada ya no existe; re-detectada {name}");
                 }
+                let ffbhub_enabled = self.apps.ffbhub_enabled;
+                let dcpedals_enabled = self.apps.dcpedals_enabled;
+                let fanatec_enabled = self.apps.fanatec_enabled;
                 self.apps = apps;
+                self.apps.ffbhub_enabled = ffbhub_enabled;
+                self.apps.dcpedals_enabled = dcpedals_enabled;
+                self.apps.fanatec_enabled = fanatec_enabled;
                 changed = true;
             }
         }
