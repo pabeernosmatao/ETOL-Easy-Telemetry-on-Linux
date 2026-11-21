@@ -1070,11 +1070,19 @@ function renderDcPedalsHardware(snapshot) {
 
 /* ------------------------------------------------------ Fanatec (nativo) */
 
+function fanatecFormat(kind, value) {
+  if (kind === "toggle") return value ? t("Sí") : t("No");
+  if (kind === "degrees") return `${value}°`;
+  if (kind === "percent") return `${value} %`;
+  return `${value}`;
+}
+
 function fanatecValue(setting) {
-  if (setting.kind === "toggle") return setting.value ? t("Sí") : t("No");
-  if (setting.kind === "degrees") return `${setting.value}°`;
-  if (setting.kind === "percent") return `${setting.value} %`;
-  return `${setting.value}`;
+  return fanatecFormat(setting.kind, setting.value);
+}
+
+function fanatecStep(key) {
+  return ["SEN", "brF", "FEI"].includes(key) ? 10 : 1;
 }
 
 function fanatecRow(ok, label, value, title = "") {
@@ -1088,15 +1096,21 @@ function fanatecRow(ok, label, value, title = "") {
 }
 
 /**
- * Ficha de solo lectura del menu de tuning del CSL DD.
+ * Pinta el estado (Dispositivos) y la configuracion (Aplicaciones) del CSL DD.
  *
  * Los valores vienen del driver hid-fanatecff por sysfs y corresponden al SET
- * activo en el propio volante. No se escribe nada desde aqui.
+ * activo en el propio volante.
  */
 function renderFanatec(snapshot) {
   const fan = snapshot?.fanatec;
+  if (!fan) return;
+  renderFanatecStatus(fan);
+  renderFanatecConfig(fan);
+}
+
+function renderFanatecStatus(fan) {
   const box = $("#fanatec");
-  if (!fan || !box) return;
+  if (!box) return;
 
   const present = Boolean(fan.present);
   const ready = present && Boolean(fan.tuning);
@@ -1136,6 +1150,9 @@ function renderFanatec(snapshot) {
       ),
     );
   }
+  if (fan.range != null) rows.push(fanatecRow(true, t("Rango"), `${fan.range}°`));
+  if (fan.firmware) rows.push(fanatecRow(true, t("Firmware"), fan.firmware));
+  if (fan.wheel_id) rows.push(fanatecRow(true, t("Wheel ID"), fan.wheel_id));
   rows.push(
     fanatecRow(
       Boolean(fan.writable),
@@ -1147,21 +1164,182 @@ function renderFanatec(snapshot) {
     rows.push(fanatecRow(false, t("Estado"), t(fan.detail)));
   }
 
-  const grid = fan.settings?.length
-    ? `<div class="settings-grid">${fan.settings
-        .map((setting) => {
-          const range =
-            setting.max > 0 ? ` title="${setting.min}–${setting.max}"` : "";
-          return `<div class="setting${setting.kind === "toggle" ? " toggle" : ""}"${range}>
-            <div class="setting-name">${esc(t(setting.label))}</div>
-            <div class="setting-value">${esc(fanatecValue(setting))}</div>
-          </div>`;
-        })
+  box.innerHTML = rows.join("");
+  translateDom(box);
+}
+
+function fanatecControl(setting, writable) {
+  const key = esc(setting.key);
+  const label = esc(t(setting.label));
+  const disabled = writable ? "" : " disabled";
+  if (setting.kind === "toggle") {
+    return `<div class="setting" data-fanatec-setting="${key}">
+      <div class="setting-head">
+        <span class="setting-name">${label}</span>
+        <label class="switch small">
+          <input type="checkbox" data-fanatec-key="${key}" data-fanatec-kind="toggle"${setting.value ? " checked" : ""}${disabled}>
+          <span class="switch-track"><span class="switch-thumb"></span></span>
+        </label>
+      </div>
+      <div class="setting-value" data-fanatec-value>${esc(fanatecValue(setting))}</div>
+    </div>`;
+  }
+  const max = setting.max > 0 ? setting.max : 1080;
+  const range = setting.max > 0 ? ` title="${setting.min}–${max}"` : "";
+  return `<div class="setting" data-fanatec-setting="${key}"${range}>
+    <div class="setting-head">
+      <span class="setting-name">${label}</span>
+      <span class="setting-value" data-fanatec-value>${esc(fanatecValue(setting))}</span>
+    </div>
+    <input type="range" min="${setting.min}" max="${max}" step="${fanatecStep(setting.key)}" value="${setting.value}" data-fanatec-key="${key}" data-fanatec-kind="${esc(setting.kind)}"${disabled}>
+  </div>`;
+}
+
+function renderFanatecConfig(fan) {
+  const box = $("#fanatec-config");
+  if (!box) return;
+
+  const present = Boolean(fan.present);
+  const ready = present && Boolean(fan.tuning);
+  const writable = Boolean(fan.writable);
+  const tag = $("#fanatec-config-tag");
+  if (tag) {
+    tag.textContent = !present
+      ? t("No detectado")
+      : !ready
+        ? t("Sin driver")
+        : writable
+          ? t("Editable")
+          : t("Solo lectura");
+    tag.className = `tag ${ready ? (writable ? "ok" : "warn") : "warn"}`;
+  }
+
+  const title = document.querySelector("#fanatec-config-details h2");
+  if (title) title.textContent = fan.model ? `Fanatec ${fan.model}` : "Fanatec";
+
+  const note = $("#fanatec-config-note");
+  if (note) {
+    note.textContent = !present
+      ? t("Conecta la base Fanatec por USB.")
+      : !ready
+        ? t("El driver no expone el menú de tuning.")
+        : writable
+          ? t("Los cambios se aplican al SET activo del volante.")
+          : t("Solo lectura: los ajustes se leen del volante. Cambia de SET en el propio volante.");
+  }
+  const access = $("#btn-fanatec-access");
+  if (access) access.hidden = !present || !ready || writable;
+
+  if (!present || !ready) {
+    box.innerHTML = fanatecRow(
+      false,
+      t("Estado"),
+      !present
+        ? t("Conecta la base Fanatec por USB.")
+        : t("El driver no expone el menú de tuning."),
+    );
+    translateDom(box);
+    return;
+  }
+
+  const meta = [];
+  if (fan.slot_label) meta.push(`${t("SET activo")}: ${fan.slot_label}`);
+  if (fan.range != null) meta.push(`${t("Rango")}: ${fan.range}°`);
+  if (fan.firmware) meta.push(`${t("Firmware")}: ${fan.firmware}`);
+  const header = meta.length
+    ? `<div class="fanatec-meta">${meta
+        .map((item) => `<span>${esc(item)}</span>`)
         .join("")}</div>`
     : "";
-
-  box.innerHTML = rows.join("") + grid;
+  const grid = (fan.settings ?? []).length
+    ? `<div class="settings-grid">${fan.settings
+        .map((setting) => fanatecControl(setting, writable))
+        .join("")}</div>`
+    : "";
+  box.innerHTML = header + grid;
   translateDom(box);
+}
+
+/** Escritura de ajustes: delegacion para sobrevivir a los refrescos. */
+function bindFanatecControls() {
+  const box = $("#fanatec-config");
+  if (!box || box.dataset.bound === "1") return;
+  box.dataset.bound = "1";
+
+  box.addEventListener("input", (event) => {
+    const input = event.target.closest("[data-fanatec-key]");
+    if (!input) return;
+    const tile = input.closest("[data-fanatec-setting]");
+    const out = tile?.querySelector("[data-fanatec-value]");
+    if (!out) return;
+    const kind = input.dataset.fanatecKind;
+    if (kind === "toggle") {
+      out.textContent = input.checked ? t("Sí") : t("No");
+    } else {
+      out.textContent = fanatecFormat(kind, Number(input.value));
+    }
+  });
+
+  box.addEventListener("change", async (event) => {
+    const input = event.target.closest("[data-fanatec-key]");
+    if (!input) return;
+    const key = input.dataset.fanatecKey;
+    const value =
+      input.type === "checkbox" ? (input.checked ? 1 : 0) : Number(input.value);
+    input.disabled = true;
+    try {
+      const applied = await call("set_fanatec_setting", { key, value });
+      const tile = input.closest("[data-fanatec-setting]");
+      const out = tile?.querySelector("[data-fanatec-value]");
+      if (out) out.textContent = fanatecFormat(input.dataset.fanatecKind, applied);
+      toast(t("Ajuste aplicado"), "ok");
+      await refreshStatus(true);
+    } catch (error) {
+      fail(error);
+      await refreshStatus(true);
+    }
+  });
+}
+
+function fanatecAccessDialog() {
+  openModal({
+    title: t("Preparar escritura de Fanatec"),
+    html: `
+      <p>${esc(
+        t(
+          "Para editar los ajustes, ETOL dará permiso de escritura al usuario sobre los atributos del driver. Solo ajustes: no toca el firmware.",
+        ),
+      )}</p>
+      <p>${esc(t("Se creará esta regla udev:"))}</p>
+      <pre class="games-tip-code">${esc(`/etc/udev/rules.d/70-etol-fanatec.rules
+ACTION=="add|change", SUBSYSTEM=="ftec_tuning", RUN+="/bin/sh -c 'cd %S%p && chown -f <usuario> SEN FF FEI FOR SPR DPR NDP NFR NIN INT FFS FUL SHO BLI brF ACP DRI advanced_mode 2>/dev/null || true'"`)}</pre>
+      <p class="option-help">${esc(
+        t(
+          "Se pedirá tu contraseña con pkexec. No se escribe nada en el volante al preparar el acceso.",
+        ),
+      )}</p>`,
+    actions: [
+      { label: t("Cancelar"), onClick: () => $("#modal").close() },
+      {
+        label: t("Preparar escritura"),
+        primary: true,
+        onClick: () => {
+          $("#modal").close();
+          fixFanatecAccess();
+        },
+      },
+    ],
+  });
+}
+
+async function fixFanatecAccess() {
+  try {
+    const text = await call("fix_fanatec_access");
+    toast(text || t("Acceso preparado"), "ok");
+    await refreshStatus(true);
+  } catch (error) {
+    fail(error);
+  }
 }
 
 /** Explica exactamente que regla udev se va a crear. */
@@ -2290,6 +2468,12 @@ if (fanatecRefresh) {
   });
 }
 
+const fanatecAccess = $("#btn-fanatec-access");
+if (fanatecAccess) {
+  fanatecAccess.addEventListener("click", () => fanatecAccessDialog());
+}
+bindFanatecControls();
+
 $("#btn-detect").addEventListener("click", (event) => detectAll(event.currentTarget));
 
 $("#btn-doctor").addEventListener("click", async (event) => {
@@ -2813,10 +2997,11 @@ $("#btn-copy-display").addEventListener("click", async () => {
 const APP_DETAILS = [
   { id: "ffbhub-details", key: "etol.apps.ffbhub.open" },
   { id: "dcpedals-details", key: "etol.apps.dcpedals.open" },
+  { id: "fanatec-config-details", key: "etol.apps.fanatec.open" },
 ];
 
 /**
- * Recuerda si FFB-HUB y DC Pedals estaban desplegadas.
+ * Recuerda si las fichas de Aplicaciones estaban desplegadas.
  *
  * Sin estado guardado (primer arranque o almacenamiento no disponible), las
  * fichas empiezan plegadas. El evento `toggle` guarda cada cambio.

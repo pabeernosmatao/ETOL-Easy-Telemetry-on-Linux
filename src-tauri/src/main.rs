@@ -695,6 +695,16 @@ async fn fix_usb_access() -> Result<String, String> {
 }
 
 #[tauri::command]
+async fn set_fanatec_setting(key: String, value: i64) -> Result<i64, String> {
+    blocking(move || etol::fanatec::set(&key, value)).await
+}
+
+#[tauri::command]
+async fn fix_fanatec_access() -> Result<String, String> {
+    blocking(|| etol::fanatec::fix_access()).await
+}
+
+#[tauri::command]
 async fn fix_dcpedals_access() -> Result<String, String> {
     blocking(|| {
         let mut text = etol::dcpedals::fix()?;
@@ -1922,6 +1932,8 @@ fn main() {
             configure_hf8,
             fix_usb_access,
             fix_dcpedals_access,
+            set_fanatec_setting,
+            fix_fanatec_access,
             env_preview,
             open_path,
             open_guide,

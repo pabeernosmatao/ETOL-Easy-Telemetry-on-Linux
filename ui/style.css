@@ -949,7 +949,8 @@ h2 {
 }
 
 .app-details > #ffbhub-card,
-.app-details > #dcpedals-card {
+.app-details > #dcpedals-card,
+.app-details > #fanatec-config {
   padding: 0 18px 18px;
 }
 
@@ -1068,9 +1069,43 @@ h2 {
   min-width: 0;
 }
 
+.setting-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .setting-name {
   font-size: 12px;
   color: var(--muted);
+}
+
+.setting-head .setting-value {
+  margin-top: 0;
+}
+
+.setting input[type="range"] {
+  width: 100%;
+  margin: 8px 0 0;
+  accent-color: var(--accent);
+}
+
+.setting input[type="range"]:disabled {
+  opacity: 0.55;
+}
+
+.fanatec-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.fanatec-meta span {
+  font-family: var(--mono);
 }
 
 .setting-value {
@@ -1087,6 +1122,7 @@ h2 {
 
 .fanatec-actions {
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .fanatec-actions .option-help {

@@ -318,6 +318,20 @@ const I18N = {
     "Modo drift": "Mode drift",
     "Modo avanzado": "Mode avançat",
 
+    "Rango": "Rang",
+    "Firmware": "Firmware",
+    "Wheel ID": "Wheel ID",
+    "Editable": "Editable",
+    "Los cambios se aplican al SET activo del volante.": "Els canvis s'apliquen al SET actiu del volant.",
+    "Los ajustes están en Aplicaciones → Fanatec CSL DD.": "Els ajustos són a Aplicacions → Fanatec CSL DD.",
+    "Preparar escritura": "Prepara l'escriptura",
+    "Preparar escritura de Fanatec": "Prepara l'escriptura de Fanatec",
+    "Para editar los ajustes, ETOL dará permiso de escritura al usuario sobre los atributos del driver. Solo ajustes: no toca el firmware.": "Per editar els ajustos, ETOL donarà permís d'escriptura a l'usuari sobre els atributs del controlador. Només ajustos: no toca el firmware.",
+    "Se creará esta regla udev:": "Es crearà aquesta regla udev:",
+    "Se pedirá tu contraseña con pkexec. No se escribe nada en el volante al preparar el acceso.": "Es demanarà la teva contrasenya amb pkexec. No s'escriu res al volant en preparar l'accés.",
+    "Ajuste aplicado": "Ajust aplicat",
+    "Acceso preparado": "Accés preparat",
+
   },
   en: {
     "Guía de uso": "User guide",
@@ -632,6 +646,20 @@ const I18N = {
     "Levas analógicas": "Analogue paddles",
     "Modo drift": "Drift mode",
     "Modo avanzado": "Advanced mode",
+
+    "Rango": "Range",
+    "Firmware": "Firmware",
+    "Wheel ID": "Wheel ID",
+    "Editable": "Editable",
+    "Los cambios se aplican al SET activo del volante.": "Changes are applied to the wheel's active SET.",
+    "Los ajustes están en Aplicaciones → Fanatec CSL DD.": "Settings are in Applications → Fanatec CSL DD.",
+    "Preparar escritura": "Prepare write access",
+    "Preparar escritura de Fanatec": "Prepare Fanatec write access",
+    "Para editar los ajustes, ETOL dará permiso de escritura al usuario sobre los atributos del driver. Solo ajustes: no toca el firmware.": "To edit the settings, ETOL will grant the user write permission on the driver attributes. Settings only: it does not touch the firmware.",
+    "Se creará esta regla udev:": "This udev rule will be created:",
+    "Se pedirá tu contraseña con pkexec. No se escribe nada en el volante al preparar el acceso.": "You will be asked for your password with pkexec. Nothing is written to the wheel while preparing access.",
+    "Ajuste aplicado": "Setting applied",
+    "Acceso preparado": "Access prepared",
 
   },
 };

@@ -81,6 +81,23 @@
             </summary>
             <div id="dcpedals-card"></div>
           </details>
+          <details class="card collapsible card-details app-details fanatec-panel" id="fanatec-config-details">
+            <summary class="panel-head">
+              <h2>Fanatec CSL DD</h2>
+              <span class="tag" id="fanatec-config-tag">—</span>
+              <span class="chevron" aria-hidden="true">›</span>
+            </summary>
+            <div id="fanatec-config"></div>
+            <div class="panel-actions fanatec-actions">
+              <span class="option-help" id="fanatec-config-note">Solo lectura: los ajustes se leen del volante. Cambia de SET en el propio volante.</span>
+              <button class="btn" id="btn-fanatec-access" hidden>
+                <span class="icon">⚡</span> Preparar escritura
+              </button>
+              <button class="btn ghost" id="btn-fanatec-refresh" title="Volver a leer los ajustes del volante">
+                <span class="icon">↻</span> Actualizar
+              </button>
+            </div>
+          </details>
         </section>
 
         <section class="panel" data-panel="dispositivos" hidden>
@@ -125,12 +142,7 @@
               <span class="chevron" aria-hidden="true">›</span>
             </summary>
             <div class="rows" id="fanatec"></div>
-            <div class="panel-actions fanatec-actions">
-              <span class="option-help">Solo lectura: los ajustes se leen del volante. Cambia de SET en el propio volante.</span>
-              <button class="btn ghost" id="btn-fanatec-refresh" title="Volver a leer los ajustes del volante">
-                <span class="icon">↻</span> Actualizar
-              </button>
-            </div>
+            <p class="option-help">Los ajustes están en Aplicaciones → Fanatec CSL DD.</p>
           </details>
 
           <details class="card collapsible card-details" id="hf8-details">

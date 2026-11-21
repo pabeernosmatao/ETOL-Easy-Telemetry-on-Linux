@@ -34,19 +34,21 @@ app and a hardware access card.
   The Diagnostics tab warns when the pedals are present but the udev rule or
   access is missing.
 
-## Fanatec CSL DD (read-only)
+## Fanatec CSL DD
 
-- **Devices → Fanatec CSL DD** reads the tuning menu that the out-of-tree
-  `hid-fanatecff` driver exposes at `/sys/class/ftec_tuning/<device>`:
-  `SEN`, `FF`, `FEI`, `FOR`, `SPR`, `DPR`, `NDP`, `NFR`, `NIN`, `INT`, `FFS`,
-  `FUL`, `SHO`, `BLI`, `brF`, `ACP`, `DRI` and `advanced_mode` when the wheel
-  reports them. It also shows the active `SET`.
-- The card is **read-only for now**: ETOL only reads sysfs values. Nothing is
-  written to the wheel and firmware updates are out of scope. Values track the
-  SET selected on the wheel itself.
+- **Applications → Fanatec CSL DD** is the native configuration card. It reads
+  the tuning menu exposed by the out-of-tree `hid-fanatecff` driver at
+  `/sys/class/ftec_tuning/<device>` (`SEN`, `FF`, `FEI`, `FOR`, `SPR`, `DPR`,
+  `NDP`, `NFR`, `NIN`, `INT`, `FFS`, `FUL`, `SHO`, `BLI`, `brF`, `ACP`, `DRI`
+  and `advanced_mode`) and shows sliders/switches for the active `SET`.
+- **Devices → Fanatec CSL DD** shows the hardware state: `/dev/hidraw*`, driver,
+  active SET, range, firmware and access. It never writes.
+- Writes go to the active SET only. The first time, ETOL offers to install
+  `/etc/udev/rules.d/70-etol-fanatec.rules` with `pkexec`; it gives the user
+  write access to the `ftec_tuning` attributes only. Firmware updates are out
+  of scope: ETOL does not install drivers or flash the wheel.
 - Requires the `hid-fanatecff` driver (module `hid_fanatec`). Without it the
-  card reports that the tuning menu is not available. Write access will need a
-  udev/ACL rule like the DC Pedals one (`root:games` today).
+  cards report that the tuning menu is not available.
 
 ## Upgrading from 0.4.0
 
@@ -70,8 +72,8 @@ app and a hardware access card.
 
 | Asset | Size | SHA-256 |
 |---|---|---|
-| `ETOL-0.5.0-linux-x86_64-portable.AppImage` | 6.9 MB | `0dbc72e4c2e97563f7f915ddbf700b187e1b32795b340b6904d5dc70d31359c3` |
-| `ETOL-0.5.0-linux-x86_64-full.AppImage` | 113 MB | `7053482fc3a3c5cb1ff202a5a7822ccd21557506030ff10b349d8d22413a6140` |
+| `ETOL-0.5.0-linux-x86_64-portable.AppImage` | 6.9 MB | `6deed75713305accb8a48ea2bea2ac043945b9546663a2d9bef169dacd5c0f94` |
+| `ETOL-0.5.0-linux-x86_64-full.AppImage` | 113 MB | `2f8efe3d230157a68de1ac574d4f5e687f03ae614155cdc5aff9fa6a724c2227` |
 
 ## Install
 
