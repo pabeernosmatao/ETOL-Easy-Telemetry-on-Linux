@@ -74,8 +74,8 @@ app and a hardware access card.
 
 | Asset | Size | SHA-256 |
 |---|---|---|
-| `ETOL-0.5.0-linux-x86_64-portable.AppImage` | 6.9 MB | `dc9621ac51012f9112b5c3bb7f7e013ee9f0063fd2acc2a3cd7fbf89713f0763` |
-| `ETOL-0.5.0-linux-x86_64-full.AppImage` | 113 MB | `f90b11ea99e7b7b0e6b5c7093410406d3692444fe1f7b4bfe549354c6a170c50` |
+| `ETOL-0.5.0-linux-x86_64-portable.AppImage` | 6.9 MB | `695d54c8ee82736daa32b69d38427582df16cd7da39e90cf6609a6d33f532373` |
+| `ETOL-0.5.0-linux-x86_64-full.AppImage` | 113 MB | `8eb86bcafb883899bb8ee9f44156e3ba1b5ee8be1bce3f853f770a2ed854221c` |
 
 ## Install
 

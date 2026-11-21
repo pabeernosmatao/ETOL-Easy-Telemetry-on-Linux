@@ -1204,12 +1204,12 @@ function renderFanatecStatus(fan, enabled) {
 
 function fanatecControl(setting, writable) {
   const key = esc(setting.key);
-  const label = esc(t(setting.label));
+  const name = esc(t(setting.label));
   const disabled = writable ? "" : " disabled";
   if (setting.kind === "toggle") {
     return `<div class="setting" data-fanatec-setting="${key}">
       <div class="setting-head">
-        <span class="setting-name">${label}</span>
+        <span class="setting-name">${name}</span>
         <label class="switch small">
           <input type="checkbox" data-fanatec-key="${key}" data-fanatec-kind="toggle"${setting.value ? " checked" : ""}${disabled}>
           <span class="switch-track"><span class="switch-thumb"></span></span>
@@ -1222,7 +1222,7 @@ function fanatecControl(setting, writable) {
   const range = setting.max > 0 ? ` title="${setting.min}–${max}"` : "";
   return `<div class="setting" data-fanatec-setting="${key}"${range}>
     <div class="setting-head">
-      <span class="setting-name">${label}</span>
+      <span class="setting-name">${name} <span class="setting-key">${key}</span></span>
       <span class="setting-value" data-fanatec-value>${esc(fanatecValue(setting))}</span>
     </div>
     <input type="range" min="${setting.min}" max="${max}" step="${fanatecStep(setting.key)}" value="${setting.value}" data-fanatec-key="${key}" data-fanatec-kind="${esc(setting.kind)}"${disabled}>

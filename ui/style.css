@@ -1085,6 +1085,16 @@ h2 {
   margin-top: 0;
 }
 
+.setting-key {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--dim);
+  border: 1px solid var(--line-soft);
+  border-radius: 5px;
+  padding: 1px 4px;
+  margin-left: 4px;
+}
+
 .setting input[type="range"] {
   width: 100%;
   margin: 8px 0 0;
