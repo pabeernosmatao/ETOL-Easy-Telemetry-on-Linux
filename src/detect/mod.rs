@@ -453,6 +453,7 @@ pub fn detect_apps() -> Option<Apps> {
         ffbhub_enabled: false,
         dcpedals_exe: dcpedals,
         dcpedals_enabled: false,
+        fanatec_enabled: false,
     })
 }
 

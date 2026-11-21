@@ -332,6 +332,17 @@ const I18N = {
     "Ajuste aplicado": "Ajust aplicat",
     "Acceso preparado": "Accés preparat",
 
+    "Activar Fanatec CSL DD": "Activa Fanatec CSL DD",
+    "Al activar Fanatec, ETOL preparará el acceso de escritura a los ajustes del volante.": "En activar Fanatec, ETOL prepararà l'accés d'escriptura als ajustos del volant.",
+    "Creará /etc/udev/rules.d/70-etol-fanatec.rules con pkexec: solo da permiso sobre los ajustes, nunca sobre el firmware.": "Crearà /etc/udev/rules.d/70-etol-fanatec.rules amb pkexec: només dóna permís sobre els ajustos, mai sobre el firmware.",
+    "Necesita el driver hid-fanatecff (fanatec-dkms) cargado; sin él no se pueden leer ni aplicar los ajustes.": "Necessita el controlador hid-fanatecff (fanatec-dkms) carregat; sense ell no es poden llegir ni aplicar els ajustos.",
+    "Los cambios se aplican al SET activo del volante. No se actualiza firmware.": "Els canvis s'apliquen al SET actiu del volant. No s'actualitza firmware.",
+    "Driver hid-fanatecff detectado.": "Controlador hid-fanatecff detectat.",
+    "No se detecta el driver hid-fanatecff (fanatec-dkms). Instálalo antes de usar la configuración.": "No es detecta el controlador hid-fanatecff (fanatec-dkms). Instal·la'l abans de fer servir la configuració.",
+    "Activar": "Activa",
+    "Actívalo para leer los ajustes del volante.": "Activa'l per llegir els ajustos del volant.",
+    "Actívalo en Dispositivos → Fanatec CSL DD.": "Activa'l a Dispositius → Fanatec CSL DD.",
+
   },
   en: {
     "Guía de uso": "User guide",
@@ -660,6 +671,17 @@ const I18N = {
     "Se pedirá tu contraseña con pkexec. No se escribe nada en el volante al preparar el acceso.": "You will be asked for your password with pkexec. Nothing is written to the wheel while preparing access.",
     "Ajuste aplicado": "Setting applied",
     "Acceso preparado": "Access prepared",
+
+    "Activar Fanatec CSL DD": "Enable Fanatec CSL DD",
+    "Al activar Fanatec, ETOL preparará el acceso de escritura a los ajustes del volante.": "When you enable Fanatec, ETOL will prepare write access to the wheel settings.",
+    "Creará /etc/udev/rules.d/70-etol-fanatec.rules con pkexec: solo da permiso sobre los ajustes, nunca sobre el firmware.": "It will create /etc/udev/rules.d/70-etol-fanatec.rules with pkexec: it only grants access to the settings, never to the firmware.",
+    "Necesita el driver hid-fanatecff (fanatec-dkms) cargado; sin él no se pueden leer ni aplicar los ajustes.": "It requires the hid-fanatecff (fanatec-dkms) driver to be loaded; without it the settings cannot be read or applied.",
+    "Los cambios se aplican al SET activo del volante. No se actualiza firmware.": "Changes are applied to the wheel's active SET. Firmware is not updated.",
+    "Driver hid-fanatecff detectado.": "hid-fanatecff driver detected.",
+    "No se detecta el driver hid-fanatecff (fanatec-dkms). Instálalo antes de usar la configuración.": "The hid-fanatecff (fanatec-dkms) driver was not detected. Install it before using the configuration.",
+    "Activar": "Enable",
+    "Actívalo para leer los ajustes del volante.": "Enable it to read the wheel settings.",
+    "Actívalo en Dispositivos → Fanatec CSL DD.": "Enable it in Devices → Fanatec CSL DD.",
 
   },
 };

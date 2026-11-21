@@ -127,6 +127,8 @@ pub struct Apps {
     pub dcpedals_exe: Option<PathBuf>,
     /// DC Pedals activado en Aplicaciones (solo instalacion/uso manual).
     pub dcpedals_enabled: bool,
+    /// Fanatec CSL DD activado en Dispositivos: lee y escribe el tuning.
+    pub fanatec_enabled: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -470,6 +472,7 @@ impl Config {
             ["apps", "ffbhub_enabled"] => self.apps.ffbhub_enabled = parse_bool(value)?,
             ["apps", "dcpedals_exe"] => self.apps.dcpedals_exe = Some(util::expand(value)),
             ["apps", "dcpedals_enabled"] => self.apps.dcpedals_enabled = parse_bool(value)?,
+            ["apps", "fanatec_enabled"] => self.apps.fanatec_enabled = parse_bool(value)?,
             ["hf8", "enabled"] => self.hf8.enabled = parse_bool(value)?,
             ["hf8", "device"] => self.hf8.device = Some(util::expand(value)),
             ["hf8", "com_port"] => self.hf8.com_port = value.trim().to_uppercase(),

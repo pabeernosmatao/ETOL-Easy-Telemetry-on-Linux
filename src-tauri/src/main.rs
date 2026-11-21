@@ -696,12 +696,26 @@ async fn fix_usb_access() -> Result<String, String> {
 
 #[tauri::command]
 async fn set_fanatec_setting(key: String, value: i64) -> Result<i64, String> {
-    blocking(move || etol::fanatec::set(&key, value)).await
+    blocking(move || {
+        let cfg = Config::load()?;
+        if !cfg.apps.fanatec_enabled {
+            bail!("Fanatec esta desactivado; activalo en Dispositivos");
+        }
+        etol::fanatec::set(&key, value)
+    })
+    .await
 }
 
 #[tauri::command]
 async fn fix_fanatec_access() -> Result<String, String> {
-    blocking(|| etol::fanatec::fix_access()).await
+    blocking(|| {
+        let cfg = Config::load()?;
+        if !cfg.apps.fanatec_enabled {
+            bail!("Fanatec esta desactivado; activalo en Dispositivos");
+        }
+        etol::fanatec::fix_access()
+    })
+    .await
 }
 
 #[tauri::command]

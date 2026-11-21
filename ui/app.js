@@ -770,6 +770,21 @@ function renderFfbHub(apps) {
 function renderHf8(snapshot) {
   const hf8 = snapshot.hf8;
 
+  const tag = $("#hf8-tag");
+  if (tag) {
+    const ready = hf8.enabled && Boolean(hf8.device) && hf8.com_ok;
+    tag.textContent = !hf8.enabled
+      ? t("Desactivado")
+      : hf8.usb_scan === false
+        ? t("Revisar")
+        : ready
+          ? t("Listo")
+          : hf8.device
+            ? t("Revisar")
+            : t("No detectado");
+    tag.className = `tag ${ready ? "ok" : "warn"}`;
+  }
+
   if (hf8.usb_scan === false) {
     $("#hf8").innerHTML = `
       <div class="row">
@@ -1104,11 +1119,14 @@ function fanatecRow(ok, label, value, title = "") {
 function renderFanatec(snapshot) {
   const fan = snapshot?.fanatec;
   if (!fan) return;
-  renderFanatecStatus(fan);
-  renderFanatecConfig(fan);
+  const enabled = snapshot?.apps?.fanatec_enabled === true;
+  const toggle = $("#opt-fanatec-enabled");
+  if (toggle) toggle.checked = enabled;
+  renderFanatecStatus(fan, enabled);
+  renderFanatecConfig(fan, enabled);
 }
 
-function renderFanatecStatus(fan) {
+function renderFanatecStatus(fan, enabled) {
   const box = $("#fanatec");
   if (!box) return;
 
@@ -1116,8 +1134,24 @@ function renderFanatecStatus(fan) {
   const ready = present && Boolean(fan.tuning);
   const tag = $("#fanatec-tag");
   if (tag) {
-    tag.textContent = !present ? t("No detectado") : ready ? t("Listo") : t("Sin driver");
-    tag.className = `tag ${ready ? "ok" : "warn"}`;
+    tag.textContent = !enabled
+      ? t("Desactivado")
+      : !present
+        ? t("No detectado")
+        : ready
+          ? t("Listo")
+          : t("Sin driver");
+    tag.className = `tag ${enabled && ready ? "ok" : "warn"}`;
+  }
+
+  if (!enabled) {
+    box.innerHTML = fanatecRow(
+      false,
+      t("Desactivado"),
+      t("Actívalo para leer los ajustes del volante."),
+    );
+    translateDom(box);
+    return;
   }
 
   const title = document.querySelector("#fanatec-details h2");
@@ -1195,7 +1229,7 @@ function fanatecControl(setting, writable) {
   </div>`;
 }
 
-function renderFanatecConfig(fan) {
+function renderFanatecConfig(fan, enabled) {
   const box = $("#fanatec-config");
   if (!box) return;
 
@@ -1204,14 +1238,16 @@ function renderFanatecConfig(fan) {
   const writable = Boolean(fan.writable);
   const tag = $("#fanatec-config-tag");
   if (tag) {
-    tag.textContent = !present
-      ? t("No detectado")
-      : !ready
-        ? t("Sin driver")
-        : writable
-          ? t("Editable")
-          : t("Solo lectura");
-    tag.className = `tag ${ready ? (writable ? "ok" : "warn") : "warn"}`;
+    tag.textContent = !enabled
+      ? t("Desactivado")
+      : !present
+        ? t("No detectado")
+        : !ready
+          ? t("Sin driver")
+          : writable
+            ? t("Editable")
+            : t("Solo lectura");
+    tag.className = `tag ${enabled && ready ? (writable ? "ok" : "warn") : "warn"}`;
   }
 
   const title = document.querySelector("#fanatec-config-details h2");
@@ -1219,16 +1255,28 @@ function renderFanatecConfig(fan) {
 
   const note = $("#fanatec-config-note");
   if (note) {
-    note.textContent = !present
-      ? t("Conecta la base Fanatec por USB.")
-      : !ready
-        ? t("El driver no expone el menú de tuning.")
-        : writable
-          ? t("Los cambios se aplican al SET activo del volante.")
-          : t("Solo lectura: los ajustes se leen del volante. Cambia de SET en el propio volante.");
+    note.textContent = !enabled
+      ? t("Actívalo en Dispositivos → Fanatec CSL DD.")
+      : !present
+        ? t("Conecta la base Fanatec por USB.")
+        : !ready
+          ? t("El driver no expone el menú de tuning.")
+          : writable
+            ? t("Los cambios se aplican al SET activo del volante.")
+            : t("Solo lectura: los ajustes se leen del volante. Cambia de SET en el propio volante.");
   }
   const access = $("#btn-fanatec-access");
-  if (access) access.hidden = !present || !ready || writable;
+  if (access) access.hidden = !enabled || !present || !ready || writable;
+
+  if (!enabled) {
+    box.innerHTML = fanatecRow(
+      false,
+      t("Desactivado"),
+      t("Actívalo en Dispositivos → Fanatec CSL DD."),
+    );
+    translateDom(box);
+    return;
+  }
 
   if (!present || !ready) {
     box.innerHTML = fanatecRow(
@@ -1340,6 +1388,76 @@ async function fixFanatecAccess() {
   } catch (error) {
     fail(error);
   }
+}
+
+async function setFanatecEnabled(enabled) {
+  try {
+    const payload = await call("set_config", {
+      key: "apps.fanatec_enabled",
+      value: enabled ? "true" : "false",
+    });
+    state.config = payload.config;
+    await refreshStatus(true);
+    toast(`Fanatec ${enabled ? "activado" : "desactivado"}`, "ok");
+    return true;
+  } catch (error) {
+    fail(error);
+    return false;
+  }
+}
+
+async function activateFanatec() {
+  if (await setFanatecEnabled(true)) {
+    await fixFanatecAccess();
+  }
+}
+
+/** Explica que se va a preparar al activar Fanatec en Dispositivos. */
+function fanatecEnableDialog() {
+  const fan = state.snapshot?.fanatec ?? {};
+  const driverText = fan.driver
+    ? t("Driver hid-fanatecff detectado.")
+    : t(
+        "No se detecta el driver hid-fanatecff (fanatec-dkms). Instálalo antes de usar la configuración.",
+      );
+  openModal({
+    title: t("Activar Fanatec CSL DD"),
+    html: `
+      <p>${esc(
+        t(
+          "Al activar Fanatec, ETOL preparará el acceso de escritura a los ajustes del volante.",
+        ),
+      )}</p>
+      <ul>
+        <li>${esc(
+          t(
+            "Creará /etc/udev/rules.d/70-etol-fanatec.rules con pkexec: solo da permiso sobre los ajustes, nunca sobre el firmware.",
+          ),
+        )}</li>
+        <li>${esc(
+          t(
+            "Necesita el driver hid-fanatecff (fanatec-dkms) cargado; sin él no se pueden leer ni aplicar los ajustes.",
+          ),
+        )}</li>
+        <li>${esc(
+          t(
+            "Los cambios se aplican al SET activo del volante. No se actualiza firmware.",
+          ),
+        )}</li>
+      </ul>
+      <p class="option-help">${esc(driverText)}</p>`,
+    actions: [
+      { label: t("Cancelar"), onClick: () => $("#modal").close() },
+      {
+        label: t("Activar"),
+        primary: true,
+        onClick: () => {
+          $("#modal").close();
+          activateFanatec();
+        },
+      },
+    ],
+  });
 }
 
 /** Explica exactamente que regla udev se va a crear. */
@@ -2557,6 +2675,16 @@ $("#opt-dcpedals-enabled").addEventListener("change", async (event) => {
   if (enabled && !apps.dcpedals_installed) {
     toast("DC Pedals activado. Instala la app en Aplicaciones.", "ok");
   }
+});
+
+$("#opt-fanatec-enabled").addEventListener("change", async (event) => {
+  const enabled = event.currentTarget.checked;
+  if (enabled) {
+    event.currentTarget.checked = false;
+    fanatecEnableDialog();
+    return;
+  }
+  await setFanatecEnabled(false);
 });
 
 // Los interruptores viven en el <summary>: que no plieguen la ficha al pulsarlos.

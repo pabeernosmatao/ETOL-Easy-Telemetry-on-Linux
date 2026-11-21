@@ -41,14 +41,16 @@ app and a hardware access card.
   `/sys/class/ftec_tuning/<device>` (`SEN`, `FF`, `FEI`, `FOR`, `SPR`, `DPR`,
   `NDP`, `NFR`, `NIN`, `INT`, `FFS`, `FUL`, `SHO`, `BLI`, `brF`, `ACP`, `DRI`
   and `advanced_mode`) and shows sliders/switches for the active `SET`.
-- **Devices → Fanatec CSL DD** shows the hardware state: `/dev/hidraw*`, driver,
-  active SET, range, firmware and access. It never writes.
-- Writes go to the active SET only. The first time, ETOL offers to install
-  `/etc/udev/rules.d/70-etol-fanatec.rules` with `pkexec`; it gives the user
-  write access to the `ftec_tuning` attributes only. Firmware updates are out
-  of scope: ETOL does not install drivers or flash the wheel.
-- Requires the `hid-fanatecff` driver (module `hid_fanatec`). Without it the
-  cards report that the tuning menu is not available.
+- **Devices → Fanatec CSL DD** shows the hardware state (`/dev/hidraw*`, driver,
+  active SET, range, firmware, access) and has an enable switch. Enabling it
+  explains what will be prepared and asks for confirmation: ETOL installs
+  `/etc/udev/rules.d/70-etol-fanatec.rules` with `pkexec`, which gives the user
+  write access to the `ftec_tuning` attributes only.
+- Enabling requires the out-of-tree `hid-fanatecff` driver (module
+  `hid_fanatec`, packaged as `fanatec-dkms`); the popup warns when it is not
+  detected. Without it the cards report that the tuning menu is not available.
+- Writes go to the active SET only. Firmware updates are out of scope: ETOL
+  does not install drivers or flash the wheel.
 
 ## Upgrading from 0.4.0
 
@@ -72,8 +74,8 @@ app and a hardware access card.
 
 | Asset | Size | SHA-256 |
 |---|---|---|
-| `ETOL-0.5.0-linux-x86_64-portable.AppImage` | 6.9 MB | `6deed75713305accb8a48ea2bea2ac043945b9546663a2d9bef169dacd5c0f94` |
-| `ETOL-0.5.0-linux-x86_64-full.AppImage` | 113 MB | `2f8efe3d230157a68de1ac574d4f5e687f03ae614155cdc5aff9fa6a724c2227` |
+| `ETOL-0.5.0-linux-x86_64-portable.AppImage` | 6.9 MB | `dc9621ac51012f9112b5c3bb7f7e013ee9f0063fd2acc2a3cd7fbf89713f0763` |
+| `ETOL-0.5.0-linux-x86_64-full.AppImage` | 113 MB | `f90b11ea99e7b7b0e6b5c7093410406d3692444fe1f7b4bfe549354c6a170c50` |
 
 ## Install
 

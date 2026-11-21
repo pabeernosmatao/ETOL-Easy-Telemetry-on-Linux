@@ -57,6 +57,8 @@ pub struct AppsStatus {
     pub dcpedals_enabled: bool,
     pub dcpedals_path: Option<String>,
     pub dcpedals_version: Option<String>,
+    /// Fanatec CSL DD activado en Dispositivos.
+    pub fanatec_enabled: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -381,6 +383,7 @@ pub fn snapshot(cfg: &Config) -> Snapshot {
                 .as_ref()
                 .map(|path| path.display().to_string()),
             dcpedals_version: app_version(cfg.apps.dcpedals_exe.as_deref()),
+            fanatec_enabled: cfg.apps.fanatec_enabled,
         },
         hf8: Hf8Status {
             enabled: cfg.hf8.enabled,

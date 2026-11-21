@@ -617,7 +617,9 @@ fn print_status(cfg: &Config) {
     util::field("regla udev", &rule);
 
     util::section("Fanatec");
-    if snapshot.fanatec.present {
+    if !snapshot.apps.fanatec_enabled {
+        util::field("estado", &util::dim("desactivado"));
+    } else if snapshot.fanatec.present {
         let device = match (&snapshot.fanatec.device, &snapshot.fanatec.name) {
             (Some(dev), Some(name)) => format!("{dev} · {name}"),
             (Some(dev), None) => dev.clone(),
