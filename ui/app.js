@@ -565,16 +565,13 @@ function renderDcPedals(apps) {
   const warning = blocked
     ? `<p class="dcpedals-warning">Sin acceso HID: abre <strong>Dispositivos → DC Pedals</strong> y prepara la regla udev antes de usar el programa.</p>`
     : "";
+  const description = t(
+    "Utilidad oficial de DC Simracing para leer y enviar la calibración de los pedales DC2/DC3: zonas muertas y curvas de cada pedal. ETOL la instala en su propia botella, no en el prefijo del juego, y la abre solo cuando tú quieras.",
+  );
 
   box.innerHTML = `
-    <div class="dcpedals-head">
-      <div>
-        <h3>DC Pedals <span class="tag">DC2 / DC3</span></h3>
-        <p class="option-help">Utilidad oficial de DC Simracing para leer y enviar
-          la calibración de los pedales DC2/DC3: zonas muertas y curvas de cada
-          pedal. ETOL la instala en su propia botella, no en el prefijo del
-          juego, y la abre solo cuando tú quieras.</p>
-      </div>
+    <div class="app-card-top">
+      <p class="option-help">${esc(description)}</p>
       <label class="switch" title="Activar DC Pedals">
         <input type="checkbox" id="dcpedals-enabled"${apps.dcpedals_enabled ? " checked" : ""}>
         <span class="switch-track"><span class="switch-thumb"></span></span>
@@ -587,7 +584,7 @@ function renderDcPedals(apps) {
     </div>
     ${warning}
     <div class="dcpedals-actions">
-      <button class="btn" data-dcpedals="launch"${installed ? "" : " disabled"}>
+      <button class="btn" data-dcpedals="launch"${running || (installed && apps.dcpedals_enabled) ? "" : " disabled"}>
         ${running ? "Cerrar" : "Lanzar"}
       </button>
       <button class="btn ghost" data-dcpedals="update">
@@ -672,6 +669,10 @@ async function toggleDcPedalsLaunch(button) {
       dcPedalsInstallDialog();
       return;
     }
+    if (!apps.dcpedals_enabled && !apps.dcpedals?.running) {
+      toast("Activa DC Pedals primero", "error");
+      return;
+    }
     if (apps.dcpedals?.running) {
       const report = await call("stop_app", { app: "dcpedals" });
       toast(
@@ -718,16 +719,13 @@ function renderFfbHub(apps) {
       ? `En marcha · pid ${pids.join(", ")}`
       : "Instalado";
   const dot = running ? "on" : installed ? "" : "warn";
+  const description = t(
+    "Fuerza de dirección basada en telemetría: sustituye el FFB del juego por uno más informativo (subviraje, bloqueo de ruedas, derrapes y carga de dirección). ETOL lo instala en su propia botella, junto a SimHub y CrewChief.",
+  );
 
   box.innerHTML = `
-    <div class="ffbhub-head">
-      <div>
-        <h3>FFB-HUB <span class="tag">LMU / RaceRoom</span></h3>
-        <p class="option-help">Fuerza de dirección basada en telemetría: sustituye
-          el FFB del juego por uno más informativo (subviraje, bloqueo de ruedas,
-          derrapes y carga de dirección). ETOL lo instala en su propia botella,
-          junto a SimHub y CrewChief.</p>
-      </div>
+    <div class="app-card-top">
+      <p class="option-help">${esc(description)}</p>
       <label class="switch" title="Activar FFB-HUB">
         <input type="checkbox" id="ffbhub-enabled"${apps.ffbhub_enabled ? " checked" : ""}>
         <span class="switch-track"><span class="switch-thumb"></span></span>
@@ -958,7 +956,30 @@ function renderDcPedalsHardware(snapshot) {
 
   const devices = dc.devices ?? [];
   const present = Boolean(dc.present);
+  const enabled = snapshot?.apps?.dcpedals_enabled === true;
   const tag = $("#dcpedals-hw-tag");
+  const toggle = $("#opt-dcpedals-enabled");
+  if (toggle) toggle.checked = enabled;
+  const fixButton = $("#btn-dcpedals-fix");
+  if (fixButton) fixButton.disabled = !enabled;
+
+  if (!enabled) {
+    if (tag) {
+      tag.textContent = t("Desactivado");
+      tag.className = "tag warn";
+    }
+    box.innerHTML = `
+      <div class="row">
+        <span class="dot"></span>
+        <div class="row-main">
+          <div class="label">${esc(t("Desactivado"))}</div>
+          <div class="value">${esc(t("Actívalo para detectar y preparar el acceso HID."))}</div>
+        </div>
+      </div>`;
+    translateDom(box);
+    return;
+  }
+
   const ready = present && !dc.needs_fix;
   if (tag) {
     tag.textContent = !present ? t("No detectado") : ready ? t("Listo") : t("Revisar");
@@ -2197,6 +2218,22 @@ $("#btn-usb-fix").addEventListener("click", async (event) => {
 });
 
 $("#btn-dcpedals-fix").addEventListener("click", () => dcPedalsAccessDialog());
+
+$("#opt-dcpedals-enabled").addEventListener("change", async (event) => {
+  const enabled = event.currentTarget.checked;
+  const apps = state.snapshot?.apps ?? {};
+  await setDcPedalsEnabled(enabled);
+  if (enabled && !apps.dcpedals_installed) {
+    toast("DC Pedals activado. Instala la app en Aplicaciones.", "ok");
+  }
+});
+
+// Los interruptores viven en el <summary>: que no plieguen la ficha al pulsarlos.
+document
+  .querySelectorAll("details.card-details > summary .switch")
+  .forEach((label) => {
+    label.addEventListener("click", (event) => event.stopPropagation());
+  });
 
 $("#opt-hf8-enabled").addEventListener("change", async (event) => {
   const enabled = event.currentTarget.checked;

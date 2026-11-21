@@ -65,12 +65,22 @@
             <div class="rows" id="apps"></div>
             <div class="paths" id="apps-paths"></div>
           </section>
-          <section class="card ffbhub-panel">
+          <details class="card collapsible card-details app-details ffbhub-panel" id="ffbhub-details" open>
+            <summary class="panel-head">
+              <h2>FFB-HUB</h2>
+              <span class="tag">LMU / RaceRoom</span>
+              <span class="chevron" aria-hidden="true">›</span>
+            </summary>
             <div id="ffbhub-card"></div>
-          </section>
-          <section class="card dcpedals-panel">
+          </details>
+          <details class="card collapsible card-details app-details dcpedals-panel" id="dcpedals-details" open>
+            <summary class="panel-head">
+              <h2>DC Pedals</h2>
+              <span class="tag">DC2 / DC3</span>
+              <span class="chevron" aria-hidden="true">›</span>
+            </summary>
             <div id="dcpedals-card"></div>
-          </section>
+          </details>
         </section>
 
         <section class="panel" data-panel="dispositivos" hidden>
@@ -90,27 +100,33 @@
             </details>
           </section>
 
-          <section class="card">
-            <div class="panel-head">
+          <details class="card collapsible card-details" id="dcpedals-hw-details">
+            <summary class="panel-head">
               <h2>DC Pedals</h2>
               <span class="tag" id="dcpedals-hw-tag">—</span>
-            </div>
+              <label class="switch small" title="Activar o desactivar DC Pedals">
+                <input type="checkbox" id="opt-dcpedals-enabled" />
+                <span class="switch-track"><span class="switch-thumb"></span></span>
+              </label>
+              <span class="chevron" aria-hidden="true">›</span>
+            </summary>
             <div class="rows" id="dcpedals-hw"></div>
             <div class="panel-actions">
               <button class="btn" id="btn-dcpedals-fix" title="Crea la regla udev para que Wine pueda abrir el HID">
                 <span class="icon">⚡</span> Preparar acceso HID
               </button>
             </div>
-          </section>
+          </details>
 
-          <section class="card">
-            <div class="panel-head">
+          <details class="card collapsible card-details" id="hf8-details">
+            <summary class="panel-head">
               <h2>Pad HF8</h2>
               <label class="switch small" title="Activar o desactivar la configuración del pad">
                 <input type="checkbox" id="opt-hf8-enabled" />
                 <span class="switch-track"><span class="switch-thumb"></span></span>
               </label>
-            </div>
+              <span class="chevron" aria-hidden="true">›</span>
+            </summary>
             <div class="rows" id="hf8"></div>
             <div class="panel-actions hf8-actions">
               <label class="switch small" title="Configurar el pad HF8 al arrancar">
@@ -129,7 +145,7 @@
                 <span class="icon">⚙</span> Reconfigurar pad
               </button>
             </div>
-          </section>
+          </details>
         </section>
 
         <section class="panel" data-panel="diagnostico" hidden>

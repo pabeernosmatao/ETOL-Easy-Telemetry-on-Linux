@@ -948,6 +948,23 @@ h2 {
   flex-wrap: wrap;
 }
 
+.app-details > #ffbhub-card,
+.app-details > #dcpedals-card {
+  padding: 0 18px 18px;
+}
+
+.app-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.app-card-top .option-help {
+  margin: 0;
+  max-width: 72ch;
+}
+
 .dcpedals-panel {
   margin-top: 14px;
 }
