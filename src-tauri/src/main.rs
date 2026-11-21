@@ -1841,6 +1841,16 @@ async fn port_check_result(port: u16) -> Result<Option<portcheck::PortCheckResul
     blocking(move || Ok(portcheck::result(port))).await
 }
 
+#[tauri::command]
+async fn firewall_open_plan(port: u16) -> Result<portcheck::FirewallOpenPlan, String> {
+    blocking(move || portcheck::open_plan(port)).await
+}
+
+#[tauri::command]
+async fn open_firewall_port(port: u16) -> Result<String, String> {
+    blocking(move || portcheck::open_firewall(port)).await
+}
+
 /// Evita dos instancias de la interfaz: cada una tendria su propio vigilante.
 ///
 /// Usa un fichero con el PID. Si el proceso anterior ya no existe (o reciclo
@@ -1997,7 +2007,9 @@ fn main() {
             configure_game,
             port_check_plan,
             open_port_check,
-            port_check_result
+            port_check_result,
+            firewall_open_plan,
+            open_firewall_port
         ])
         .build(tauri::generate_context!())
         .expect("error al iniciar la interfaz de etol")

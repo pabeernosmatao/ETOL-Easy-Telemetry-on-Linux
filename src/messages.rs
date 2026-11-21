@@ -217,8 +217,9 @@ pub fn port_busy_fix(port: u16) -> String {
 }
 
 pub fn firewall_fix(port: u16) -> String {
+    let lan = crate::util::local_lan_cidr().unwrap_or_else(|| "192.168.0.0/16".to_string());
     format!(
-        "ufw: sudo ufw allow {port}/tcp  |  firewalld: sudo firewall-cmd --add-port={port}/tcp --permanent && sudo firewall-cmd --reload"
+        "ufw: sudo ufw allow from {lan} to any port {port} proto tcp  |  firewalld: sudo firewall-cmd --permanent --add-rich-rule='rule family=\"ipv4\" source address=\"{lan}\" port port=\"{port}\" protocol=\"tcp\" accept' && sudo firewall-cmd --reload"
     )
 }
 

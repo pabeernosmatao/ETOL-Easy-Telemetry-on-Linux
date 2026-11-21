@@ -3,6 +3,7 @@
 
 use std::collections::VecDeque;
 use std::io::IsTerminal;
+use std::net::Ipv4Addr;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -206,4 +207,81 @@ pub fn subfield_opt(label: &str, value: Option<&Path>) {
         Some(p) => subfield(label, &p.display().to_string()),
         None => subfield(label, &red("no detectado")),
     }
+}
+
+
+/// Red IPv4 local del equipo (interfaz fisica, rango privado).
+///
+/// Se usa para restringir las reglas de firewall a la LAN (moviles, tablets)
+/// en vez de abrir el puerto a cualquier origen.
+pub fn local_lan_cidr() -> Option<String> {
+    let output = std::process::Command::new("ip")
+        .args(["-o", "-4", "addr", "show", "scope", "global"])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let text = String::from_utf8_lossy(&output.stdout);
+    for line in text.lines() {
+        let mut fields = line.split_whitespace();
+        let Some(_index) = fields.next() else {
+            continue;
+        };
+        let Some(iface) = fields.next() else {
+            continue;
+        };
+        if is_virtual_iface(iface) {
+            continue;
+        }
+        let Some(cidr) = inet_of(line) else {
+            continue;
+        };
+        let Some((ip, prefix)) = cidr.split_once('/') else {
+            continue;
+        };
+        let Ok(ip) = ip.parse::<Ipv4Addr>() else {
+            continue;
+        };
+        if !is_private_ipv4(ip) {
+            continue;
+        }
+        let Ok(prefix) = prefix.parse::<u32>() else {
+            continue;
+        };
+        if prefix > 32 {
+            continue;
+        }
+        let mask = if prefix == 0 {
+            0
+        } else {
+            u32::MAX << (32 - prefix)
+        };
+        let network = u32::from(ip) & mask;
+        return Some(format!("{}/{}", Ipv4Addr::from(network), prefix));
+    }
+    None
+}
+
+fn inet_of(line: &str) -> Option<&str> {
+    let mut fields = line.split_whitespace();
+    while let Some(field) = fields.next() {
+        if field == "inet" {
+            return fields.next();
+        }
+    }
+    None
+}
+
+fn is_virtual_iface(name: &str) -> bool {
+    ["docker", "br-", "virbr", "veth", "tun", "tap", "wg", "tailscale", "zt"]
+        .iter()
+        .any(|prefix| name.starts_with(prefix))
+}
+
+fn is_private_ipv4(ip: Ipv4Addr) -> bool {
+    let octets = ip.octets();
+    octets[0] == 10
+        || (octets[0] == 172 && (16..=31).contains(&octets[1]))
+        || (octets[0] == 192 && octets[1] == 168)
 }

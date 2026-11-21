@@ -354,6 +354,18 @@ const I18N = {
     "Los ajustes se guardan por juego y se cargan al arrancar el juego.": "Els ajustos es desen per joc i es carreguen en arrencar el joc.",
     "No hay juegos instalados; instala un juego para crear su perfil.": "No hi ha jocs instal·lats; instal·la un joc per crear-ne el perfil.",
 
+    "Abrir el puerto 8888": "Obre el port 8888",
+    "Abrir puerto 8888": "Obre el port 8888",
+    "Abrir puerto": "Obre el port",
+    "Añade una regla de firewall solo para tu red local": "Afegeix una regla de tallafocs només per a la teva xarxa local",
+    "No hay un firewall activo; el puerto 8888 ya no está bloqueado.": "No hi ha cap tallafocs actiu; el port 8888 ja no està bloquejat.",
+    "No se detectó ufw ni firewalld. Abre el puerto 8888 en el firewall que uses.": "No s'ha detectat ufw ni firewalld. Obre el port 8888 al tallafocs que facis servir.",
+    "Se permitirá TCP 8888 solo a los equipos de tu red local, no a Internet.": "Es permetrà TCP 8888 només als equips de la teva xarxa local, no a Internet.",
+    "Red local": "Xarxa local",
+    "Comando que se aplicará:": "Comanda que s'aplicarà:",
+    "Se pedirá tu contraseña con pkexec.": "Es demanarà la teva contrasenya amb pkexec.",
+    "Puerto abierto": "Port obert",
+
   },
   en: {
     "Guía de uso": "User guide",
@@ -704,6 +716,18 @@ const I18N = {
     "No hay perfil guardado para este juego.": "There is no saved profile for this game.",
     "Los ajustes se guardan por juego y se cargan al arrancar el juego.": "Settings are saved per game and loaded when the game starts.",
     "No hay juegos instalados; instala un juego para crear su perfil.": "No games are installed; install a game to create its profile.",
+
+    "Abrir el puerto 8888": "Open port 8888",
+    "Abrir puerto 8888": "Open port 8888",
+    "Abrir puerto": "Open port",
+    "Añade una regla de firewall solo para tu red local": "Add a firewall rule only for your local network",
+    "No hay un firewall activo; el puerto 8888 ya no está bloqueado.": "No firewall is active; port 8888 is no longer blocked.",
+    "No se detectó ufw ni firewalld. Abre el puerto 8888 en el firewall que uses.": "Neither ufw nor firewalld was detected. Open port 8888 in the firewall you use.",
+    "Se permitirá TCP 8888 solo a los equipos de tu red local, no a Internet.": "TCP 8888 will only be allowed to devices on your local network, not the Internet.",
+    "Red local": "Local network",
+    "Comando que se aplicará:": "Command that will be applied:",
+    "Se pedirá tu contraseña con pkexec.": "You will be asked for your password with pkexec.",
+    "Puerto abierto": "Port open",
 
   },
 };

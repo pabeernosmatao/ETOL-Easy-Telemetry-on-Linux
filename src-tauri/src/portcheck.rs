@@ -29,6 +29,16 @@ pub struct PortCheckResult {
     pub fix: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct FirewallOpenPlan {
+    /// `ufw`, `firewalld`, `inactive` o `none`.
+    pub firewall: String,
+    pub lan: Option<String>,
+    /// Comando manual (con sudo) que se muestra al usuario.
+    pub command: Option<String>,
+    pub available: bool,
+}
+
 fn run_base() -> PathBuf {
     crate::config::Config::load()
         .map(|cfg| cfg.bridge.run_base)
@@ -52,6 +62,120 @@ fn command_exists(name: &str) -> bool {
             })
         })
         .unwrap_or(false)
+}
+
+fn service_active(name: &str) -> bool {
+    Command::new("systemctl")
+        .args(["is-active", "--quiet", name])
+        .status()
+        .map(|status| status.success())
+        .unwrap_or(false)
+}
+
+fn firewall_kind() -> &'static str {
+    if command_exists("ufw") && service_active("ufw") {
+        "ufw"
+    } else if command_exists("firewall-cmd") && service_active("firewalld") {
+        "firewalld"
+    } else if command_exists("ufw") || command_exists("firewall-cmd") {
+        "inactive"
+    } else {
+        "none"
+    }
+}
+
+/// Plan de apertura del puerto, restringido a la red local.
+pub fn open_plan(port: u16) -> Result<FirewallOpenPlan> {
+    if port == 0 {
+        bail!("puerto invalido");
+    }
+    let kind = firewall_kind();
+    if kind != "ufw" && kind != "firewalld" {
+        return Ok(FirewallOpenPlan {
+            firewall: kind.to_string(),
+            lan: None,
+            command: None,
+            available: false,
+        });
+    }
+
+    let lan = etol::util::local_lan_cidr().unwrap_or_else(|| "192.168.0.0/16".to_string());
+    let command = match kind {
+        "ufw" => format!("sudo ufw allow from {lan} to any port {port} proto tcp"),
+        "firewalld" => format!(
+            "sudo firewall-cmd --permanent --add-rich-rule='rule family=\"ipv4\" source address=\"{lan}\" port port=\"{port}\" protocol=\"tcp\" accept' && sudo firewall-cmd --reload"
+        ),
+        _ => unreachable!(),
+    };
+    Ok(FirewallOpenPlan {
+        firewall: kind.to_string(),
+        lan: Some(lan),
+        command: Some(command),
+        available: true,
+    })
+}
+
+/// Aplica la regla con pkexec. Solo abre el puerto para la red local.
+pub fn open_firewall(port: u16) -> Result<String> {
+    let plan = open_plan(port)?;
+    if !plan.available {
+        let detail = match plan.firewall.as_str() {
+            "inactive" => "No hay un firewall activo; el puerto ya no esta bloqueado.",
+            "none" => "No se detecto ufw ni firewalld; configura el firewall que uses.",
+            _ => "No se pudo detectar el firewall.",
+        };
+        bail!(detail);
+    }
+
+    let lan = plan.lan.context("no se detecto la red local")?;
+    if !valid_lan(&lan) {
+        bail!("red local no valida: {lan}");
+    }
+    let script = match plan.firewall.as_str() {
+        "ufw" => format!("ufw allow from {lan} to any port {port} proto tcp"),
+        "firewalld" => format!(
+            "firewall-cmd --permanent --add-rich-rule='rule family=\"ipv4\" source address=\"{lan}\" port port=\"{port}\" protocol=\"tcp\" accept' && firewall-cmd --reload"
+        ),
+        _ => unreachable!(),
+    };
+
+    if !command_exists("pkexec") {
+        bail!("no se encontro pkexec para aplicar la regla");
+    }
+    let mut command = Command::new("pkexec");
+    command.arg("/bin/sh").arg("-c").arg(&script);
+    etol::launch::clean_child_env(&mut command);
+
+    let output = command.output().context("no se pudo ejecutar pkexec")?;
+    let mut text = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+    if !stderr.is_empty() {
+        if !text.is_empty() {
+            text.push('\n');
+        }
+        text.push_str(&stderr);
+    }
+
+    if output.status.success() {
+        return Ok(format!("Puerto {port} abierto solo para la red local {lan}."));
+    }
+    match output.status.code() {
+        Some(126) => bail!("autorizacion cancelada"),
+        Some(127) => bail!("pkexec no pudo ejecutar la regla"),
+        Some(code) => bail!("la regla fallo (codigo {code})\n{text}"),
+        None => bail!("la regla fallo\n{text}"),
+    }
+}
+
+fn valid_lan(lan: &str) -> bool {
+    let Some((ip, prefix)) = lan.split_once('/') else {
+        return false;
+    };
+    ip.parse::<std::net::Ipv4Addr>().is_ok()
+        && prefix
+            .parse::<u8>()
+            .map(|value| value <= 32)
+            .unwrap_or(false)
 }
 
 fn terminal() -> String {

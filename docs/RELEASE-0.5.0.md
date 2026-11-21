@@ -58,6 +58,17 @@ app and a hardware access card.
 - Writes go to the active SET only. Firmware updates are out of scope: ETOL
   does not install drivers or flash the wheel.
 
+## Dashboards and port 8888
+
+- The port check and the Diagnostics firewall suggestion now restrict the rule
+  to the local IPv4 network detected with `ip` (private ranges only), for
+  example `ufw allow from 192.168.1.0/24 to any port 8888 proto tcp`. The port
+  is no longer opened to any origin.
+- **Diagnostics → Open port 8888** detects the active `ufw`/`firewalld`, shows
+  the exact LAN-scoped command and applies it with `pkexec`. If no firewall is
+  active it only reports that the port is already open. It never enables
+  Internet access.
+
 ## Upgrading from 0.4.0
 
 - Existing games, bridges, FFB-HUB, SimHub, CrewChief and the HF8 configuration
@@ -80,8 +91,8 @@ app and a hardware access card.
 
 | Asset | Size | SHA-256 |
 |---|---|---|
-| `ETOL-0.5.0-linux-x86_64-portable.AppImage` | 6.9 MB | `d2dfbf0ccf6712d925703899cf093c90909f40f5653ec9675edf8b63c1e9d6be` |
-| `ETOL-0.5.0-linux-x86_64-full.AppImage` | 113 MB | `c0137248d9007501e8352f8ee06e9ba5ae7d6e62c0a0b204ebe8d5e7739277b5` |
+| `ETOL-0.5.0-linux-x86_64-portable.AppImage` | 6.9 MB | `7963549aa1c6be7f87524d8254423d6743afe6aae81aeceeda1dcf6d31be1f08` |
+| `ETOL-0.5.0-linux-x86_64-full.AppImage` | 113 MB | `629f40744e3bb92545113c3e0c490498fc580574790e4f87f58811a4f2a00d1d` |
 
 ## Install
 

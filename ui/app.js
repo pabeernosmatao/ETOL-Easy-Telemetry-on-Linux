@@ -2089,14 +2089,82 @@ async function readPortResult() {
     const chip = result.ok
       ? '<span class="chip ok">● puerto abierto</span>'
       : '<span class="chip bad">● puerto cerrado o bloqueado</span>';
+    const firewallFix =
+      result.fix && /ufw|firewalld|firewall/i.test(result.fix);
     const fix = result.fix
       ? `<p>Para abrirlo:</p><pre class="config-output">${esc(result.fix)}</pre>`
       : "";
+    const openButton = !result.ok && firewallFix
+      ? `<div class="panel-actions"><button class="btn" id="btn-open-port-result"><span class="icon">⚡</span> ${esc(t("Abrir puerto"))}</button></div>`
+      : "";
     $("#modal-rich").innerHTML = `
       <p>${chip}</p>
-      <p>${esc(result.detail)}</p>${fix}`;
+      <p>${esc(result.detail)}</p>${fix}${openButton}`;
+    const openPort = $("#btn-open-port-result");
+    if (openPort) {
+      openPort.addEventListener("click", () => {
+        $("#modal").close();
+        firewallOpenDialog();
+      });
+    }
     toast(result.detail, result.ok ? "ok" : "error");
     await Promise.all([refreshStatus(true), refreshDoctor()]);
+  } catch (error) {
+    fail(error);
+  }
+}
+
+async function firewallOpenDialog() {
+  try {
+    const plan = await call("firewall_open_plan", { port: PORT_8888 });
+    if (plan.firewall === "inactive") {
+      openModal({
+        title: t("Abrir el puerto 8888"),
+        html: `<p>${esc(t("No hay un firewall activo; el puerto 8888 ya no está bloqueado."))}</p>`,
+        actions: [{ label: t("Cerrar"), onClick: () => $("#modal").close() }],
+      });
+      return;
+    }
+    if (plan.firewall === "none" || !plan.available) {
+      openModal({
+        title: t("Abrir el puerto 8888"),
+        html: `<p>${esc(t("No se detectó ufw ni firewalld. Abre el puerto 8888 en el firewall que uses."))}</p>`,
+        actions: [{ label: t("Cerrar"), onClick: () => $("#modal").close() }],
+      });
+      return;
+    }
+
+    const lan = plan.lan || "—";
+    openModal({
+      title: t("Abrir el puerto 8888"),
+      html: `
+        <p>${esc(t("Se permitirá TCP 8888 solo a los equipos de tu red local, no a Internet."))}</p>
+        <p><strong>${esc(t("Red local"))}:</strong> <code>${esc(lan)}</code></p>
+        <p>${esc(t("Comando que se aplicará:"))}</p>
+        <pre class="games-tip-code">${esc(plan.command || "")}</pre>
+        <p class="option-help">${esc(t("Se pedirá tu contraseña con pkexec."))}</p>`,
+      actions: [
+        { label: t("Cancelar"), onClick: () => $("#modal").close() },
+        {
+          label: t("Abrir puerto"),
+          primary: true,
+          onClick: () => {
+            $("#modal").close();
+            applyFirewallPort();
+          },
+        },
+      ],
+    });
+  } catch (error) {
+    fail(error);
+  }
+}
+
+async function applyFirewallPort() {
+  try {
+    const text = await call("open_firewall_port", { port: PORT_8888 });
+    toast(text || t("Puerto abierto"), "ok");
+    await refreshDoctor();
   } catch (error) {
     fail(error);
   }
@@ -2704,6 +2772,7 @@ $("#btn-doctor").addEventListener("click", async (event) => {
 });
 
 $("#btn-port").addEventListener("click", () => portCheckDialog());
+$("#btn-open-port").addEventListener("click", () => firewallOpenDialog());
 
 $("#btn-fix").addEventListener("click", async (event) => {
   busy(event.currentTarget, true);
