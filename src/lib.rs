@@ -10,6 +10,7 @@ pub mod dcpedals;
 pub mod detect;
 pub mod doctor;
 pub mod envgen;
+pub mod fanatec;
 pub mod i18n;
 pub mod kwin;
 pub mod launch;

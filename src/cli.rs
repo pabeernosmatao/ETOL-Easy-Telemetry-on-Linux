@@ -616,6 +616,46 @@ fn print_status(cfg: &Config) {
     };
     util::field("regla udev", &rule);
 
+    util::section("Fanatec");
+    if snapshot.fanatec.present {
+        let device = match (&snapshot.fanatec.device, &snapshot.fanatec.name) {
+            (Some(dev), Some(name)) => format!("{dev} · {name}"),
+            (Some(dev), None) => dev.clone(),
+            (None, Some(name)) => name.clone(),
+            (None, None) => "detectado".to_string(),
+        };
+        util::field("dispositivo", &device);
+        let driver = if snapshot.fanatec.tuning {
+            util::green("hid-fanatecff")
+        } else if snapshot.fanatec.driver {
+            util::red("sin menu de tuning")
+        } else {
+            util::red("no cargado")
+        };
+        util::field("driver", &driver);
+        util::field_opt_str("SET", snapshot.fanatec.slot_label.as_deref());
+        if !snapshot.fanatec.settings.is_empty() {
+            let values = snapshot
+                .fanatec
+                .settings
+                .iter()
+                .map(|setting| format!("{}={}", setting.key, setting.value))
+                .collect::<Vec<_>>()
+                .join(" ");
+            util::field("ajustes", &values);
+        }
+        util::field(
+            "permiso",
+            &if snapshot.fanatec.writable {
+                util::green("lectura y escritura")
+            } else {
+                util::yellow("solo lectura")
+            },
+        );
+    } else {
+        util::field("dispositivo", &util::dim("no detectado"));
+    }
+
     util::section("Juegos");
     for game in &snapshot.games {
         println!("  {}", util::bold(&game.name));

@@ -139,6 +139,7 @@ function setLanguage(lang) {
     renderHf8(state.snapshot);
     renderUsbAccess(state.snapshot);
     renderDcPedalsHardware(state.snapshot);
+    renderFanatec(state.snapshot);
     renderMessages(state.snapshot);
     renderDaemonGames();
   }
@@ -1067,6 +1068,102 @@ function renderDcPedalsHardware(snapshot) {
   translateDom(box);
 }
 
+/* ------------------------------------------------------ Fanatec (nativo) */
+
+function fanatecValue(setting) {
+  if (setting.kind === "toggle") return setting.value ? t("Sí") : t("No");
+  if (setting.kind === "degrees") return `${setting.value}°`;
+  if (setting.kind === "percent") return `${setting.value} %`;
+  return `${setting.value}`;
+}
+
+function fanatecRow(ok, label, value, title = "") {
+  return `<div class="row">
+    <span class="dot ${ok ? "on" : "warn"}"></span>
+    <div class="row-main">
+      <div class="label">${esc(label)}</div>
+      <div class="value"${title ? ` title="${esc(title)}"` : ""}>${esc(value)}</div>
+    </div>
+  </div>`;
+}
+
+/**
+ * Ficha de solo lectura del menu de tuning del CSL DD.
+ *
+ * Los valores vienen del driver hid-fanatecff por sysfs y corresponden al SET
+ * activo en el propio volante. No se escribe nada desde aqui.
+ */
+function renderFanatec(snapshot) {
+  const fan = snapshot?.fanatec;
+  const box = $("#fanatec");
+  if (!fan || !box) return;
+
+  const present = Boolean(fan.present);
+  const ready = present && Boolean(fan.tuning);
+  const tag = $("#fanatec-tag");
+  if (tag) {
+    tag.textContent = !present ? t("No detectado") : ready ? t("Listo") : t("Sin driver");
+    tag.className = `tag ${ready ? "ok" : "warn"}`;
+  }
+
+  const title = document.querySelector("#fanatec-details h2");
+  if (title) title.textContent = fan.model ? `Fanatec ${fan.model}` : "Fanatec";
+
+  if (!present) {
+    box.innerHTML = fanatecRow(false, t("Estado"), t("Conecta la base Fanatec por USB."));
+    translateDom(box);
+    return;
+  }
+
+  const device = fan.device
+    ? `${fan.device}${fan.name ? ` · ${fan.name}` : ""}`
+    : "—";
+  const rows = [
+    fanatecRow(true, t("Dispositivo"), device),
+    fanatecRow(
+      Boolean(fan.tuning),
+      t("Driver"),
+      fan.tuning ? "hid-fanatecff" : t("Sin driver"),
+    ),
+  ];
+  if (fan.slot_label) {
+    rows.push(
+      fanatecRow(
+        true,
+        t("SET activo"),
+        fan.slot_label,
+        fan.slot != null ? `slot ${fan.slot}` : "",
+      ),
+    );
+  }
+  rows.push(
+    fanatecRow(
+      Boolean(fan.writable),
+      t("Acceso"),
+      fan.writable ? t("Lectura y escritura") : t("Solo lectura"),
+    ),
+  );
+  if (fan.detail) {
+    rows.push(fanatecRow(false, t("Estado"), t(fan.detail)));
+  }
+
+  const grid = fan.settings?.length
+    ? `<div class="settings-grid">${fan.settings
+        .map((setting) => {
+          const range =
+            setting.max > 0 ? ` title="${setting.min}–${setting.max}"` : "";
+          return `<div class="setting${setting.kind === "toggle" ? " toggle" : ""}"${range}>
+            <div class="setting-name">${esc(t(setting.label))}</div>
+            <div class="setting-value">${esc(fanatecValue(setting))}</div>
+          </div>`;
+        })
+        .join("")}</div>`
+    : "";
+
+  box.innerHTML = rows.join("") + grid;
+  translateDom(box);
+}
+
 /** Explica exactamente que regla udev se va a crear. */
 function dcPedalsAccessDialog(after = null) {
   const extra = after
@@ -1771,6 +1868,7 @@ async function refreshStatus(force = false) {
       renderHf8(snapshot);
       renderUsbAccess(snapshot);
       renderDcPedalsHardware(snapshot);
+      renderFanatec(snapshot);
       renderMessages(snapshot);
       const ids = daemonGameList().map((game) => game.id).join("|");
       if (ids !== state.daemonGamesKey) renderDaemonGames();
@@ -2182,6 +2280,15 @@ $("#btn-refresh").addEventListener("click", async (event) => {
   await Promise.all([refreshStatus(true), refreshDoctor()]);
   busy(event.currentTarget, false);
 });
+
+const fanatecRefresh = $("#btn-fanatec-refresh");
+if (fanatecRefresh) {
+  fanatecRefresh.addEventListener("click", async (event) => {
+    busy(event.currentTarget, true);
+    await refreshStatus(true);
+    busy(event.currentTarget, false);
+  });
+}
 
 $("#btn-detect").addEventListener("click", (event) => detectAll(event.currentTarget));
 

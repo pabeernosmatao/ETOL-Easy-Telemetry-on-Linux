@@ -1052,6 +1052,48 @@ h2 {
   white-space: nowrap;
 }
 
+/* Ajustes del volante Fanatec: rejilla compacta de solo lectura. */
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+  padding: 12px 0 2px;
+}
+
+.setting {
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background: var(--card-2);
+  padding: 9px 11px;
+  min-width: 0;
+}
+
+.setting-name {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.setting-value {
+  margin-top: 3px;
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.setting.toggle .setting-value {
+  color: var(--accent);
+}
+
+.fanatec-actions {
+  align-items: center;
+}
+
+.fanatec-actions .option-help {
+  margin-top: 0;
+  margin-right: auto;
+}
+
 .row .btn {
   padding: 5px 11px;
   font-size: 12px;

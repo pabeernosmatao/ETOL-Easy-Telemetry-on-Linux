@@ -34,6 +34,20 @@ app and a hardware access card.
   The Diagnostics tab warns when the pedals are present but the udev rule or
   access is missing.
 
+## Fanatec CSL DD (read-only)
+
+- **Devices → Fanatec CSL DD** reads the tuning menu that the out-of-tree
+  `hid-fanatecff` driver exposes at `/sys/class/ftec_tuning/<device>`:
+  `SEN`, `FF`, `FEI`, `FOR`, `SPR`, `DPR`, `NDP`, `NFR`, `NIN`, `INT`, `FFS`,
+  `FUL`, `SHO`, `BLI`, `brF`, `ACP`, `DRI` and `advanced_mode` when the wheel
+  reports them. It also shows the active `SET`.
+- The card is **read-only for now**: ETOL only reads sysfs values. Nothing is
+  written to the wheel and firmware updates are out of scope. Values track the
+  SET selected on the wheel itself.
+- Requires the `hid-fanatecff` driver (module `hid_fanatec`). Without it the
+  card reports that the tuning menu is not available. Write access will need a
+  udev/ACL rule like the DC Pedals one (`root:games` today).
+
 ## Upgrading from 0.4.0
 
 - Existing games, bridges, FFB-HUB, SimHub, CrewChief and the HF8 configuration
@@ -56,8 +70,8 @@ app and a hardware access card.
 
 | Asset | Size | SHA-256 |
 |---|---|---|
-| `ETOL-0.5.0-linux-x86_64-portable.AppImage` | 6.9 MB | `156417822c177b3edc4bf5fee028e242fb352eb774ebbc820bf3e550eb8ea604` |
-| `ETOL-0.5.0-linux-x86_64-full.AppImage` | 113 MB | `25dbc57e04074656d82d708213e5a8fceb3018f38806cd850c901c9ff02a4e92` |
+| `ETOL-0.5.0-linux-x86_64-portable.AppImage` | 6.9 MB | `0dbc72e4c2e97563f7f915ddbf700b187e1b32795b340b6904d5dc70d31359c3` |
+| `ETOL-0.5.0-linux-x86_64-full.AppImage` | 113 MB | `7053482fc3a3c5cb1ff202a5a7822ccd21557506030ff10b349d8d22413a6140` |
 
 ## Install
 

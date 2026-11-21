@@ -16,6 +16,8 @@ pub struct Snapshot {
     pub usb: crate::usbaccess::UsbAccess,
     /// Pedales DC Simracing (DC2/DC3): presencia y acceso HID.
     pub dcpedals: crate::dcpedals::DcPedals,
+    /// Fanatec (CSL DD): ajustes nativos del driver hid-fanatecff.
+    pub fanatec: crate::fanatec::Fanatec,
     pub setup: SetupStatus,
     /// Vigilancia automatica activa (cambia el banner de MESSAGES).
     pub daemon_enabled: bool,
@@ -392,6 +394,7 @@ pub fn snapshot(cfg: &Config) -> Snapshot {
         },
         usb,
         dcpedals: crate::dcpedals::inspect(),
+        fanatec: crate::fanatec::inspect(),
         setup: SetupStatus {
             flatpak,
             bottle_ready,
