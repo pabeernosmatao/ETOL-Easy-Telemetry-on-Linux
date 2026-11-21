@@ -2691,6 +2691,42 @@ $("#btn-copy-display").addEventListener("click", async () => {
   }
 });
 
+/* ------------------------------------------- estado de las fichas de apps */
+
+const APP_DETAILS = [
+  { id: "ffbhub-details", key: "etol.apps.ffbhub.open" },
+  { id: "dcpedals-details", key: "etol.apps.dcpedals.open" },
+];
+
+/**
+ * Recuerda si FFB-HUB y DC Pedals estaban desplegadas.
+ *
+ * Sin estado guardado (primer arranque o almacenamiento no disponible), las
+ * fichas empiezan plegadas. El evento `toggle` guarda cada cambio.
+ */
+function restoreAppDetails() {
+  for (const { id, key } of APP_DETAILS) {
+    const details = document.getElementById(id);
+    if (!details) continue;
+    let saved = null;
+    try {
+      saved = localStorage.getItem(key);
+    } catch (_) {
+      // sin almacenamiento local: plegada
+    }
+    details.open = saved === "1";
+    details.addEventListener("toggle", () => {
+      try {
+        localStorage.setItem(key, details.open ? "1" : "0");
+      } catch (_) {
+        // sin almacenamiento local: solo afecta a esta sesion
+      }
+    });
+  }
+}
+
+restoreAppDetails();
+
 /* -------------------------------------------------------------- arranque */
 
 try {
