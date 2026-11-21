@@ -760,6 +760,15 @@ h2 {
   padding: 0;
 }
 
+/* Separacion uniforme entre fichas dentro de una pestana (14px, como
+   FFB-HUB -> DC Pedals en Aplicaciones). */
+.panel > .card + .card,
+.panel > .card + details.card,
+.panel > details.card + details.card,
+.panel > details.card + .card {
+  margin-top: 14px;
+}
+
 .card-details > summary {
   margin: 0;
   padding: 18px;

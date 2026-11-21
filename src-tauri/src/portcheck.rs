@@ -111,6 +111,19 @@ set -u
 PORT={port}
 RESULT={result}
 
+# Red local para las reglas del firewall (no abrir el puerto a Internet).
+LAN_CIDR="$(ip -o -4 addr show scope global 2>/dev/null \
+  | grep -vE ' (docker|br-|virbr|veth|tun|tap|wg|tailscale|zt)' \
+  | grep -E 'inet (10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.)' \
+  | head -1 | sed -E 's/.* inet ([^ ]+).*/\1/')"
+LAN=""
+if [ -n "$LAN_CIDR" ]; then
+  LAN="$(python3 -c 'import ipaddress,sys; print(ipaddress.ip_interface(sys.argv[1]).network)' "$LAN_CIDR" 2>/dev/null || true)"
+fi
+if [ -z "$LAN" ]; then
+  LAN="192.168.0.0/16"
+fi
+
 echo "ETOL - comprobacion del puerto $PORT"
 echo
 
@@ -157,7 +170,7 @@ if [ "$local_ok" != 1 ]; then
 elif [ "$fw" = blocked ]; then
   status=fail
   detail="SimHub escucha, pero el firewall bloquea TCP $PORT."
-  fix="ufw: sudo ufw allow $PORT/tcp  |  firewalld: sudo firewall-cmd --add-port=$PORT/tcp --permanent && sudo firewall-cmd --reload"
+  fix="ufw: sudo ufw allow from $LAN to any port $PORT proto tcp  |  firewalld: sudo firewall-cmd --permanent --add-rich-rule='rule family=\"ipv4\" source address=\"$LAN\" port port=\"$PORT\" protocol=\"tcp\" accept' && sudo firewall-cmd --reload"
 elif [ "$fw" = auth ]; then
   status=fail
   detail="No se pudo comprobar el firewall (sin contrasena o cancelado)."
