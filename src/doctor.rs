@@ -514,6 +514,24 @@ pub fn run(cfg: &Config) -> Vec<Check> {
         ));
     }
 
+    // --- Pedales DC (opcionales) ---
+    let dc = crate::dcpedals::inspect();
+    if dc.present && dc.needs_fix {
+        let detail = dc
+            .detail
+            .clone()
+            .unwrap_or_else(|| "falta la regla udev o el acceso HID".to_string());
+        checks.push(warn(
+            "DC Pedals",
+            detail,
+            Some("Dispositivos → DC Pedals → Preparar acceso HID".into()),
+        ));
+    } else if dc.present {
+        checks.push(ok("DC Pedals", "acceso HID correcto"));
+    } else {
+        checks.push(ok("DC Pedals", "no conectado (hardware opcional)"));
+    }
+
     // --- Binarios del puente ---
     if let Some(dir) = cfg.app_dir() {
         for def in detect::GAMES {

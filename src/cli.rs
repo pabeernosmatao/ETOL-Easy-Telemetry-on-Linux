@@ -483,6 +483,7 @@ fn print_detected(cfg: &Config) {
     field_path("SimHub", cfg.apps.simhub_exe.as_deref());
     field_path("CrewChief", cfg.apps.crewchief_exe.as_deref());
     field_path("FFB-HUB", cfg.apps.ffbhub_exe.as_deref());
+    field_path("DC Pedals", cfg.apps.dcpedals_exe.as_deref());
 
     util::section("Pad HF8");
     if cfg.hf8.enabled {
@@ -543,6 +544,7 @@ fn print_status(cfg: &Config) {
     process_field("SimHub", &snapshot.apps.simhub);
     process_field("CrewChief", &snapshot.apps.crewchief);
     process_field("FFB-HUB", &snapshot.apps.ffbhub);
+    process_field("DC Pedals", &snapshot.apps.dcpedals);
 
     util::section("Pad HF8");
     if !snapshot.hf8.enabled {
@@ -574,6 +576,45 @@ fn print_status(cfg: &Config) {
             None => util::field("dispositivo", &util::red("no conectado")),
         }
     }
+
+    util::section("Pedales DC");
+    if snapshot.dcpedals.present {
+        let devices = snapshot
+            .dcpedals
+            .devices
+            .iter()
+            .map(|device| {
+                format!(
+                    "{}{}",
+                    device.dev,
+                    if device.accessible { "" } else { " (sin acceso)" }
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(", ");
+        util::field("dispositivo", &devices);
+        let access = if snapshot
+            .dcpedals
+            .devices
+            .iter()
+            .all(|device| device.accessible)
+        {
+            util::green("correcto")
+        } else {
+            util::red("sin acceso (etol dcpedals)")
+        };
+        util::field("acceso", &access);
+    } else {
+        util::field("dispositivo", &util::dim("no detectado"));
+    }
+    let rule = if snapshot.dcpedals.rule_ok {
+        util::green("instalada")
+    } else if snapshot.dcpedals.rule_present {
+        util::red("incompleta")
+    } else {
+        util::red("no instalada")
+    };
+    util::field("regla udev", &rule);
 
     util::section("Juegos");
     for game in &snapshot.games {

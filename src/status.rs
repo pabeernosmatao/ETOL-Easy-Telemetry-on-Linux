@@ -14,6 +14,8 @@ pub struct Snapshot {
     pub hf8: Hf8Status,
     /// Acceso del usuario a los puertos serie USB (HF8, LEDs, Arduino...).
     pub usb: crate::usbaccess::UsbAccess,
+    /// Pedales DC Simracing (DC2/DC3): presencia y acceso HID.
+    pub dcpedals: crate::dcpedals::DcPedals,
     pub setup: SetupStatus,
     /// Vigilancia automatica activa (cambia el banner de MESSAGES).
     pub daemon_enabled: bool,
@@ -48,6 +50,11 @@ pub struct AppsStatus {
     pub ffbhub_enabled: bool,
     pub ffbhub_path: Option<String>,
     pub ffbhub_version: Option<String>,
+    pub dcpedals: ProcessStatus,
+    pub dcpedals_installed: bool,
+    pub dcpedals_enabled: bool,
+    pub dcpedals_path: Option<String>,
+    pub dcpedals_version: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -358,6 +365,20 @@ pub fn snapshot(cfg: &Config) -> Snapshot {
                 .as_ref()
                 .map(|path| path.display().to_string()),
             ffbhub_version: ffbhub_version(cfg),
+            dcpedals: process_status("DC Pedals Calibration.exe"),
+            dcpedals_installed: cfg
+                .apps
+                .dcpedals_exe
+                .as_ref()
+                .map(|path| path.is_file())
+                .unwrap_or(false),
+            dcpedals_enabled: cfg.apps.dcpedals_enabled,
+            dcpedals_path: cfg
+                .apps
+                .dcpedals_exe
+                .as_ref()
+                .map(|path| path.display().to_string()),
+            dcpedals_version: app_version(cfg.apps.dcpedals_exe.as_deref()),
         },
         hf8: Hf8Status {
             enabled: cfg.hf8.enabled,
@@ -370,6 +391,7 @@ pub fn snapshot(cfg: &Config) -> Snapshot {
             holders,
         },
         usb,
+        dcpedals: crate::dcpedals::inspect(),
         setup: SetupStatus {
             flatpak,
             bottle_ready,
@@ -400,7 +422,12 @@ fn process_status(needle: &str) -> ProcessStatus {
 
 /// Version instalada de FFB-HUB, escrita por el instalador en `version.txt`.
 fn ffbhub_version(cfg: &crate::config::Config) -> Option<String> {
-    let exe = cfg.apps.ffbhub_exe.as_ref()?;
+    app_version(cfg.apps.ffbhub_exe.as_deref())
+}
+
+/// Version escrita por el instalador junto al ejecutable.
+fn app_version(exe: Option<&std::path::Path>) -> Option<String> {
+    let exe = exe?;
     let dir = exe.parent()?;
     let text = std::fs::read_to_string(dir.join("version.txt")).ok()?;
     let version = text.trim();

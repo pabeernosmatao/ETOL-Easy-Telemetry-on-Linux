@@ -502,6 +502,105 @@ async fn install_ffbhub(update: bool) -> Result<FfbHubInstall, String> {
 }
 
 #[derive(Serialize)]
+struct DcPedalsInstall {
+    version: String,
+    exe: String,
+    dest: String,
+    updated: bool,
+}
+
+/// Instala o actualiza DC Pedals Calibration en la botella de ETOL.
+///
+/// Descarga el RAR oficial de DC Simracing y copia el ejecutable y `mcHID.dll`
+/// a `C:\DC Pedals Calibration`. Los presets (`*.txt`) del usuario se quedan
+/// donde estan: el instalador solo reemplaza el programa y la DLL.
+#[tauri::command]
+async fn install_dcpedals(update: bool) -> Result<DcPedalsInstall, String> {
+    blocking(move || {
+        let mut cfg = Config::load()?;
+        let bottle = cfg
+            .apps
+            .bottle
+            .clone()
+            .context("no se conoce la botella de ETOL")?;
+        let app_dir = cfg
+            .app_dir()
+            .context("no se conoce la carpeta de scripts; usa Redetectar")?
+            .to_path_buf();
+        let script = app_dir.join("dcpedals/instalar_dcpedals.py");
+        if !script.is_file() {
+            bail!("no existe {}", script.display());
+        }
+
+        let mut command = Command::new("python3");
+        command
+            .arg(&script)
+            .arg("--bottle")
+            .arg(&bottle)
+            .arg("--json")
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+        launch::clean_child_env(&mut command);
+
+        let output = command
+            .output()
+            .with_context(|| format!("no se pudo ejecutar {}", script.display()))?;
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        if !output.status.success() {
+            let detail = if stderr.trim().is_empty() {
+                stdout.trim()
+            } else {
+                stderr.trim()
+            };
+            bail!("no se pudo instalar DC Pedals: {detail}");
+        }
+
+        let value: serde_json::Value = serde_json::from_str(stdout.trim())
+            .with_context(|| format!("respuesta inesperada del instalador: {}", stdout.trim()))?;
+        let version = value
+            .get("version")
+            .and_then(|value| value.as_str())
+            .unwrap_or("")
+            .to_string();
+        let exe = value
+            .get("exe")
+            .and_then(|value| value.as_str())
+            .unwrap_or("")
+            .to_string();
+        let dest = value
+            .get("dest")
+            .and_then(|value| value.as_str())
+            .unwrap_or("")
+            .to_string();
+        if exe.is_empty() {
+            bail!("el instalador no devolvio la ruta de DC Pedals Calibration.exe");
+        }
+
+        cfg.apps.dcpedals_exe = Some(PathBuf::from(&exe));
+        cfg.apps.dcpedals_enabled = true;
+        cfg.save()?;
+        logs::info(
+            "dcpedals",
+            format!(
+                "{} {} en {}",
+                if update { "actualizado" } else { "instalado" },
+                version,
+                exe
+            ),
+        );
+        Ok(DcPedalsInstall {
+            version,
+            exe,
+            dest,
+            updated: update,
+        })
+    })
+    .await
+}
+
+#[derive(Serialize)]
 struct GameAppStart {
     launched: Launched,
     bridge_started: bool,
@@ -577,6 +676,11 @@ async fn configure_hf8() -> Result<String, String> {
 #[tauri::command]
 async fn fix_usb_access() -> Result<String, String> {
     blocking(|| etol::usbaccess::fix()).await
+}
+
+#[tauri::command]
+async fn fix_dcpedals_access() -> Result<String, String> {
+    blocking(|| etol::dcpedals::fix()).await
 }
 
 #[tauri::command]
@@ -1781,8 +1885,10 @@ fn main() {
             start_app_for_game,
             stop_app,
             install_ffbhub,
+            install_dcpedals,
             configure_hf8,
             fix_usb_access,
+            fix_dcpedals_access,
             env_preview,
             open_path,
             open_guide,

@@ -219,6 +219,13 @@ if [[ -d "$ROOT/payload/ffbhub" ]]; then
   echo "payload: instalador de FFB-HUB"
 fi
 
+# DC Pedals: descarga la utilidad oficial de calibracion de DC Simracing.
+if [[ -d "$ROOT/payload/dcpedals" ]]; then
+  mkdir -p "$DEST/dcpedals"
+  cp -a "$ROOT/payload/dcpedals/." "$DEST/dcpedals/"
+  echo "payload: instalador de DC Pedals"
+fi
+
 # Scripts propios de ETOL (instalacion de Bottles Flatpak y del prefijo).
 if [[ -d "$ROOT/scripts/sistema" ]]; then
   mkdir -p "$DEST/sistema"

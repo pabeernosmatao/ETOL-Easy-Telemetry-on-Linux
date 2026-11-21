@@ -118,15 +118,30 @@ descarga el ZIP oficial en tiempo de ejecución.
 
 ---
 
-## 6. Lo que **no** se distribuye
+## 6. DC Pedals Calibration
 
-SimHub, CrewChief, FFB-HUB, Bottles, Steam, Proton y los propios simuladores
-**no** van dentro de ETOL. El usuario los instala por su cuenta y ETOL solo los
-detecta, configura y lanza. Sus licencias son las de cada fabricante.
+La utilidad **DC Pedals Calibration** es software de **DC Simracing**. ETOL
+**no la redistribuye**: descarga el RAR oficial
+(`https://dcsimracing.com/dw/software/dc_pedals_calibration_1.0.2.rar`) y copia
+el ejecutable y `mcHID.dll` en la botella del usuario. Su uso se rige por la
+licencia de DC Simracing.
+
+ETOL solo guarda el instalador (`payload/dcpedals/instalar_dcpedals.py`), que
+descarga el paquete oficial en tiempo de ejecución. No se incluye en el
+AppImage.
 
 ---
 
-## 7. Cómo cumplir al redistribuir
+## 7. Lo que **no** se distribuye
+
+SimHub, CrewChief, FFB-HUB, DC Pedals Calibration, Bottles, Steam, Proton y los
+propios simuladores **no** van dentro de ETOL. El usuario los instala por su
+cuenta y ETOL solo los detecta, configura y lanza. Sus licencias son las de
+cada fabricante.
+
+---
+
+## 8. Cómo cumplir al redistribuir
 
 Si publicas un fork o un AppImage modificado:
 

@@ -1,6 +1,6 @@
 # ETOL · Guía de uso
 
-[English](GUIDE.md) · **Español** · Versión 0.4.0
+[English](GUIDE.md) · **Español** · Versión 0.5.0
 
 Todo lo que hace ETOL, cómo preparar SimHub y CrewChief desde cero y cómo
 sacarle partido a cada simulador.
@@ -42,8 +42,8 @@ clic. No modifica los juegos.
 ### Abrir el AppImage
 
 ```bash
-chmod +x ETOL-0.4.0-linux-x86_64-portable.AppImage
-./ETOL-0.4.0-linux-x86_64-portable.AppImage
+chmod +x ETOL-0.5.0-linux-x86_64-portable.AppImage
+./ETOL-0.5.0-linux-x86_64-portable.AppImage
 ```
 
 La variante **portable** usa el WebKit del sistema y necesita
@@ -72,8 +72,8 @@ desmarca lo que se indica en el paso 5.
 | Pestaña | Para qué sirve |
 |---|---|
 | **Juegos** | Una ficha por simulador instalado: estado, puerto, prefijo, botones de lanzar/apps y el engranaje de configuración. |
-| **Aplicaciones** | SimHub y CrewChief, la ficha de FFB-HUB (instalar, actualizar, lanzar y activar), la botella elegida y las rutas. |
-| **Dispositivos** | El pad HF8, su puerto COM y el enlace dentro de la botella. |
+| **Aplicaciones** | SimHub y CrewChief, la ficha de FFB-HUB y la de DC Pedals (instalar, actualizar, lanzar y activar), la botella elegida y las rutas. |
+| **Dispositivos** | El pad HF8, los pedales DC2/DC3 (detección HID y regla udev), el puerto COM y el enlace dentro de la botella. |
 | **Diagnóstico** | Comprobaciones con el arreglo exacto al lado. |
 | **Opciones** | Idioma, vigilancia automática, apps por juego, dashboards, logs, USB y pantallas. |
 
@@ -104,6 +104,9 @@ Púlsalo una vez por juego.
 - **FFB-HUB** (en Aplicaciones): se instala o actualiza desde su ficha y se
   lanza a mano. En modo automático solo arranca si el interruptor de
   Aplicaciones y la casilla del juego en Opciones están activos.
+- **DC Pedals** (Aplicaciones + Dispositivos): la ficha de Aplicaciones instala
+  la utilidad oficial de DC Simracing en la botella; la de Dispositivos detecta
+  el HID `0444:20DC` y prepara la regla udev para que Wine pueda abrirlo.
 
 En los juegos que solo usan SimHub (ETS2 y BeamNG.drive) los dos botones ocupan
 **la mitad cada uno**.

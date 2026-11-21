@@ -254,6 +254,7 @@ pub enum AppKind {
     SimHub,
     CrewChief,
     FfbHub,
+    DcPedals,
 }
 
 impl AppKind {
@@ -262,6 +263,7 @@ impl AppKind {
             "simhub" => Some(AppKind::SimHub),
             "crewchief" | "crew" => Some(AppKind::CrewChief),
             "ffbhub" | "ffb-hub" | "lmuffb" => Some(AppKind::FfbHub),
+            "dcpedals" | "dc-pedals" | "dc_pedals" => Some(AppKind::DcPedals),
             _ => None,
         }
     }
@@ -271,6 +273,7 @@ impl AppKind {
             AppKind::SimHub => "simhub",
             AppKind::CrewChief => "crewchief",
             AppKind::FfbHub => "ffbhub",
+            AppKind::DcPedals => "dcpedals",
         }
     }
 
@@ -279,6 +282,7 @@ impl AppKind {
             AppKind::SimHub => "SimHub",
             AppKind::CrewChief => "CrewChief",
             AppKind::FfbHub => "FFB-HUB",
+            AppKind::DcPedals => "DC Pedals",
         }
     }
 
@@ -287,6 +291,7 @@ impl AppKind {
             AppKind::SimHub => "SimHubWPF.exe",
             AppKind::CrewChief => "CrewChiefV4.exe",
             AppKind::FfbHub => "FFBHUB.exe",
+            AppKind::DcPedals => "DC Pedals Calibration.exe",
         }
     }
 }
@@ -374,13 +379,16 @@ pub fn start_app(cfg: &Config, kind: AppKind) -> Result<Launched> {
         AppKind::SimHub => cfg.apps.simhub_exe.clone(),
         AppKind::CrewChief => cfg.apps.crewchief_exe.clone(),
         AppKind::FfbHub => cfg.apps.ffbhub_exe.clone(),
+        AppKind::DcPedals => cfg.apps.dcpedals_exe.clone(),
     }
-    .with_context(|| {
-        if kind == AppKind::FfbHub {
+    .with_context(|| match kind {
+        AppKind::FfbHub => {
             "FFB-HUB no esta instalado; instalalo desde Aplicaciones".to_string()
-        } else {
-            format!("no se conoce el ejecutable de {}", kind.tag())
         }
+        AppKind::DcPedals => {
+            "DC Pedals no esta instalado; instalalo desde Aplicaciones".to_string()
+        }
+        _ => format!("no se conoce el ejecutable de {}", kind.tag()),
     })?;
 
     if !exe.is_file() {
@@ -606,7 +614,12 @@ pub fn stop_bridge(cfg: &Config, game_id: &str) -> Result<String> {
 pub fn stop_apps(cfg: &Config) -> Vec<AppReport> {
     close_apps(
         cfg,
-        &[AppKind::SimHub, AppKind::CrewChief, AppKind::FfbHub],
+        &[
+            AppKind::SimHub,
+            AppKind::CrewChief,
+            AppKind::FfbHub,
+            AppKind::DcPedals,
+        ],
     )
 }
 

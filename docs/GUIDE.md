@@ -1,6 +1,6 @@
 # ETOL · User guide
 
-**English** · [Español](GUIA.md) · Version 0.4.0
+**English** · [Español](GUIA.md) · Version 0.5.0
 
 Everything ETOL does, how to set up SimHub and CrewChief from scratch and how
 to get the most out of each simulator.
@@ -42,8 +42,8 @@ with one click. It never modifies your games.
 ### Opening the AppImage
 
 ```bash
-chmod +x ETOL-0.4.0-linux-x86_64-portable.AppImage
-./ETOL-0.4.0-linux-x86_64-portable.AppImage
+chmod +x ETOL-0.5.0-linux-x86_64-portable.AppImage
+./ETOL-0.5.0-linux-x86_64-portable.AppImage
 ```
 
 The **portable** build uses the system WebKit and needs `libwebkit2gtk-4.1` and
@@ -71,8 +71,8 @@ step 5 says.
 | Tab | What it is for |
 |---|---|
 | **Games** | One card per installed simulator: state, port, prefix, launch/app buttons and the configuration gear. |
-| **Applications** | SimHub and CrewChief, the FFB-HUB card (install, update, launch and enable), the selected bottle and the paths. |
-| **Devices** | The HF8 pad, its COM port and the link inside the bottle. |
+| **Applications** | SimHub and CrewChief, the FFB-HUB and DC Pedals cards (install, update, launch and enable), the selected bottle and the paths. |
+| **Devices** | The HF8 pad, the DC2/DC3 pedals (HID detection and udev rule), the COM port and the link inside the bottle. |
 | **Diagnostics** | Checks with the exact fix next to them. |
 | **Options** | Language, automatic watchdog, per-game apps, dashboards, logs, USB and displays. |
 
@@ -103,6 +103,9 @@ sees something wrong. Click it once per game.
 - **FFB-HUB** (in Applications): install or update it from its card and launch
   it manually. In automatic mode it only starts if the Applications switch and
   the game checkbox in Options are both enabled.
+- **DC Pedals** (Applications + Devices): the Applications card installs the
+  official DC Simracing utility in the bottle; the Devices card detects the
+  `0444:20DC` HID and prepares the udev rule so Wine can open it.
 
 On games that only use SimHub (ETS2 and BeamNG.drive) the two buttons take
 **half the width each**.

@@ -6,6 +6,7 @@
 pub mod cli;
 pub mod config;
 pub mod daemon;
+pub mod dcpedals;
 pub mod detect;
 pub mod doctor;
 pub mod envgen;

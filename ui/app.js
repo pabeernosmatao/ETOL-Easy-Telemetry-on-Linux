@@ -134,6 +134,7 @@ function setLanguage(lang) {
     renderApps(state.snapshot);
     renderHf8(state.snapshot);
     renderUsbAccess(state.snapshot);
+    renderDcPedalsHardware(state.snapshot);
     renderMessages(state.snapshot);
     renderDaemonGames();
   }
@@ -533,7 +534,165 @@ function renderApps(snapshot) {
     <span class="path" title="${esc(apps.bottle_path ?? "")}">botella: ${esc(apps.bottle_path ?? "no detectada")}</span>
     <span class="path" title="${esc(apps.wine ?? "")}">wine: ${esc(apps.wine ?? "no detectado")}${esc(wineSource)}</span>`;
   renderFfbHub(apps);
+  renderDcPedals(apps);
   translateDom(document);
+}
+
+/**
+ * Ficha de DC Pedals Calibration: utilidad oficial de DC Simracing.
+ *
+ * Es una app de calibracion, no un acompanante del juego: no se abre sola en
+ * modo automatico. El interruptor solo marca que el usuario la quiere tener
+ * disponible; los botones instalan/actualizan y abren/cierran.
+ */
+function renderDcPedals(apps) {
+  const box = $("#dcpedals-card");
+  if (!box) return;
+
+  const info = apps.dcpedals ?? {};
+  const installed = Boolean(apps.dcpedals_installed);
+  const running = Boolean(info.running);
+  const pids = info.pids ?? [];
+  const version = apps.dcpedals_version ? ` · ${apps.dcpedals_version}` : "";
+  const status = !installed
+    ? "No instalado"
+    : running
+      ? `En marcha · pid ${pids.join(", ")}`
+      : "Instalado";
+  const dot = running ? "on" : installed ? "" : "warn";
+  const access = state.snapshot?.dcpedals ?? {};
+  const blocked = installed && access.needs_fix;
+  const warning = blocked
+    ? `<p class="dcpedals-warning">Sin acceso HID: abre <strong>Dispositivos → DC Pedals</strong> y prepara la regla udev antes de usar el programa.</p>`
+    : "";
+
+  box.innerHTML = `
+    <div class="dcpedals-head">
+      <div>
+        <h3>DC Pedals <span class="tag">DC2 / DC3</span></h3>
+        <p class="option-help">Utilidad oficial de DC Simracing para leer y enviar
+          la calibración de los pedales DC2/DC3: zonas muertas y curvas de cada
+          pedal. ETOL la instala en su propia botella, no en el prefijo del
+          juego, y la abre solo cuando tú quieras.</p>
+      </div>
+      <label class="switch" title="Activar DC Pedals">
+        <input type="checkbox" id="dcpedals-enabled"${apps.dcpedals_enabled ? " checked" : ""}>
+        <span class="switch-track"><span class="switch-thumb"></span></span>
+      </label>
+    </div>
+    <div class="dcpedals-status">
+      <span class="dot ${dot}"></span>
+      <span>${esc(status)}${esc(version)}</span>
+      ${apps.dcpedals_path ? `<span class="path" title="${esc(apps.dcpedals_path)}">${esc(apps.dcpedals_path)}</span>` : ""}
+    </div>
+    ${warning}
+    <div class="dcpedals-actions">
+      <button class="btn" data-dcpedals="launch"${installed ? "" : " disabled"}>
+        ${running ? "Cerrar" : "Lanzar"}
+      </button>
+      <button class="btn ghost" data-dcpedals="update">
+        ${installed ? "Actualizar" : "Instalar"}
+      </button>
+    </div>`;
+  translateDom(box);
+}
+
+/** Explica la descarga oficial antes de instalar DC Pedals. */
+function dcPedalsInstallDialog() {
+  openModal({
+    title: "Instalar DC Pedals",
+    html: `
+      <p><strong>DC Pedals Calibration</strong> es la utilidad oficial de
+      DC Simracing para calibrar los pedales DC2/DC3. ETOL descargará el
+      paquete oficial (~0,9 MB, RAR) desde <code>dcsimracing.com</code>.</p>
+      <ul>
+        <li>Se instala en <code>C:\\DC Pedals Calibration</code>, dentro de la
+          botella de ETOL. No se toca el juego ni su prefijo.</li>
+        <li>Solo se reemplazan el ejecutable y <code>mcHID.dll</code>; tus
+          presets <code>.txt</code> se conservan al actualizar.</li>
+        <li>Es software de DC Simracing: ETOL no lo redistribuye; se descarga
+          bajo su licencia.</li>
+        <li>Para que Wine vea el pedal, prepara el acceso HID en
+          <strong>Dispositivos → DC Pedals</strong>. La instalación no escribe
+          nada en los pedales.</li>
+      </ul>`,
+    actions: [
+      { label: "Cancelar", onClick: () => $("#modal").close() },
+      {
+        label: "Instalar ahora",
+        primary: true,
+        onClick: () => {
+          $("#modal").close();
+          installDcPedals(false);
+        },
+      },
+    ],
+  });
+}
+
+async function setDcPedalsEnabled(enabled) {
+  try {
+    const payload = await call("set_config", {
+      key: "apps.dcpedals_enabled",
+      value: enabled ? "true" : "false",
+    });
+    state.config = payload.config;
+    await refreshStatus(true);
+    toast(`DC Pedals ${enabled ? "activado" : "desactivado"}`, "ok");
+  } catch (error) {
+    fail(error);
+  }
+}
+
+async function installDcPedals(update) {
+  toast(update ? "Actualizando DC Pedals…" : "Instalando DC Pedals…");
+  try {
+    const result = await call("install_dcpedals", { update });
+    await call("set_config", {
+      key: "apps.dcpedals_enabled",
+      value: "true",
+    });
+    toast(
+      `DC Pedals ${result.version} ${result.updated ? "actualizado" : "instalado"}`,
+      "ok",
+    );
+    await refreshStatus(true);
+  } catch (error) {
+    fail(error);
+    await refreshStatus(true);
+  }
+}
+
+async function toggleDcPedalsLaunch(button) {
+  busy(button, true);
+  try {
+    await refreshStatus(true);
+    const apps = state.snapshot?.apps ?? {};
+    if (!apps.dcpedals_installed) {
+      dcPedalsInstallDialog();
+      return;
+    }
+    if (apps.dcpedals?.running) {
+      const report = await call("stop_app", { app: "dcpedals" });
+      toast(
+        report.closed ? "DC Pedals cerrado" : `DC Pedals: ${report.detail}`,
+        report.closed ? "ok" : "error",
+      );
+    } else {
+      const access = state.snapshot?.dcpedals ?? {};
+      if (access.needs_fix) {
+        dcPedalsAccessDialog(() => openApp(button, "dcpedals"));
+        return;
+      }
+      await openApp(button, "dcpedals");
+    }
+    setTimeout(() => refreshStatus(true), 1200);
+    setTimeout(() => refreshStatus(true), 6000);
+  } catch (error) {
+    fail(error);
+  } finally {
+    busy(button, false);
+  }
 }
 
 /**
@@ -789,6 +948,149 @@ const BANNERS = {
     title: "El HF8 necesita reconfigurarse",
   },
 };
+
+/* ------------------------------------------------------ DC Pedals (HID) */
+
+function renderDcPedalsHardware(snapshot) {
+  const dc = snapshot?.dcpedals;
+  const box = $("#dcpedals-hw");
+  if (!dc || !box) return;
+
+  const devices = dc.devices ?? [];
+  const present = Boolean(dc.present);
+  const tag = $("#dcpedals-hw-tag");
+  const ready = present && !dc.needs_fix;
+  if (tag) {
+    tag.textContent = !present ? t("No detectado") : ready ? t("Listo") : t("Revisar");
+    tag.className = `tag ${ready ? "ok" : "warn"}`;
+  }
+
+  const deviceValue = devices.length
+    ? devices
+        .map((device) =>
+          esc(
+            `${device.dev}${device.name ? ` · ${device.name}` : ""}${
+              device.accessible ? "" : ` (${t("sin acceso")})`
+            }`,
+          ),
+        )
+        .join("<br>")
+    : esc(t("Conecta los pedales por USB"));
+
+  const accessOk = present && devices.every((device) => device.accessible);
+  const accessValue = !present ? "—" : accessOk ? t("Sí") : t("No");
+
+  const ruleValue = dc.rule_ok
+    ? t("Instalada")
+    : dc.rule_present
+      ? t("Incompleta")
+      : t("No instalada");
+
+  const detail = dc.detail
+    ? `<div class="row">
+        <span class="dot ${ready ? "on" : "warn"}"></span>
+        <div class="row-main">
+          <div class="label">${esc(t("Estado"))}</div>
+          <div class="value">${esc(dc.detail)}</div>
+        </div>
+      </div>`
+    : "";
+
+  box.innerHTML = `
+    <div class="row">
+      <span class="dot ${dc.present ? "on" : "warn"}"></span>
+      <div class="row-main">
+        <div class="label">${esc(t("Dispositivo"))}</div>
+        <div class="value">${deviceValue}</div>
+      </div>
+    </div>
+    <div class="row">
+      <span class="dot"></span>
+      <div class="row-main">
+        <div class="label">VID / PID</div>
+        <div class="value">0444 : 20DC</div>
+      </div>
+    </div>
+    <div class="row">
+      <span class="dot ${accessOk ? "on" : "warn"}"></span>
+      <div class="row-main">
+        <div class="label">${esc(t("Acceso del usuario"))}</div>
+        <div class="value">${esc(accessValue)}</div>
+      </div>
+    </div>
+    <div class="row">
+      <span class="dot ${dc.rule_ok ? "on" : "warn"}"></span>
+      <div class="row-main">
+        <div class="label">${esc(t("Regla udev"))}</div>
+        <div class="value">${esc(ruleValue)}</div>
+      </div>
+    </div>
+    ${detail}`;
+  translateDom(box);
+}
+
+/** Explica exactamente que regla udev se va a crear. */
+function dcPedalsAccessDialog(after = null) {
+  const extra = after
+    ? `<p class="option-help">Si prefieres no crearla ahora, puedes abrir la
+       utilidad igualmente; no vera el pedal hasta que el acceso este
+       preparado.</p>`
+    : "";
+  openModal({
+    title: "Preparar acceso HID de DC Pedals",
+    html: `
+      <p>Wine necesita permiso para abrir el dispositivo HID de los pedales
+      (VID <code>0444</code>, PID <code>20DC</code>). ETOL creará esta regla
+      udev:</p>
+      <pre class="games-tip-code">${esc(`/etc/udev/rules.d/99-etol-dcpedals.rules
+# ETOL: DC Simracing pedals (DC2/DC3) - acceso HID para Wine.
+KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0444", ATTRS{idProduct}=="20dc", TAG+="uaccess"`)}</pre>
+      <p>Después recargará las reglas udev. Se pedirá tu contraseña con
+      <code>pkexec</code>. <strong>No se escribe nada en los pedales</strong>:
+      solo se concede acceso al usuario.</p>
+      <p class="option-help">Si el acceso sigue denegado, desconecta y vuelve a
+      conectar el USB de los pedales.</p>
+      ${extra}`,
+    actions: [
+      { label: "Cancelar", onClick: () => $("#modal").close() },
+      ...(after
+        ? [
+            {
+              label: "Abrir sin acceso",
+              onClick: () => {
+                $("#modal").close();
+                after();
+              },
+            },
+          ]
+        : []),
+      {
+        label: "Preparar acceso",
+        primary: true,
+        onClick: () => {
+          $("#modal").close();
+          fixDcPedalsAccess(after);
+        },
+      },
+    ],
+  });
+}
+
+async function fixDcPedalsAccess(then = null) {
+  toast("Creando regla udev…");
+  try {
+    const text = await call("fix_dcpedals_access");
+    const line = String(text ?? "")
+      .split("\n")
+      .map((value) => value.trim())
+      .find(Boolean);
+    toast(line || "Acceso HID preparado", "ok");
+    await refreshStatus(true);
+    if (then) await then();
+  } catch (error) {
+    fail(error);
+  }
+}
 
 const SETUP_SCRIPTS = {
   install: "bottles-install",
@@ -1411,6 +1713,7 @@ async function refreshStatus(force = false) {
       renderApps(snapshot);
       renderHf8(snapshot);
       renderUsbAccess(snapshot);
+      renderDcPedalsHardware(snapshot);
       renderMessages(snapshot);
       const ids = daemonGameList().map((game) => game.id).join("|");
       if (ids !== state.daemonGamesKey) renderDaemonGames();
@@ -1752,6 +2055,20 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const dcpedalsButton = event.target.closest("[data-dcpedals]");
+  if (dcpedalsButton) {
+    if (dcpedalsButton.dataset.dcpedals === "launch") {
+      toggleDcPedalsLaunch(dcpedalsButton);
+    } else if (dcpedalsButton.dataset.dcpedals === "update") {
+      if (!state.snapshot?.apps?.dcpedals_installed) {
+        dcPedalsInstallDialog();
+      } else {
+        installDcPedals(true);
+      }
+    }
+    return;
+  }
+
   const ffbhubButton = event.target.closest("[data-ffbhub]");
   if (ffbhubButton) {
     if (ffbhubButton.dataset.ffbhub === "launch") {
@@ -1879,6 +2196,8 @@ $("#btn-usb-fix").addEventListener("click", async (event) => {
   }
 });
 
+$("#btn-dcpedals-fix").addEventListener("click", () => dcPedalsAccessDialog());
+
 $("#opt-hf8-enabled").addEventListener("change", async (event) => {
   const enabled = event.currentTarget.checked;
   try {
@@ -1971,6 +2290,19 @@ $("#ffbhub-card").addEventListener("change", async (event) => {
     return;
   }
   await setFfbHubEnabled(enabled);
+});
+
+$("#dcpedals-card").addEventListener("change", async (event) => {
+  const input = event.target.closest("#dcpedals-enabled");
+  if (!input) return;
+  const enabled = input.checked;
+  const apps = state.snapshot?.apps ?? {};
+  if (enabled && !apps.dcpedals_installed) {
+    input.checked = false;
+    dcPedalsInstallDialog();
+    return;
+  }
+  await setDcPedalsEnabled(enabled);
 });
 
 $("#daemon-games").addEventListener("change", async (event) => {

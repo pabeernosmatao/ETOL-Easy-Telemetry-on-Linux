@@ -122,6 +122,11 @@ pub struct Apps {
     pub ffbhub_exe: Option<PathBuf>,
     /// FFB-HUB activado en Aplicaciones: permite el arranque automatico.
     pub ffbhub_enabled: bool,
+    /// DC Pedals Calibration instalado en la botella.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dcpedals_exe: Option<PathBuf>,
+    /// DC Pedals activado en Aplicaciones (solo instalacion/uso manual).
+    pub dcpedals_enabled: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -463,6 +468,8 @@ impl Config {
             ["apps", "crewchief_exe"] => self.apps.crewchief_exe = Some(util::expand(value)),
             ["apps", "ffbhub_exe"] => self.apps.ffbhub_exe = Some(util::expand(value)),
             ["apps", "ffbhub_enabled"] => self.apps.ffbhub_enabled = parse_bool(value)?,
+            ["apps", "dcpedals_exe"] => self.apps.dcpedals_exe = Some(util::expand(value)),
+            ["apps", "dcpedals_enabled"] => self.apps.dcpedals_enabled = parse_bool(value)?,
             ["hf8", "enabled"] => self.hf8.enabled = parse_bool(value)?,
             ["hf8", "device"] => self.hf8.device = Some(util::expand(value)),
             ["hf8", "com_port"] => self.hf8.com_port = value.trim().to_uppercase(),

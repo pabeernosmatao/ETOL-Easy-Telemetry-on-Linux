@@ -364,6 +364,14 @@ pub fn detect() -> Config {
                     }
                 }
             }
+            apps.dcpedals_enabled = prev.apps.dcpedals_enabled;
+            if apps.dcpedals_exe.is_none() {
+                if let Some(exe) = &prev.apps.dcpedals_exe {
+                    if exe.is_file() {
+                        apps.dcpedals_exe = Some(exe.clone());
+                    }
+                }
+            }
         }
         cfg.apps = apps;
     }
@@ -409,6 +417,7 @@ pub fn detect_apps() -> Option<Apps> {
 
     let (bottle, simhub, crewchief) = candidates.remove(0);
     let ffbhub = bottles::find_program(&bottle, "FFBHUB.exe");
+    let dcpedals = bottles::find_program(&bottle, "DC Pedals Calibration.exe");
     let reason = if candidates.is_empty() {
         "unica botella con SimHub".to_string()
     } else {
@@ -442,6 +451,8 @@ pub fn detect_apps() -> Option<Apps> {
         crewchief_exe: crewchief,
         ffbhub_exe: ffbhub,
         ffbhub_enabled: false,
+        dcpedals_exe: dcpedals,
+        dcpedals_enabled: false,
     })
 }
 
