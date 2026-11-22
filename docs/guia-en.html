@@ -240,7 +240,7 @@
               stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
       <span>ETOL</span>
-      <span class="badge">version 0.5.0</span>
+      <span class="badge">version 0.5.1</span>
     </div>
     <h1>User <span class="grad">guide</span></h1>
     <p class="lead">
@@ -287,8 +287,8 @@
   </ul>
 
   <h3>Opening the AppImage</h3>
-  <pre><code>chmod +x ETOL-0.5.0-linux-x86_64-portable.AppImage
-./ETOL-0.5.0-linux-x86_64-portable.AppImage</code></pre>
+  <pre><code>chmod +x ETOL-0.5.1-linux-x86_64-portable.AppImage
+./ETOL-0.5.1-linux-x86_64-portable.AppImage</code></pre>
   <p class="small muted">The <strong>portable</strong> build uses the system
   WebKit and needs <code>libwebkit2gtk-4.1</code> and <code>libgtk-3</code>. The
   <strong>full</strong> build bundles everything and needs glibc 2.44 or newer.</p>
@@ -328,7 +328,7 @@
       <tr><td><strong>Applications</strong></td><td>SimHub and CrewChief, FFB-HUB, DC Pedals and the Fanatec CSL DD card with one collapsible section per installed game, the selected bottle and the paths.</td></tr>
       <tr><td><strong>Devices</strong></td><td>USB access, DC Pedals, Fanatec CSL DD (switch and udev rule) and the HF8 pad, with their state, COM port and the link inside the bottle.</td></tr>
       <tr><td><strong>Diagnostics</strong></td><td>Checks with the exact fix next to them: payload, permissions, scripts, ports, Python… including port 8888 and the button to open it to the local network only.</td></tr>
-      <tr><td><strong>Options</strong></td><td>Language, automatic watchdog, per-game apps, dashboards, logs, USB and display configuration.</td></tr>
+      <tr><td><strong>Options</strong></td><td>Start with the system, language, automatic watchdog, per-game apps, dashboards, logs, USB and display configuration.</td></tr>
     </tbody>
   </table>
   <div class="note">
@@ -555,6 +555,12 @@
     <li><strong>Applications</strong>: open or close CrewChief and SimHub.</li>
     <li><strong>Quit</strong>: stops everything and closes ETOL.</li>
   </ul>
+  <p>In <strong>Options → Start with the system</strong> ETOL creates an XDG
+  entry in <code>~/.config/autostart/etol.desktop</code>. At login it opens in
+  the tray, without a window, so the automatic watchdog is ready. The switch
+  reflects whether that entry exists: if you delete it by hand, it shows as
+  disabled.</p>
+
   <p>If there is no tray host, ETOL opens anyway and logs it. In that case,
   closing the window quits the application (it does not stay hidden with no
   icon).</p>
@@ -613,6 +619,11 @@
   extension; on niri add a tray module to the bar. ETOL works the same without
   the icon.</p>
 
+  <h3>ETOL does not start with the system</h3>
+  <p>Enable <strong>Options → Start with the system</strong>. If you moved or
+  renamed the AppImage, turn it off and on again so the entry points to the new
+  path. The file is <code>~/.config/autostart/etol.desktop</code>.</p>
+
   <h3>The AppImage does not start</h3>
   <p>The portable build needs <code>libwebkit2gtk-4.1</code> and
   <code>libgtk-3</code>. If your glibc is 2.44 or newer, try the
@@ -651,6 +662,7 @@
     <thead><tr><th>What</th><th>Where</th></tr></thead>
     <tbody>
       <tr><td>Configuration</td><td><code>~/.config/etol/config.toml</code></td></tr>
+      <tr><td>Autostart</td><td><code>~/.config/autostart/etol.desktop</code></td></tr>
       <tr><td>Installed scripts and bridges</td><td><code>~/.config/etol/payload/</code></td></tr>
       <tr><td>Logs</td><td><code>~/.config/etol/logs/</code></td></tr>
       <tr><td>Generated environment</td><td><code>~/.config/etol/generated/entorno.sh</code></td></tr>
@@ -670,7 +682,7 @@
 
 <footer>
   <div class="wrap">
-    <span>ETOL · Easy Telemetry On Linux · 0.5.0 · MIT</span>
+    <span>ETOL · Easy Telemetry On Linux · 0.5.1 · MIT</span>
     <span>
       <a href="https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux">GitHub</a> ·
       <a href="https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux/blob/main/README.md">README</a> ·

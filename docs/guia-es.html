@@ -252,7 +252,7 @@
               stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
       <span>ETOL</span>
-      <span class="badge">versión 0.5.0</span>
+      <span class="badge">versión 0.5.1</span>
     </div>
     <h1>Guía de <span class="grad">uso</span></h1>
     <p class="lead">
@@ -299,8 +299,8 @@
   </ul>
 
   <h3>Abrir el AppImage</h3>
-  <pre><code>chmod +x ETOL-0.5.0-linux-x86_64-portable.AppImage
-./ETOL-0.5.0-linux-x86_64-portable.AppImage</code></pre>
+  <pre><code>chmod +x ETOL-0.5.1-linux-x86_64-portable.AppImage
+./ETOL-0.5.1-linux-x86_64-portable.AppImage</code></pre>
   <p class="small muted">La variante <strong>portable</strong> usa el WebKit del
   sistema y necesita <code>libwebkit2gtk-4.1</code> y <code>libgtk-3</code>. La
   variante <strong>full</strong> lo lleva todo dentro y pide glibc 2.44 o
@@ -339,7 +339,7 @@
       <tr><td><strong>Aplicaciones</strong></td><td>SimHub y CrewChief, FFB-HUB, DC Pedals y la ficha del Fanatec CSL DD con un desplegable por juego instalado, la botella elegida y las rutas.</td></tr>
       <tr><td><strong>Dispositivos</strong></td><td>Acceso USB, DC Pedals, Fanatec CSL DD (interruptor y regla udev) y el pad HF8, con su estado, el puerto COM y el enlace dentro de la botella.</td></tr>
       <tr><td><strong>Diagnóstico</strong></td><td>Comprobaciones con el arreglo exacto al lado: payload, permisos, scripts, puertos, Python… Incluye el puerto 8888 y el botón para abrirlo solo a la red local.</td></tr>
-      <tr><td><strong>Opciones</strong></td><td>Idioma, vigilancia automática, apps por juego, dashboards, logs, USB y configuración de pantallas.</td></tr>
+      <tr><td><strong>Opciones</strong></td><td>Arranque con el sistema, idioma, vigilancia automática, apps por juego, dashboards, logs, USB y configuración de pantallas.</td></tr>
     </tbody>
   </table>
   <div class="note">
@@ -564,6 +564,12 @@
     <li><strong>Aplicaciones</strong>: abrir o cerrar CrewChief y SimHub.</li>
     <li><strong>Salir</strong>: para todo y cierra ETOL.</li>
   </ul>
+  <p>En <strong>Opciones → Arrancar con el sistema</strong> ETOL crea una
+  entrada XDG en <code>~/.config/autostart/etol.desktop</code>. Al iniciar
+  sesión se abre en la bandeja, sin ventana, para que la vigilancia automática
+  esté lista. El interruptor refleja si esa entrada existe: si la borras a mano,
+  aparece desactivado.</p>
+
   <p>Si no hay host de bandeja, ETOL abre igual y lo deja en el log. En ese caso,
   cerrar la ventana cierra la aplicación (no se queda oculta sin icono).</p>
 </section>
@@ -622,6 +628,12 @@
   AppIndicator; en niri, añade un módulo de bandeja a la barra. ETOL funciona
   igual sin icono.</p>
 
+  <h3>ETOL no arranca con el sistema</h3>
+  <p>Activa <strong>Opciones → Arrancar con el sistema</strong>. Si moviste o
+  renombraste el AppImage, desactívalo y vuelve a activarlo para que la entrada
+  apunte a la ruta nueva. El fichero es
+  <code>~/.config/autostart/etol.desktop</code>.</p>
+
   <h3>El AppImage no arranca</h3>
   <p>La portable necesita <code>libwebkit2gtk-4.1</code> y <code>libgtk-3</code>.
   Si tu glibc es 2.44 o superior, prueba la variante <strong>full</strong>. Sin
@@ -658,6 +670,7 @@
     <thead><tr><th>Qué</th><th>Dónde</th></tr></thead>
     <tbody>
       <tr><td>Configuración</td><td><code>~/.config/etol/config.toml</code></td></tr>
+      <tr><td>Arranque automático</td><td><code>~/.config/autostart/etol.desktop</code></td></tr>
       <tr><td>Scripts y puentes instalados</td><td><code>~/.config/etol/payload/</code></td></tr>
       <tr><td>Logs</td><td><code>~/.config/etol/logs/</code></td></tr>
       <tr><td>Entorno generado</td><td><code>~/.config/etol/generated/entorno.sh</code></td></tr>
@@ -677,7 +690,7 @@
 
 <footer>
   <div class="wrap">
-    <span>ETOL · Easy Telemetry On Linux · 0.5.0 · MIT</span>
+    <span>ETOL · Easy Telemetry On Linux · 0.5.1 · MIT</span>
     <span>
       <a href="https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux">GitHub</a> ·
       <a href="https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux/blob/main/README.es.md">README</a> ·

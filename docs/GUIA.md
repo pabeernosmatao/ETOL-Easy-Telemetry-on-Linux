@@ -1,6 +1,6 @@
 # ETOL · Guía de uso
 
-[English](GUIDE.md) · **Español** · Versión 0.5.0
+[English](GUIDE.md) · **Español** · Versión 0.5.1
 
 Todo lo que hace ETOL, cómo preparar SimHub y CrewChief desde cero y cómo
 sacarle partido a cada simulador.
@@ -54,8 +54,8 @@ clic. No modifica los juegos.
 ### Abrir el AppImage
 
 ```bash
-chmod +x ETOL-0.5.0-linux-x86_64-portable.AppImage
-./ETOL-0.5.0-linux-x86_64-portable.AppImage
+chmod +x ETOL-0.5.1-linux-x86_64-portable.AppImage
+./ETOL-0.5.1-linux-x86_64-portable.AppImage
 ```
 
 La variante **portable** usa el WebKit del sistema y necesita
@@ -87,7 +87,7 @@ desmarca lo que se indica en el paso 5.
 | **Aplicaciones** | SimHub y CrewChief, FFB-HUB, DC Pedals y la ficha del Fanatec CSL DD con un desplegable por juego instalado, la botella elegida y las rutas. |
 | **Dispositivos** | Acceso USB, DC Pedals, Fanatec CSL DD (interruptor y regla udev) y el pad HF8, con su estado, el puerto COM y el enlace dentro de la botella. |
 | **Diagnóstico** | Comprobaciones con el arreglo exacto al lado, incluido el puerto 8888 y el botón para abrirlo solo a la red local. |
-| **Opciones** | Idioma, vigilancia automática, apps por juego, dashboards, logs, USB y pantallas. |
+| **Opciones** | Arranque con el sistema, idioma, vigilancia automática, apps por juego, dashboards, logs, USB y pantallas. |
 
 El idioma por defecto es **Automático**: usa español o catalán si el sistema
 está en esos idiomas y, para el resto, inglés.
@@ -263,6 +263,11 @@ módulo de bandeja, o GNOME con la extensión AppIndicator.
 El menú tiene: Mostrar ventana, un submenú por simulador (Lanzar / Parar todo),
 Aplicaciones (abrir/cerrar CrewChief y SimHub) y Salir.
 
+En **Opciones → Arrancar con el sistema** ETOL crea una entrada XDG en
+`~/.config/autostart/etol.desktop`. Al iniciar sesión se abre en la bandeja, sin
+ventana, para que la vigilancia automática esté lista. El interruptor refleja si
+esa entrada existe: si la borras a mano, aparece desactivado.
+
 Si no hay host de bandeja, ETOL abre igual y lo deja en el log; en ese caso
 cerrar la ventana cierra la aplicación.
 
@@ -314,6 +319,11 @@ no tiene SimHub, vuelve a preparar el prefijo.
 **No hay icono de bandeja.** Tu escritorio no tiene host StatusNotifier. En
 GNOME instala la extensión AppIndicator; en niri añade un módulo de bandeja.
 
+**ETOL no arranca con el sistema.** Activa **Opciones → Arrancar con el
+sistema**. Si moviste o renombraste el AppImage, desactívalo y vuelve a
+activarlo para que la entrada apunte a la ruta nueva. El fichero es
+`~/.config/autostart/etol.desktop`.
+
 **El AppImage no arranca.** La portable necesita `libwebkit2gtk-4.1` y
 `libgtk-3`. Con glibc 2.44 o superior prueba la **full**. Sin FUSE2:
 `./ETOL-*.AppImage --appimage-extract-and-run`.
@@ -351,6 +361,7 @@ de Bottles y los juegos no se tocan.
 | Descargas de instaladores | `~/Descargas/ETOL/` |
 | Perfiles Fanatec | `~/.config/etol/config.toml` (`[fanatec.profiles.<juego>]`) |
 | Reglas udev de hardware | `/etc/udev/rules.d/70-etol-dcpedals.rules` y `/etc/udev/rules.d/70-etol-fanatec.rules` |
+| Arranque automático | `~/.config/autostart/etol.desktop` |
 
 ETOL no guarda nada dentro de la carpeta de Steam ni de los juegos, salvo los
 plugins que el usuario pide instalar (SCS en ETS2 y SMMP en rFactor 2 y

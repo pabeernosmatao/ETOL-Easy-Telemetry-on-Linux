@@ -2,7 +2,7 @@
 
 **English** · [Español](README.es.md) · [User guide](docs/GUIDE.md)
 
-[![Version](https://img.shields.io/badge/version-0.5.0-38e1b0)](https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux/releases)
+[![Version](https://img.shields.io/badge/version-0.5.1-38e1b0)](https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux/releases)
 [![License](https://img.shields.io/badge/license-MIT-4aa8ff)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Linux%20x86__64-8ea3b9)](#requirements)
 [![Tauri](https://img.shields.io/badge/Tauri-2-24c8db)](https://tauri.app)
@@ -43,6 +43,8 @@ with one click.
   keeps a profile per installed game, loaded when the game starts.
 - **Dashboards over wifi**: port 8888 is only opened to your local network.
   Diagnostics can check the port and apply the LAN-only rule with one click.
+- **Start with the session**: **Options → Start with the system** creates the
+  XDG entry and opens ETOL in the tray at login, without opening the window.
 - **SimHub dashboards over the game** on KDE/KWin, with or without Gamescope.
 - Collapsible cards that remember their state; interface in **Spanish, Catalan
   and English**.
@@ -63,7 +65,7 @@ with one click.
 
 <img src="docs/capturas/opciones.png" width="820" alt="ETOL options tab">
 
-*Options: language, automatic monitoring, per-game apps and dashboards over the game.*
+*Options: start with the system, language, automatic monitoring, per-game apps and dashboards over the game.*
 
 ## From scratch: Bottles, SimHub and CrewChief
 
@@ -123,8 +125,8 @@ Pedals and Fanatec are optional and disabled until you enable them.
 Download the AppImage from the latest release and make it executable:
 
 ```bash
-chmod +x ETOL-0.5.0-linux-x86_64-portable.AppImage
-./ETOL-0.5.0-linux-x86_64-portable.AppImage
+chmod +x ETOL-0.5.1-linux-x86_64-portable.AppImage
+./ETOL-0.5.1-linux-x86_64-portable.AppImage
 ```
 
 Two builds are published. Both are **x86_64** (`amd64` is just Debian's name
@@ -132,8 +134,8 @@ for the same architecture); the difference is whether WebKit is bundled:
 
 | Build | Size | WebKit | glibc | When to use |
 |---|---|---|---|---|
-| `ETOL-0.5.0-linux-x86_64-portable.AppImage` | ~6 MB | system | 2.39+ | Ubuntu 26.04, Fedora, Arch, CachyOS. Needs `libwebkit2gtk-4.1` |
-| `ETOL-0.5.0-linux-x86_64-full.AppImage` | ~111 MB | bundled | 2.44+ | Everything included; current rolling and desktop distros |
+| `ETOL-0.5.1-linux-x86_64-portable.AppImage` | ~6 MB | system | 2.39+ | Ubuntu 26.04, Fedora, Arch, CachyOS. Needs `libwebkit2gtk-4.1` |
+| `ETOL-0.5.1-linux-x86_64-full.AppImage` | ~111 MB | bundled | 2.44+ | Everything included; current rolling and desktop distros |
 
 The portable build needs `libwebkit2gtk-4.1` and `libgtk-3`:
 
@@ -146,7 +148,7 @@ sudo pacman -S webkit2gtk-4.1 gtk3                 # Arch/CachyOS
 Without FUSE2:
 
 ```bash
-./ETOL-0.5.0-linux-x86_64-portable.AppImage --appimage-extract-and-run
+./ETOL-0.5.1-linux-x86_64-portable.AppImage --appimage-extract-and-run
 ```
 
 ## Requirements
@@ -191,7 +193,7 @@ open ETOL, detect games or run the telemetry bridges.
   switches and status tags.
 - **Diagnostics**: checks with the exact fix next to them, including the port
   8888 check and the LAN-only **Open port 8888** button.
-- **Options**: language, automatic watchdog, dashboards, logs and USB.
+- **Options**: start with the session, language, automatic watchdog, dashboards, logs and USB.
 
 ## Desktop support
 

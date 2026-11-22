@@ -14,6 +14,7 @@ use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 use ksni::blocking::TrayMethods;
 use tauri::Manager;
+use etol::autostart;
 use etol::config::{self, Config};
 use etol::daemon::{self, Action};
 use etol::detect;
@@ -239,6 +240,25 @@ async fn detect(app: tauri::AppHandle) -> Result<Bootstrap, String> {
 #[tauri::command]
 async fn get_config() -> Result<Config, String> {
     blocking(Config::load).await
+}
+
+/// Estado del arranque automatico (fichero XDG, no `config.toml`).
+#[tauri::command]
+async fn autostart_status() -> Result<autostart::Status, String> {
+    blocking(|| Ok(autostart::status())).await
+}
+
+/// Activa o desactiva el arranque automatico con la sesion.
+#[tauri::command]
+async fn set_autostart(enabled: bool) -> Result<autostart::Status, String> {
+    blocking(move || {
+        if enabled {
+            autostart::enable()
+        } else {
+            autostart::disable()
+        }
+    })
+    .await
 }
 
 #[tauri::command]
@@ -1917,8 +1937,11 @@ fn main() {
         return;
     }
     logs::info("gui", "arranque de la interfaz");
+    // Lo pone la entrada XDG de autostart: al iniciar sesion ETOL debe quedarse
+    // en la bandeja, sin abrir la ventana encima de lo que estes haciendo.
+    let start_hidden = std::env::args().any(|arg| arg == "--autostart");
     tauri::Builder::default()
-        .setup(|app| {
+        .setup(move |app| {
             let info = payload::ensure();
             if info.ok {
                 if let Some(dir) = &info.dir {
@@ -1939,6 +1962,10 @@ fn main() {
             // el icono de CrewChief en equipos nuevos.
             grupo::ensure();
 
+            // Entradas de autostart antiguas (sin --autostart): se actualizan
+            // para que el arranque con la sesion se quede en la bandeja.
+            autostart::upgrade_if_needed();
+
             let cfg = Config::load().unwrap_or_else(|error| {
                 logs::warn("gui", format!("configuracion no valida ({error}); redetecto"));
                 detect::detect()
@@ -1957,6 +1984,15 @@ fn main() {
             });
             if !ready {
                 retry_native_tray(app.handle().clone());
+            }
+
+            // Sin bandeja no se oculta: el usuario no tendria forma de abrir la
+            // ventana. Con bandeja, el arranque automatico es silencioso.
+            if start_hidden && ready {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.hide();
+                }
+                logs::info("gui", "arranque automatico: ventana en la bandeja");
             }
 
             spawn_daemon(app.handle().clone());
@@ -1980,6 +2016,8 @@ fn main() {
             detect,
             get_config,
             set_config,
+            autostart_status,
+            set_autostart,
             status,
             doctor_report,
             fix_locks,

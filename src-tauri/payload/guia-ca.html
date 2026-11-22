@@ -240,7 +240,7 @@
               stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
       <span>ETOL</span>
-      <span class="badge">versió 0.5.0</span>
+      <span class="badge">versió 0.5.1</span>
     </div>
     <h1>Guia d'<span class="grad">ús</span></h1>
     <p class="lead">
@@ -288,8 +288,8 @@
   </ul>
 
   <h3>Obrir l'AppImage</h3>
-  <pre><code>chmod +x ETOL-0.5.0-linux-x86_64-portable.AppImage
-./ETOL-0.5.0-linux-x86_64-portable.AppImage</code></pre>
+  <pre><code>chmod +x ETOL-0.5.1-linux-x86_64-portable.AppImage
+./ETOL-0.5.1-linux-x86_64-portable.AppImage</code></pre>
   <p class="small muted">La variant <strong>portable</strong> usa el WebKit del
   sistema i necessita <code>libwebkit2gtk-4.1</code> i <code>libgtk-3</code>. La
   variant <strong>full</strong> ho porta tot dins i demana glibc 2.44 o
@@ -328,7 +328,7 @@
       <tr><td><strong>Aplicacions</strong></td><td>SimHub i CrewChief, FFB-HUB, DC Pedals i la fitxa del Fanatec CSL DD amb un desplegable per joc instal·lat, l'ampolla triada i les rutes.</td></tr>
       <tr><td><strong>Dispositius</strong></td><td>Accés USB, DC Pedals, Fanatec CSL DD (interruptor i regla udev) i el pad HF8, amb el seu estat, el port COM i l'enllaç dins de l'ampolla.</td></tr>
       <tr><td><strong>Diagnòstic</strong></td><td>Comprovacions amb l'arranjament exacte al costat: payload, permisos, scripts, ports, Python… Inclou el port 8888 i el botó per obrir-lo només a la xarxa local.</td></tr>
-      <tr><td><strong>Opcions</strong></td><td>Idioma, vigilància automàtica, apps per joc, dashboards, logs, USB i configuració de pantalles.</td></tr>
+      <tr><td><strong>Opcions</strong></td><td>Arrencada amb el sistema, idioma, vigilància automàtica, apps per joc, dashboards, logs, USB i configuració de pantalles.</td></tr>
     </tbody>
   </table>
   <div class="note">
@@ -554,6 +554,12 @@
     <li><strong>Aplicacions</strong>: obrir o tancar CrewChief i SimHub.</li>
     <li><strong>Sortir</strong>: ho atura tot i tanca ETOL.</li>
   </ul>
+  <p>A <strong>Opcions → Arrenca amb el sistema</strong> ETOL crea una entrada
+  XDG a <code>~/.config/autostart/etol.desktop</code>. En iniciar sessió s'obre
+  a la safata, sense finestra, perquè la vigilància automàtica estigui a punt.
+  L'interruptor reflecteix si aquesta entrada existeix: si l'esborres a mà,
+  apareix desactivat.</p>
+
   <p>Si no hi ha host de safata, ETOL obre igual i ho deixa al log. En aquest
   cas, tancar la finestra tanca l'aplicació (no es queda oculta sense icona).</p>
 </section>
@@ -612,6 +618,12 @@
   AppIndicator; a niri, afegeix un mòdul de safata a la barra. ETOL funciona
   igual sense icona.</p>
 
+  <h3>ETOL no arrenca amb el sistema</h3>
+  <p>Activa <strong>Opcions → Arrenca amb el sistema</strong>. Si vas moure o
+  canviar de nom l'AppImage, desactiva'l i torna a activar-lo perquè l'entrada
+  apunti a la ruta nova. El fitxer és
+  <code>~/.config/autostart/etol.desktop</code>.</p>
+
   <h3>L'AppImage no arrenca</h3>
   <p>La portable necessita <code>libwebkit2gtk-4.1</code> i <code>libgtk-3</code>.
   Si la teva glibc és 2.44 o superior, prova la variant <strong>full</strong>.
@@ -648,6 +660,7 @@
     <thead><tr><th>Què</th><th>On</th></tr></thead>
     <tbody>
       <tr><td>Configuració</td><td><code>~/.config/etol/config.toml</code></td></tr>
+      <tr><td>Arrencada automàtica</td><td><code>~/.config/autostart/etol.desktop</code></td></tr>
       <tr><td>Scripts i ponts instal·lats</td><td><code>~/.config/etol/payload/</code></td></tr>
       <tr><td>Logs</td><td><code>~/.config/etol/logs/</code></td></tr>
       <tr><td>Entorn generat</td><td><code>~/.config/etol/generated/entorno.sh</code></td></tr>
@@ -667,7 +680,7 @@
 
 <footer>
   <div class="wrap">
-    <span>ETOL · Easy Telemetry On Linux · 0.5.0 · MIT</span>
+    <span>ETOL · Easy Telemetry On Linux · 0.5.1 · MIT</span>
     <span>
       <a href="https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux">GitHub</a> ·
       <a href="https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux/blob/main/README.es.md">README</a> ·

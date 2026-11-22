@@ -3,6 +3,7 @@
 //! Lo comparten el binario de linea de comandos (`src/main.rs`) y la interfaz
 //! grafica (`src-tauri`).
 
+pub mod autostart;
 pub mod cli;
 pub mod config;
 pub mod daemon;

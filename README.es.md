@@ -2,7 +2,7 @@
 
 [English](README.md) · **Español** · [Guía de uso](docs/GUIA.md)
 
-[![Versión](https://img.shields.io/badge/versi%C3%B3n-0.5.0-38e1b0)](https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux/releases)
+[![Versión](https://img.shields.io/badge/versi%C3%B3n-0.5.1-38e1b0)](https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux/releases)
 [![Licencia](https://img.shields.io/badge/licencia-MIT-4aa8ff)](LICENSE)
 [![Plataforma](https://img.shields.io/badge/plataforma-Linux%20x86__64-8ea3b9)](#requisitos)
 [![Tauri](https://img.shields.io/badge/Tauri-2-24c8db)](https://tauri.app)
@@ -42,6 +42,8 @@ ETOL detecta tus juegos, prepara SimHub (y CrewChief) y lo lanza todo con un cli
   con un perfil por juego instalado que se carga al arrancar el juego.
 - **Dashboards por wifi**: el puerto 8888 solo se abre a tu red local. El
   diagnóstico puede comprobarlo y aplicar la regla LAN con un clic.
+- **Arranque con el sistema**: **Opciones → Arrancar con el sistema** crea la
+  entrada XDG y abre ETOL en la bandeja al iniciar sesión, sin ventana.
 - **Dashboards de SimHub sobre el juego** en KDE/KWin, con o sin gamescope.
 - Fichas desplegables que recuerdan su estado; interfaz en **español, catalán e
   inglés**.
@@ -62,7 +64,7 @@ ETOL detecta tus juegos, prepara SimHub (y CrewChief) y lo lanza todo con un cli
 
 <img src="docs/capturas/opciones.png" width="820" alt="Pestaña de opciones de ETOL">
 
-*Opciones: idioma, vigilancia automática, apps por juego y dashboards sobre el juego.*
+*Opciones: arranque con el sistema, idioma, vigilancia automática, apps por juego y dashboards sobre el juego.*
 
 ## Desde cero: Bottles, SimHub y CrewChief
 
@@ -121,8 +123,8 @@ Pedals y Fanatec son opcionales y están desactivados hasta que los actives.
 Descarga el AppImage de la última release y dale permisos:
 
 ```bash
-chmod +x ETOL-0.5.0-linux-x86_64-portable.AppImage
-./ETOL-0.5.0-linux-x86_64-portable.AppImage
+chmod +x ETOL-0.5.1-linux-x86_64-portable.AppImage
+./ETOL-0.5.1-linux-x86_64-portable.AppImage
 ```
 
 Hay dos variantes. Las dos son **x86_64** (`amd64` es solo el nombre que usa
@@ -130,8 +132,8 @@ Debian para la misma arquitectura); la diferencia es si llevan WebKit dentro:
 
 | Variante | Tamaño | WebKit | glibc | Cuándo usarla |
 |---|---|---|---|---|
-| `ETOL-0.5.0-linux-x86_64-portable.AppImage` | ~6 MB | del sistema | 2.39+ | Ubuntu 26.04, Fedora, Arch, CachyOS. Necesita `libwebkit2gtk-4.1` |
-| `ETOL-0.5.0-linux-x86_64-full.AppImage` | ~111 MB | incluido | 2.44+ | Todo dentro; rolling y escritorios actuales |
+| `ETOL-0.5.1-linux-x86_64-portable.AppImage` | ~6 MB | del sistema | 2.39+ | Ubuntu 26.04, Fedora, Arch, CachyOS. Necesita `libwebkit2gtk-4.1` |
+| `ETOL-0.5.1-linux-x86_64-full.AppImage` | ~111 MB | incluido | 2.44+ | Todo dentro; rolling y escritorios actuales |
 
 La variante portable necesita `libwebkit2gtk-4.1` y `libgtk-3`:
 
@@ -144,7 +146,7 @@ sudo pacman -S webkit2gtk-4.1 gtk3                 # Arch/CachyOS
 Sin FUSE2:
 
 ```bash
-./ETOL-0.5.0-linux-x86_64-portable.AppImage --appimage-extract-and-run
+./ETOL-0.5.1-linux-x86_64-portable.AppImage --appimage-extract-and-run
 ```
 
 ## Requisitos
@@ -189,7 +191,7 @@ abrir ETOL, detectar juegos o ejecutar los puentes de telemetría.
   interruptores y etiquetas de estado.
 - **Diagnóstico**: comprobaciones con el arreglo exacto al lado, incluida la
   comprobación del puerto 8888 y el botón **Abrir puerto 8888** solo para la LAN.
-- **Opciones**: idioma, vigilancia automática, dashboards, logs y USB.
+- **Opciones**: arranque con el sistema, idioma, vigilancia automática, dashboards, logs y USB.
 
 ## Compatibilidad por escritorio
 

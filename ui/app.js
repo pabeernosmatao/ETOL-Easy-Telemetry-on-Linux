@@ -9,6 +9,7 @@ const state = {
   config: null,
   snapshot: null,
   report: null,
+  autostart: null,
   paths: { config: "—", env: "—" },
   logsPath: "—",
   statusKey: "",
@@ -2263,6 +2264,24 @@ function renderDaemonGames() {
     .join("");
 }
 
+function renderAutostart(status) {
+  const input = $("#opt-autostart");
+  if (!input) return;
+  input.checked = status?.enabled === true;
+  input.dataset.path = status?.path ?? "";
+}
+
+async function refreshAutostart() {
+  try {
+    const status = await call("autostart_status");
+    state.autostart = status;
+    renderAutostart(status);
+  } catch (error) {
+    // No es critico para arrancar ETOL: la opcion se queda como este.
+    console.error("autostart:", error);
+  }
+}
+
 function renderOptions(payload = {}) {
   const cfg = payload.config ?? state.config ?? {};
   const logs = cfg.logs ?? {};
@@ -2305,6 +2324,7 @@ function showTab(name) {
   document.querySelectorAll("[data-panel]").forEach((panel) => {
     panel.hidden = panel.dataset.panel !== tab;
   });
+  if (tab === "opciones" && state.config) refreshAutostart();
   try {
     localStorage.setItem("etol.tab", tab);
   } catch (_) {
@@ -2382,7 +2402,7 @@ async function applyBootstrap(payload) {
   renderPaths();
   renderOptions(payload);
   setLanguage(state.lang);
-  await Promise.all([refreshStatus(true), refreshDoctor()]);
+  await Promise.all([refreshStatus(true), refreshDoctor(), refreshAutostart()]);
 }
 
 /* --------------------------------------------------------------- acciones */
@@ -2927,6 +2947,26 @@ $("#opt-kwin-overlay").addEventListener("change", (event) => {
     enabled ? "true" : "false",
     enabled ? "Dashboards sobre el juego activados" : "Dashboards sobre el juego desactivados"
   );
+});
+
+$("#opt-autostart").addEventListener("change", async (event) => {
+  const input = event.currentTarget;
+  const enabled = input.checked;
+  input.disabled = true;
+  try {
+    const status = await call("set_autostart", { enabled });
+    state.autostart = status;
+    renderAutostart(status);
+    toast(
+      enabled ? "ETOL arrancará con el sistema" : "ETOL ya no arrancará con el sistema",
+      "ok"
+    );
+  } catch (error) {
+    input.checked = !enabled;
+    fail(error);
+  } finally {
+    input.disabled = false;
+  }
 });
 
 $("#opt-language").addEventListener("click", async (event) => {

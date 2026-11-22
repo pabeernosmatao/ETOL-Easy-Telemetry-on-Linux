@@ -1,6 +1,6 @@
 # ETOL · User guide
 
-**English** · [Español](GUIA.md) · Version 0.5.0
+**English** · [Español](GUIA.md) · Version 0.5.1
 
 Everything ETOL does, how to set up SimHub and CrewChief from scratch and how
 to get the most out of each simulator.
@@ -54,8 +54,8 @@ with one click. It never modifies your games.
 ### Opening the AppImage
 
 ```bash
-chmod +x ETOL-0.5.0-linux-x86_64-portable.AppImage
-./ETOL-0.5.0-linux-x86_64-portable.AppImage
+chmod +x ETOL-0.5.1-linux-x86_64-portable.AppImage
+./ETOL-0.5.1-linux-x86_64-portable.AppImage
 ```
 
 The **portable** build uses the system WebKit and needs `libwebkit2gtk-4.1` and
@@ -86,7 +86,7 @@ step 5 says.
 | **Applications** | SimHub and CrewChief, FFB-HUB, DC Pedals and the Fanatec CSL DD card with one collapsible section per installed game, the selected bottle and the paths. |
 | **Devices** | USB access, DC Pedals, Fanatec CSL DD (switch and udev rule) and the HF8 pad, with their state, COM port and the link inside the bottle. |
 | **Diagnostics** | Checks with the exact fix next to them, including port 8888 and the button to open it to the local network only. |
-| **Options** | Language, automatic watchdog, per-game apps, dashboards, logs, USB and displays. |
+| **Options** | Start with the system, language, automatic watchdog, per-game apps, dashboards, logs, USB and displays. |
 
 The default language is **Automatic**: it uses Spanish or Catalan if the system
 is in those languages and English for everything else.
@@ -261,6 +261,11 @@ GNOME with the AppIndicator extension.
 The menu has: Show window, one submenu per simulator (Launch / Stop everything),
 Applications (open/close CrewChief and SimHub) and Quit.
 
+In **Options → Start with the system** ETOL creates an XDG entry in
+`~/.config/autostart/etol.desktop`. At login it opens in the tray, without a
+window, so the automatic watchdog is ready. The switch reflects whether that
+entry exists: if you delete it by hand, it shows as disabled.
+
 If there is no tray host, ETOL opens anyway and logs it; in that case closing
 the window quits the application.
 
@@ -312,6 +317,11 @@ bottle does not have SimHub, run the prefix preparation again.
 **There is no tray icon.** Your desktop has no StatusNotifier host. On GNOME
 install the AppIndicator extension; on niri add a tray module to the bar.
 
+**ETOL does not start with the system.** Enable **Options → Start with the
+system**. If you moved or renamed the AppImage, turn it off and on again so the
+entry points to the new path. The file is
+`~/.config/autostart/etol.desktop`.
+
 **The AppImage does not start.** The portable build needs
 `libwebkit2gtk-4.1` and `libgtk-3`. With glibc 2.44 or newer try the **full**
 build. Without FUSE2: `./ETOL-*.AppImage --appimage-extract-and-run`.
@@ -348,6 +358,7 @@ bottles and games are not touched.
 | Installer downloads | `~/Descargas/ETOL/` |
 | Fanatec profiles | `~/.config/etol/config.toml` (`[fanatec.profiles.<game>]`) |
 | Hardware udev rules | `/etc/udev/rules.d/70-etol-dcpedals.rules` and `/etc/udev/rules.d/70-etol-fanatec.rules` |
+| Autostart | `~/.config/autostart/etol.desktop` |
 
 ETOL does not store anything inside the Steam folder or the games, except the
 plugins the user asks to install (SCS in ETS2 and SMMP in rFactor 2 and Le Mans
