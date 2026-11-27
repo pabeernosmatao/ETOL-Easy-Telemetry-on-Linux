@@ -33,17 +33,23 @@ for arg in "$@"; do
 done
 
 if ! have_flatpak; then
-  cat >&2 <<'EOF'
-ERROR: no se encontró `flatpak`.
+  cat >&2 <<EOF
+ERROR: no se encontró \`flatpak\`.
 
-Instálalo primero con el gestor de tu distribución:
-  Ubuntu/Debian:  sudo apt install flatpak
-  Arch/CachyOS:   sudo pacman -S flatpak
-  Fedora:         sudo dnf install flatpak
+Instálalo primero con:
+  $(package_install_hint flatpak)
 
 Después vuelve a ejecutar este script.
 EOF
   exit 1
+fi
+
+# Si Bottles ya existe como Flatpak de sistema (Bazzite), no se instala una
+# copia de usuario solo para los permisos: 02 aplica el override al sistema.
+if ! flatpak_user_installed && flatpak_system_installed; then
+  warn "Bottles ya está instalado como Flatpak de sistema; ETOL puede usarlo así."
+  info "Ejecuta 02-bottles-flatpak-a-usuario.sh para aplicar los permisos al ámbito de sistema."
+  exit 0
 fi
 
 progress 5 "Comprobando Bottles Flatpak"
@@ -62,7 +68,7 @@ if [[ "$DRY" == 1 ]]; then
   if [[ "$INSTALL" == 1 ]]; then
     info "flatpak install --user -y flathub $ETOL_BOTTLES_ID"
   fi
-  info "flatpak override --user --nofilesystem=host --nofilesystem=host-os \\"
+  info "flatpak override $(flatpak_scope_arg) --nofilesystem=host --nofilesystem=host-os \\"
   info "  --filesystem=home --filesystem=host-etc --filesystem=xdg-data/Steam \\"
   info "  --filesystem=~/.steam --device=all … $ETOL_BOTTLES_ID"
   exit 0

@@ -7,7 +7,8 @@
 #   ./03-preparar-prefijo-simhub.sh --bottle simhub --runner ge-proton11-11
 #
 # Qué hace:
-#   1. Comprueba que Bottles Flatpak está instalado en modo usuario.
+#   1. Comprueba que Bottles Flatpak está instalado en el ámbito activo
+#      (usuario o sistema; en Bazzite, la copia de sistema es válida).
 #   2. Descarga el último GE-Proton (GitHub) y lo registra como runner.
 #   3. Crea la botella `simhub` (win64, win11) con ese runner.
 #   4. Instala las dependencias que necesitan SimHub y CrewChief:
@@ -56,16 +57,18 @@ done
 
 need() {
   command -v "$1" >/dev/null 2>&1 && return 0
-  die "falta «$1» en el sistema. Instálalo antes de continuar (${2:-usa el gestor de paquetes de tu distribución})."
+  local pkg
+  pkg="$(package_for_command "$1")"
+  die "falta «$1» en el sistema. Instálalo antes de continuar con: $(package_install_hint "$pkg")"
 }
 
-have_flatpak || die "no se encontró flatpak."
-flatpak_user_installed || die "Bottles no está instalado para el usuario. Ejecuta 01-instalar-bottles-flatpak.sh"
+have_flatpak || die "no se encontró flatpak; instálalo con: $(package_install_hint flatpak)"
+[[ "$(flatpak_scope)" != "none" ]] || die "Bottles no está instalado (ni usuario ni sistema). Ejecuta 01-instalar-bottles-flatpak.sh"
 
-need curl "Arch/CachyOS: sudo pacman -S curl · Ubuntu: sudo apt install curl · Fedora: sudo dnf install curl"
-need tar "Arch/CachyOS: sudo pacman -S tar · Ubuntu: sudo apt install tar · Fedora: sudo dnf install tar"
-need unzip "Arch/CachyOS: sudo pacman -S unzip · Ubuntu: sudo apt install unzip · Fedora: sudo dnf install unzip"
-need file "Arch/CachyOS: sudo pacman -S file · Ubuntu: sudo apt install file · Fedora: sudo dnf install file"
+need curl
+need tar
+need unzip
+need file
 
 RUNNER_DIR=""
 BOTTLE_DIR="$ETOL_BOTTLES_DATA/bottles/$BOTTLE"
@@ -209,7 +212,7 @@ Comprueba la conexión (o pasa una versión con --runner, por ejemplo --runner g
 }
 
 bottle_exists() {
-  flatpak run --command=bottles-cli "$ETOL_BOTTLES_ID" list bottles 2>/dev/null \
+  flatpak_run --command=bottles-cli "$ETOL_BOTTLES_ID" list bottles 2>/dev/null \
     | grep -q -- "- $BOTTLE\$"
 }
 
@@ -318,7 +321,7 @@ PY_COMPONENTS
 }
 
 bottle_new() {
-  flatpak run --command=bottles-cli "$ETOL_BOTTLES_ID" new \
+  flatpak_run --command=bottles-cli "$ETOL_BOTTLES_ID" new \
     --bottle-name "$BOTTLE" \
     --environment application \
     --arch win64 \
@@ -363,7 +366,7 @@ reintenta en unos minutos."
 configure_bottle() {
   progress 52 "Configurando la botella (Windows 11)"
   step "Configurando la botella"
-  flatpak run --command=bottles-cli "$ETOL_BOTTLES_ID" edit \
+  flatpak_run --command=bottles-cli "$ETOL_BOTTLES_ID" edit \
     -b "$BOTTLE" --win win11 >/dev/null 2>&1 || warn "no se pudo fijar Windows 11."
   info "Windows 11 y runner $RUNNER."
 }
@@ -389,7 +392,7 @@ EOF
   # vcrun2022 (2015-2022) ya cubre vcrun2019. Instalar las dos hace que
   # winetricks aborte con "vcrun2022 conflicts with vcrun2019"; --force
   # permite actualizar la que ya estuviera puesta en una botella anterior.
-  flatpak run "${envargs[@]}" --command=winetricks "$ETOL_BOTTLES_ID" -q --force \
+  flatpak_run "${envargs[@]}" --command=winetricks "$ETOL_BOTTLES_ID" -q --force \
     dotnet48 vcrun2022 d3dcompiler_43 d3dx9 corefonts \
     || die "winetricks falló; revisa el log y vuelve a ejecutar el script."
   progress 80 "Dependencias instaladas"
@@ -505,7 +508,7 @@ launch_crewchief_installer() {
 
 EOF
   cmd="msiexec /i \"$(win_path "$msi")\""
-  flatpak run --command=bottles-cli "$ETOL_BOTTLES_ID" shell -b "$BOTTLE" -i "$cmd"
+  flatpak_run --command=bottles-cli "$ETOL_BOTTLES_ID" shell -b "$BOTTLE" -i "$cmd"
 }
 
 launch_simhub_installer() {
@@ -522,7 +525,7 @@ launch_simhub_installer() {
   NO marques «Run SimHub».
 
 EOF
-  flatpak run --command=bottles-cli "$ETOL_BOTTLES_ID" run \
+  flatpak_run --command=bottles-cli "$ETOL_BOTTLES_ID" run \
     -b "$BOTTLE" -e "$(win_path "$setup")"
 }
 
@@ -556,7 +559,7 @@ if [[ "$DRY" == 1 ]]; then
 fi
 
 step "Bottles Flatpak"
-info "usuario: instalado · botella: $BOTTLE · descargas: $DOWNLOADS"
+info "ámbito: $(flatpak_scope) · botella: $BOTTLE · descargas: $DOWNLOADS"
 
 resolve_runner
 create_bottle

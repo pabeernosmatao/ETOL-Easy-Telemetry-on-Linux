@@ -78,6 +78,9 @@ pub struct Config {
     pub ui: Ui,
     pub fanatec: FanatecSettings,
     pub games: BTreeMap<String, Game>,
+    /// Entorno detectado: Atomic/clasico, distro, home real, Flatpak y
+    /// gestor de paquetes. Se refresca al arrancar y con "Redetectar".
+    pub system: crate::system::SystemInfo,
 }
 
 /// Perfiles del menu de tuning del volante, uno por juego.
@@ -324,7 +327,8 @@ impl Config {
     pub fn load() -> Result<Self> {
         let path = config_path();
         if !path.exists() {
-            let cfg = Config::default();
+            let mut cfg = Config::default();
+            cfg.system = crate::system::detect();
             let _ = cfg.ensure_run_base();
             i18n::set(i18n::resolve(&cfg.ui.language));
             return Ok(cfg);
@@ -345,6 +349,19 @@ impl Config {
         }
 
         Ok(cfg)
+    }
+
+    /// Vuelve a sondear el sistema y actualiza `[system]`.
+    ///
+    /// Devuelve `true` si algo cambio para que el llamante guarde la config.
+    pub fn refresh_system(&mut self) -> bool {
+        let current = crate::system::detect();
+        if self.system == current {
+            false
+        } else {
+            self.system = current;
+            true
+        }
     }
 
     pub fn save(&mut self) -> Result<PathBuf> {
@@ -382,6 +399,12 @@ impl Config {
     /// Devuelve `true` si ha cambiado algo (para guardarlo).
     fn normalize(&mut self) -> bool {
         let mut changed = false;
+
+        // Configuraciones creadas antes de la sonda de entorno.
+        if self.system.detected.is_empty() || self.system.kind == "unknown" {
+            self.system = crate::system::detect();
+            changed = true;
+        }
 
         let base_bad = self.bridge.run_base.as_os_str().is_empty()
             || !self.bridge.run_base.is_absolute()

@@ -145,7 +145,10 @@ function setLanguage(lang) {
     renderDaemonGames();
   }
   if (state.report) renderDoctor(state.report);
-  if (state.config) renderOptions({ config: state.config });
+  if (state.config) {
+    renderOptions({ config: state.config });
+    renderSystem(state.config.system);
+  }
   renderDisplayConfig();
   translateDom(document);
 }
@@ -623,6 +626,11 @@ function dcPedalsInstallDialog() {
         )}</li>
         <li>${esc(
           t(
+            "Si no hay un extractor de RAR (bsdtar, 7z, unrar o unar), ETOL instalará el paquete del sistema con autorización de administrador y reintentará.",
+          ),
+        )}</li>
+        <li>${esc(
+          t(
             "Es software de DC Simracing: ETOL no lo redistribuye; se descarga bajo su licencia.",
           ),
         )}</li>
@@ -958,10 +966,6 @@ const BANNERS = {
   install: {
     kicker: "requisito",
     title: "Falta Bottles Flatpak",
-  },
-  user: {
-    kicker: "requisito",
-    title: "Bottles está instalado en modo sistema",
   },
   permissions: {
     kicker: "permisos",
@@ -1648,7 +1652,6 @@ async function fixDcPedalsAccess(then = null) {
 
 const SETUP_SCRIPTS = {
   install: "bottles-install",
-  user: "bottles-user",
   permissions: "bottles-user",
   library: "bottles-user",
   prefix: "prefix",
@@ -1658,8 +1661,7 @@ const SETUP_SCRIPTS = {
 function setupBanner(snapshot) {
   const setup = snapshot.setup ?? {};
   const flatpak = setup.flatpak ?? {};
-  if (!flatpak.available || (!flatpak.user && !flatpak.system)) return "install";
-  if (flatpak.needs_user_install) return "user";
+  if (!flatpak.available || flatpak.needs_install) return "install";
   if (!flatpak.permissions_ok) {
     const paths = flatpak.missing_paths ?? [];
     const onlyPaths =
@@ -1727,6 +1729,10 @@ function setupDialog(kind) {
   const setup = state.snapshot?.setup ?? {};
   const flatpak = setup.flatpak ?? {};
   const scriptKey = SETUP_SCRIPTS[kind];
+  const scopeHtml =
+    flatpak.scope === "system"
+      ? "Se aplicarán al Flatpak de sistema; ETOL pedirá autorización de administrador con <code>pkexec</code>."
+      : "Se aplicarán con <code>flatpak override --user</code>.";
   let title = "";
   let html = "";
   let accept = "Aceptar";
@@ -1735,9 +1741,9 @@ function setupDialog(kind) {
     title = "Instalar Bottles Flatpak";
     accept = "Instalar Bottles";
     html = `
-      <p><strong>ETOL necesita Bottles como Flatpak de usuario</strong> para
-      ejecutar SimHub y CrewChief en un prefijo aislado, sin mezclarlo con el
-      resto del sistema.</p>
+      <p><strong>ETOL necesita Bottles Flatpak</strong> (de usuario o de
+      sistema) para ejecutar SimHub y CrewChief en un prefijo aislado, sin
+      mezclarlo con el resto del sistema.</p>
       <p>Se instalará <code>com.usebottles.bottles</code> desde flathub y se le
       darán solo estos permisos:</p>
       <ul>
@@ -1751,24 +1757,6 @@ function setupDialog(kind) {
       <code>host</code> y <code>host-os</code>.</p>
       <p class="setup-note">No se usa <code>sudo</code>. La instalación es para
       tu usuario y no toca Steam, los juegos ni sus prefijos.</p>`;
-  } else if (kind === "user") {
-    title = "Pasar Bottles a modo usuario";
-    accept = "Instalar copia de usuario";
-    html = `
-      <p>Bottles está instalado <strong>para todo el sistema</strong> (hace falta
-      ser administrador para actualizarlo). ETOL necesita la copia
-      <strong>de usuario</strong> porque:</p>
-      <ul>
-        <li>se actualiza sin permisos de administrador,</li>
-        <li>sus permisos de Steam y del HF8 se aplican solo a tu usuario,</li>
-        <li>las botellas y los datos viven en
-        <code>~/.var/app/com.usebottles.bottles</code>, así que la copia de
-        usuario reutiliza todo lo que ya tienes.</li>
-      </ul>
-      <p>Se instalará la copia de usuario y se aplicarán los permisos. La copia
-      de sistema <strong>no se borra</strong>: puedes quitarla cuando quieras
-      con <code>sudo flatpak uninstall --system com.usebottles.bottles</code>.
-      Tus botellas no se mueven.</p>`;
   } else if (kind === "library") {
     title = "Permisos para la nueva biblioteca de Steam";
     accept = "Aplicar permisos";
@@ -1780,7 +1768,7 @@ function setupDialog(kind) {
       <ul>${paths}</ul>
       <p>Bottles es Flatpak y necesita permiso para acceder a ella. Al aplicar
       los permisos también se revisan <code>home</code>, <code>host-etc</code>
-      y <code>devices=all</code>.</p>
+      y <code>devices=all</code>. ${scopeHtml}</p>
       <p class="setup-note">Después reinicia Bottles/SimHub para que vean la
       biblioteca. No se toca el prefijo ni la configuración de los juegos.</p>`;
   } else if (kind === "permissions") {
@@ -1791,10 +1779,9 @@ function setupDialog(kind) {
       <p>Bottles es Flatpak, pero le faltan permisos para que ETOL pueda
       trabajar:</p>
       <ul>${missing.map((item) => `<li><code>${esc(item)}</code></li>`).join("")}</ul>
-      <p>Se aplicarán con <code>flatpak override --user</code>: <code>home</code>,
-      <code>host-etc</code>, las bibliotecas de Steam de otros discos y
-      <code>devices=all</code> (pad HF8). Se quitan <code>host</code> y
-      <code>host-os</code>.</p>
+      <p>${scopeHtml} Se aplican <code>home</code>, <code>host-etc</code>, las
+      bibliotecas de Steam de otros discos y <code>devices=all</code> (pad
+      HF8). Se quitan <code>host</code> y <code>host-os</code>.</p>
       <p class="setup-note">No se toca el prefijo ni la configuración de
       SimHub/CrewChief.</p>`;
   } else if (kind === "prefix") {
@@ -1888,11 +1875,6 @@ const SETUP_TEXT = {
     running: "Instalando Bottles Flatpak y aplicando permisos…",
     done: "Bottles Flatpak instalado.",
     toast: "Bottles Flatpak instalado",
-  },
-  user: {
-    running: "Instalando la copia de usuario y aplicando permisos…",
-    done: "Bottles queda en modo usuario.",
-    toast: "Bottles pasado a modo usuario",
   },
   permissions: {
     running: "Aplicando permisos al Flatpak de Bottles…",
@@ -2282,6 +2264,43 @@ async function refreshAutostart() {
   }
 }
 
+function renderSystem(system) {
+  const box = $("#system-info");
+  if (!box) return;
+  const info = system ?? {};
+  const kind =
+    info.kind === "atomic"
+      ? t("Atomic")
+      : info.kind === "classic"
+        ? t("Clásico")
+        : t("Desconocido");
+  const distro = info.distro_name || info.distro || "—";
+  const scope =
+    info.flatpak_scope === "system"
+      ? t("sistema")
+      : info.flatpak_scope === "user"
+        ? t("usuario")
+        : t("no instalado");
+  const paths = info.needs_path_normalization ? t("normalizadas") : t("sin cambios");
+  const items = [
+    [t("Sistema"), `${kind} · ${distro}`, info.kind === "unknown" ? "warn" : "ok"],
+    [t("Home real"), info.home_real || "—", ""],
+    [t("Flatpak"), scope, info.flatpak_scope === "none" ? "warn" : "ok"],
+    [t("Paquetes"), info.package_backend || "—", ""],
+    [t("Rutas"), paths, info.needs_path_normalization ? "ok" : ""],
+  ];
+  box.innerHTML = items
+    .map(
+      ([label, value, cls]) => `
+      <div class="system-item">
+        <div class="label">${esc(label)}</div>
+        <div class="value ${cls}">${esc(value)}</div>
+      </div>`
+    )
+    .join("");
+  translateDom(box);
+}
+
 function renderOptions(payload = {}) {
   const cfg = payload.config ?? state.config ?? {};
   const logs = cfg.logs ?? {};
@@ -2401,6 +2420,7 @@ async function applyBootstrap(payload) {
   showPayloadBanner(payload.payload);
   renderPaths();
   renderOptions(payload);
+  renderSystem(payload.config?.system);
   setLanguage(state.lang);
   await Promise.all([refreshStatus(true), refreshDoctor(), refreshAutostart()]);
 }
@@ -2947,6 +2967,22 @@ $("#opt-kwin-overlay").addEventListener("change", (event) => {
     enabled ? "true" : "false",
     enabled ? "Dashboards sobre el juego activados" : "Dashboards sobre el juego desactivados"
   );
+});
+
+$("#btn-system-redetect").addEventListener("click", async (event) => {
+  const button = event.currentTarget;
+  busy(button, true);
+  try {
+    const system = await call("detect_system");
+    if (state.config) state.config.system = system;
+    renderSystem(system);
+    toast("Entorno detectado actualizado", "ok");
+    await Promise.all([refreshStatus(true), refreshDoctor()]);
+  } catch (error) {
+    fail(error);
+  } finally {
+    busy(button, false);
+  }
 });
 
 $("#opt-autostart").addEventListener("change", async (event) => {

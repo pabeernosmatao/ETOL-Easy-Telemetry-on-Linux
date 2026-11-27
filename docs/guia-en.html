@@ -240,7 +240,7 @@
               stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
       <span>ETOL</span>
-      <span class="badge">version 0.5.1</span>
+      <span class="badge">version 0.5.2</span>
     </div>
     <h1>User <span class="grad">guide</span></h1>
     <p class="lead">
@@ -286,9 +286,22 @@
         above the game.</li>
   </ul>
 
+  <h3>Atomic systems (Bazzite) — beta</h3>
+  <div class="note"><strong>Beta.</strong> Support for immutable systems is
+  beta: ETOL detects the environment and applies the fixes, but there may still
+  be differences between versions. Classic distros remain the primary
+  target.</div>
+  <p>ETOL detects whether the system is Atomic (<code>/run/ostree-booted</code>,
+  <code>rpm-ostree</code>) and adapts: it uses
+  <code>rpm-ostree install --apply-live</code> for missing packages, accepts
+  Bottles as a system Flatpak, normalizes <code>/home</code> →
+  <code>/var/home</code> and applies udev/Flatpak permissions to the right
+  scope. <strong>Options → Detected environment</strong> shows the result and
+  lets you re-detect it after an <code>rpm-ostree upgrade</code>.</p>
+
   <h3>Opening the AppImage</h3>
-  <pre><code>chmod +x ETOL-0.5.1-linux-x86_64-portable.AppImage
-./ETOL-0.5.1-linux-x86_64-portable.AppImage</code></pre>
+  <pre><code>chmod +x ETOL-0.5.2-linux-x86_64-portable.AppImage
+./ETOL-0.5.2-linux-x86_64-portable.AppImage</code></pre>
   <p class="small muted">The <strong>portable</strong> build uses the system
   WebKit and needs <code>libwebkit2gtk-4.1</code> and <code>libgtk-3</code>. The
   <strong>full</strong> build bundles everything and needs glibc 2.44 or newer.</p>
@@ -298,9 +311,9 @@
   <div class="grid-2">
     <div class="mini">
       <h4>Bottles Flatpak is missing</h4>
-      <p>Click the banner and accept. ETOL installs Bottles for your user and
-      gives it the minimum permissions (home, host-etc, Steam libraries and
-      HF8).</p>
+      <p>Click the banner and accept. ETOL installs Bottles for your user (or
+      uses the system copy on Atomic) and gives it the minimum permissions
+      (home, host-etc, Steam libraries and HF8).</p>
     </div>
     <div class="mini">
       <h4>The SimHub bottle is missing</h4>
@@ -682,7 +695,7 @@
 
 <footer>
   <div class="wrap">
-    <span>ETOL · Easy Telemetry On Linux · 0.5.1 · MIT</span>
+    <span>ETOL · Easy Telemetry On Linux · 0.5.2 · MIT</span>
     <span>
       <a href="https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux">GitHub</a> ·
       <a href="https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux/blob/main/README.md">README</a> ·

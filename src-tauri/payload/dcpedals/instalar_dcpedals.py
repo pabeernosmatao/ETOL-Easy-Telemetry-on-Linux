@@ -40,46 +40,17 @@ def fetch(url: str) -> bytes:
         return response.read()
 
 
-def extract(archive: Path, target: Path) -> None:
-    """Extrae el RAR con la primera herramienta disponible del sistema."""
-    target.mkdir(parents=True, exist_ok=True)
+EXTRACTORS = ("bsdtar", "7z", "7za", "unrar", "unar")
 
-    if shutil.which("bsdtar"):
-        subprocess.run(
-            ["bsdtar", "-xf", str(archive), "-C", str(target)],
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        return
-    if shutil.which("7z"):
-        subprocess.run(
-            ["7z", "x", "-y", f"-o{target}", str(archive)],
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        return
-    if shutil.which("unrar"):
-        subprocess.run(
-            ["unrar", "x", "-y", str(archive), str(target) + "/"],
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        return
-    if shutil.which("unar"):
-        subprocess.run(
-            ["unar", "-f", "-o", str(target), str(archive)],
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        return
-    raise RuntimeError(
-        "no hay extractor de RAR. Instala libarchive (bsdtar), p7zip (7z) "
-        "o unrar y vuelve a intentarlo."
-    )
+
+def extractor_command(name: str, archive: Path, dest: Path) -> list[str]:
+    if name == "bsdtar":
+        return ["bsdtar", "-xf", str(archive), "-C", str(dest)]
+    if name in ("7z", "7za"):
+        return [name, "x", "-y", f"-o{dest}", str(archive)]
+    if name == "unrar":
+        return ["unrar", "x", "-y", str(archive), str(dest) + "/"]
+    return ["unar", "-f", "-o", str(dest), str(archive)]
 
 
 def sha256(path: Path) -> str:
@@ -90,6 +61,75 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def find_payload(content: Path) -> tuple[Path, Path]:
+    """Busca el ejecutable y la DLL y verifica sus SHA-256."""
+    exe = next(content.rglob("DC Pedals Calibration.exe"), None)
+    if exe is None:
+        raise RuntimeError("el RAR no contiene DC Pedals Calibration.exe")
+    dll = exe.parent / "mcHID.dll"
+    if not dll.is_file():
+        raise RuntimeError("el RAR no contiene mcHID.dll junto al ejecutable")
+
+    got_exe = sha256(exe)
+    got_dll = sha256(dll)
+    if got_exe != SHA_EXE or got_dll != SHA_DLL:
+        raise RuntimeError(
+            "el paquete no coincide con la version 1.0.2 "
+            f"(exe {got_exe[:12]}..., dll {got_dll[:12]}...)"
+        )
+    return exe, dll
+
+
+def extract(archive: Path, target: Path) -> Path:
+    """Prueba todos los extractores y acepta el primero con los ficheros correctos.
+
+    En Bazzite el `7z` de Fedora no abre RAR5, pero `unrar`/`unar` si. No se
+    puede elegir "el primero instalado": hay que probar y verificar.
+    """
+    target.mkdir(parents=True, exist_ok=True)
+    attempts: list[str] = []
+
+    for name in EXTRACTORS:
+        if shutil.which(name) is None:
+            attempts.append(f"{name}: no instalado")
+            continue
+
+        dest = target / name
+        if dest.exists():
+            shutil.rmtree(dest)
+        dest.mkdir(parents=True, exist_ok=True)
+
+        try:
+            result = subprocess.run(
+                extractor_command(name, archive, dest),
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+        except Exception as exc:  # noqa: BLE001
+            attempts.append(f"{name}: {exc}")
+            continue
+
+        if result.returncode != 0:
+            detail = (result.stderr or result.stdout).strip().splitlines()
+            reason = detail[-1] if detail else f"codigo {result.returncode}"
+            attempts.append(f"{name}: {reason}")
+            continue
+
+        try:
+            find_payload(dest)
+        except RuntimeError as exc:
+            attempts.append(f"{name}: {exc}")
+            continue
+
+        return dest
+
+    raise RuntimeError(
+        "no se pudo extraer el RAR con ningun extractor. Intentos: "
+        + " | ".join(attempts)
+    )
+
+
 def install(bottle: Path, dest: Path | None = None) -> dict[str, str]:
     dest = (dest or (bottle / "drive_c" / "DC Pedals Calibration")).expanduser()
     dest.mkdir(parents=True, exist_ok=True)
@@ -98,23 +138,8 @@ def install(bottle: Path, dest: Path | None = None) -> dict[str, str]:
         tmp = Path(tmp_name)
         archive = tmp / "dc_pedals_calibration.rar"
         archive.write_bytes(fetch(URL))
-        content = tmp / "content"
-        extract(archive, content)
-
-        exe = next(content.rglob("DC Pedals Calibration.exe"), None)
-        if exe is None:
-            raise RuntimeError("el RAR no contiene DC Pedals Calibration.exe")
-        dll = exe.parent / "mcHID.dll"
-        if not dll.is_file():
-            raise RuntimeError("el RAR no contiene mcHID.dll junto al ejecutable")
-
-        got_exe = sha256(exe)
-        got_dll = sha256(dll)
-        if got_exe != SHA_EXE or got_dll != SHA_DLL:
-            raise RuntimeError(
-                "el paquete descargado no coincide con la version 1.0.2 "
-                f"(exe {got_exe[:12]}..., dll {got_dll[:12]}...)"
-            )
+        content = extract(archive, tmp / "content")
+        exe, dll = find_payload(content)
 
         # Solo se reemplaza el programa. Los *.txt del usuario (presets) y
         # cualquier otro fichero de la carpeta se quedan intactos.

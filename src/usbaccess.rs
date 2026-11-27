@@ -63,7 +63,10 @@ pub fn inspect() -> UsbAccess {
         devices.iter().all(|device| device.accessible)
     };
     let brltty_problem = brltty_present && (brltty_active || !brltty_masked);
-    let needs_relogin = !in_group && serial_group.is_some();
+    // Con la regla `uaccess` instalada no hace falta cerrar sesion: la ACL da
+    // acceso a los procesos nuevos (SimHub/ETOL reiniciados). Solo se avisa
+    // cuando no hay regla y el usuario realmente no esta en el grupo.
+    let needs_relogin = needs_relogin(in_group, serial_group.as_deref(), rule_ok);
 
     UsbAccess {
         user,
@@ -113,6 +116,10 @@ pub fn fix() -> Result<String> {
         Some(code) => bail!("el arreglo fallo (codigo {code})\n{text}"),
         None => bail!("el arreglo fallo\n{text}"),
     }
+}
+
+fn needs_relogin(in_group: bool, serial_group: Option<&str>, rule_ok: bool) -> bool {
+    !in_group && serial_group.is_some() && !rule_ok
 }
 
 fn current_user() -> String {
@@ -267,12 +274,31 @@ if [ -z "$group" ]; then
   fi
 fi
 
+group_in_etc() {
+  grep -q "^${1}:" /etc/group 2>/dev/null
+}
+
 relogin=0
 if [ -n "$group" ]; then
   if id -nG "$user" | tr ' ' '\n' | grep -qx "$group"; then
     echo "El usuario $user ya pertenece al grupo $group."
   else
+    # En sistemas Atomic (Bazzite) /etc/group puede ser minimo y el grupo
+    # venir de /usr/lib/group (NSS altfiles). usermod termina con 0 pero no
+    # escribe /etc/group; se crea la entrada local antes de usarlo.
+    if ! group_in_etc "$group"; then
+      gid="$(getent group "$group" | cut -d: -f3)"
+      if [ -n "$gid" ]; then
+        printf '%s:x:%s:\n' "$group" "$gid" >> /etc/group
+        echo "Entrada local del grupo $group creada en /etc/group."
+      fi
+    fi
     usermod -aG "$group" "$user"
+    # Postcondicion obligatoria: no dar por hecho que usermod funciono.
+    if ! id -nG "$user" | tr ' ' '\n' | grep -qx "$group"; then
+      echo "ERROR: usermod termino bien pero $user no aparece en el grupo $group." >&2
+      exit 1
+    fi
     echo "Usuario $user anadido al grupo $group."
     relogin=1
   fi
@@ -298,8 +324,29 @@ udevadm settle --timeout=5 >/dev/null 2>&1 || true
 echo "Regla udev instalada y aplicada."
 
 if [ "$relogin" = 1 ]; then
-  echo "El acceso por udev ya deberia funcionar. Para el grupo, cierra sesion y vuelve a entrar."
+  echo "Grupo actualizado. Reinicia ETOL para que SimHub y los puentes vean el grupo; no hace falta cerrar sesion."
 else
   echo "Acceso USB preparado."
 fi
 "#;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn relogin_only_without_uaccess() {
+        assert!(needs_relogin(false, Some("dialout"), false));
+        assert!(!needs_relogin(false, Some("dialout"), true));
+        assert!(!needs_relogin(true, Some("dialout"), false));
+        assert!(!needs_relogin(false, None, false));
+    }
+
+    #[test]
+    fn fix_script_handles_atomic_group_and_verifies() {
+        assert!(FIX_SCRIPT.contains("group_in_etc"));
+        assert!(FIX_SCRIPT.contains(">> /etc/group"));
+        assert!(FIX_SCRIPT.contains("Postcondicion obligatoria"));
+        assert!(FIX_SCRIPT.contains("no aparece en el grupo"));
+    }
+}

@@ -2,7 +2,7 @@
 
 **English** · [Español](README.es.md) · [User guide](docs/GUIDE.md)
 
-[![Version](https://img.shields.io/badge/version-0.5.1-38e1b0)](https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux/releases)
+[![Version](https://img.shields.io/badge/version-0.5.2-38e1b0)](https://github.com/pabeernosmatao/ETOL-Easy-Telemetry-on-Linux/releases)
 [![License](https://img.shields.io/badge/license-MIT-4aa8ff)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Linux%20x86__64-8ea3b9)](#requirements)
 [![Tauri](https://img.shields.io/badge/Tauri-2-24c8db)](https://tauri.app)
@@ -41,6 +41,9 @@ with one click.
 - **Fanatec CSL DD** optional native configuration: reads and writes the tuning
   menu exposed by `hid-fanatecff` (no Wine, no official app, no firmware) and
   keeps a profile per installed game, loaded when the game starts.
+- **Atomic systems (Bazzite) — beta**: detects `rpm-ostree`, uses the
+  system Bottles Flatpak, normalizes `/var/home` paths and adapts the USB/DC
+  Pedals fixes to Atomic layouts. Classic distros remain the primary target.
 - **Dashboards over wifi**: port 8888 is only opened to your local network.
   Diagnostics can check the port and apply the LAN-only rule with one click.
 - **Start with the session**: **Options → Start with the system** creates the
@@ -125,8 +128,8 @@ Pedals and Fanatec are optional and disabled until you enable them.
 Download the AppImage from the latest release and make it executable:
 
 ```bash
-chmod +x ETOL-0.5.1-linux-x86_64-portable.AppImage
-./ETOL-0.5.1-linux-x86_64-portable.AppImage
+chmod +x ETOL-0.5.2-linux-x86_64-portable.AppImage
+./ETOL-0.5.2-linux-x86_64-portable.AppImage
 ```
 
 Two builds are published. Both are **x86_64** (`amd64` is just Debian's name
@@ -134,8 +137,8 @@ for the same architecture); the difference is whether WebKit is bundled:
 
 | Build | Size | WebKit | glibc | When to use |
 |---|---|---|---|---|
-| `ETOL-0.5.1-linux-x86_64-portable.AppImage` | ~6 MB | system | 2.39+ | Ubuntu 26.04, Fedora, Arch, CachyOS. Needs `libwebkit2gtk-4.1` |
-| `ETOL-0.5.1-linux-x86_64-full.AppImage` | ~111 MB | bundled | 2.44+ | Everything included; current rolling and desktop distros |
+| `ETOL-0.5.2-linux-x86_64-portable.AppImage` | ~6 MB | system | 2.39+ | Ubuntu 26.04, Fedora, Arch, CachyOS. Needs `libwebkit2gtk-4.1` |
+| `ETOL-0.5.2-linux-x86_64-full.AppImage` | ~111 MB | bundled | 2.44+ | Everything included; current rolling and desktop distros |
 
 The portable build needs `libwebkit2gtk-4.1` and `libgtk-3`:
 
@@ -148,7 +151,7 @@ sudo pacman -S webkit2gtk-4.1 gtk3                 # Arch/CachyOS
 Without FUSE2:
 
 ```bash
-./ETOL-0.5.1-linux-x86_64-portable.AppImage --appimage-extract-and-run
+./ETOL-0.5.2-linux-x86_64-portable.AppImage --appimage-extract-and-run
 ```
 
 ## Requirements
@@ -170,8 +173,9 @@ Without FUSE2:
   Without it ETOL works the same, only the tray icon is missing.
 - **HF8 pad**: no extra packages; ETOL detects it. `pkexec` is only needed for
   the optional USB access rule.
-- **DC Pedals**: `bsdtar`/`7z`/`unrar` for the official RAR and `pkexec` for the
-  udev rule.
+- **DC Pedals**: an archive extractor (`bsdtar`/`7z`/`unrar`) for the official
+  RAR and `pkexec` for the udev rule. ETOL installs the right extractor if none
+  is present.
 - **Fanatec CSL DD**: the **`hid-fanatecff`** driver (packaged as
   **fanatec-dkms**) must be loaded, and `pkexec` is used for the write rule.
   Without the driver ETOL still runs normally; the Fanatec card is simply not
@@ -182,6 +186,12 @@ Without FUSE2:
 `pkexec` and a polkit agent are only used by the actions that change system
 permissions (udev rules and firewall). Nothing in this second list is needed to
 open ETOL, detect games or run the telemetry bridges.
+
+On Atomic systems (Bazzite) ETOL detects `rpm-ostree`, uses
+`rpm-ostree install --apply-live` for missing packages and accepts Bottles as a
+system Flatpak. The **Options → Detected environment** card shows the result and
+can re-detect it after an upgrade. **Atomic support is beta**; classic distros
+are the primary target.
 
 ## The window
 

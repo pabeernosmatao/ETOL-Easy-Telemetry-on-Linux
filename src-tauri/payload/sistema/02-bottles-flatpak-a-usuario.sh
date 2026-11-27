@@ -1,19 +1,20 @@
 #!/usr/bin/env bash
-# Pasa Bottles de una instalación de sistema (admin) a una instalación de
-# usuario y aplica los permisos que necesita ETOL.
+# Aplica los permisos que necesita ETOL a Bottles Flatpak.
+#
+# En CachyOS/Arch lo normal es una copia de usuario. En Bazzite (Atomic)
+# Bottles viene como Flatpak de sistema: también es válido y no hace falta
+# instalar una copia de usuario solo para los permisos.
 #
 #   ./02-bottles-flatpak-a-usuario.sh
 #   ./02-bottles-flatpak-a-usuario.sh --dry-run
 #
 # Qué hace:
-#   1. Si Bottles solo está instalado para todo el sistema, instala la copia de
-#      usuario (flathub). La copia de usuario tiene prioridad y comparte las
-#      mismas botellas y datos (~/.var/app/com.usebottles.bottles).
-#   2. Aplica `flatpak override --user` con los permisos mínimos.
-#   3. Explica cómo quitar la copia de sistema cuando el usuario quiera:
-#      `sudo flatpak uninstall --system com.usebottles.bottles`.
+#   1. Detecta si la copia activa es de usuario o de sistema.
+#   2. Aplica `flatpak override` al ámbito correcto: `--user` o `--system`.
+#      Con Bottles de sistema pide autorización con pkexec (o sudo).
+#   3. Verifica que home, host-etc, Steam y devices=all quedaron aplicados.
 #
-# No borra nada del sistema: para eso haría falta sudo y este script no lo usa.
+# No instala ni borra copias de Bottles. No toca botellas, juegos ni prefijos.
 
 set -euo pipefail
 
@@ -26,7 +27,7 @@ for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY=1 ;;
     -h|--help)
-      sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'
+      sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'
       exit 0
       ;;
     *)
@@ -35,7 +36,7 @@ for arg in "$@"; do
   esac
 done
 
-have_flatpak || die "no se encontró flatpak; ejecuta antes 01-instalar-bottles-flatpak.sh"
+have_flatpak || die "no se encontró flatpak; instálalo con: $(package_install_hint flatpak)"
 
 progress 5 "Comprobando el estado de Bottles"
 step "Estado actual"
@@ -59,42 +60,37 @@ if [[ "$USER" == 0 && "$SYSTEM" == 0 ]]; then
   die "no hay ninguna instalación de Bottles. Ejecuta 01-instalar-bottles-flatpak.sh"
 fi
 
+SCOPE="$(flatpak_scope)"
+if [[ "$SCOPE" == "none" ]]; then
+  die "no se pudo determinar el ámbito activo de Bottles."
+fi
+
 if [[ "$DRY" == 1 ]]; then
   step "Simulación"
-  if [[ "$USER" == 0 ]]; then
-    info "flatpak remote-add --user --if-not-exists flathub …"
-    info "flatpak install --user -y flathub $ETOL_BOTTLES_ID"
-  fi
-  info "flatpak override --user … $ETOL_BOTTLES_ID"
-  if [[ "$SYSTEM" == 1 ]]; then
-    info "La copia de sistema NO se toca. Para quitarla:"
-    info "  sudo flatpak uninstall --system $ETOL_BOTTLES_ID"
+  info "ámbito activo: $SCOPE"
+  info "flatpak override $(flatpak_scope_arg) --nofilesystem=host --nofilesystem=host-os \\"
+  info "  --filesystem=home --filesystem=host-etc --filesystem=xdg-data/Steam \\"
+  info "  --filesystem=~/.steam --device=all … $ETOL_BOTTLES_ID"
+  if [[ "$SCOPE" == "system" ]]; then
+    info "Se pedirá autorización de administrador (pkexec o sudo)."
   fi
   exit 0
 fi
 
-if [[ "$SYSTEM" == 1 && "$USER" == 0 ]]; then
-  step "Instalando la copia de usuario"
+if [[ "$SCOPE" == "system" && "$USER" == 0 ]]; then
+  step "Bottles de sistema"
   cat <<'EOF'
-  Bottles estaba instalado para todo el sistema. ETOL necesita la copia de
-  usuario porque:
+  Bottles está instalado para todo el sistema. En sistemas Atomic como
+  Bazzite esto es lo normal y ETOL puede usarlo sin instalar una copia de
+  usuario:
 
-    - se actualiza sin permisos de administrador,
-    - sus permisos (Steam, HF8) se aplican solo a tu usuario,
-    - las botellas y los datos viven en ~/.var/app/com.usebottles.bottles,
-      así que la copia de usuario reutiliza todo lo que ya tienes.
-
-  La copia de sistema no se borra en este paso.
+    - las botellas y los datos siguen en ~/.var/app/com.usebottles.bottles,
+    - los permisos se aplican al Flatpak de sistema con autorización,
+    - no se duplica la aplicación ni se toca la copia del sistema.
 EOF
-  progress 20 "Descargando la copia de usuario de Bottles (puede tardar)"
-  ensure_flathub_user
-  flatpak install --user -y flathub "$ETOL_BOTTLES_ID"
-  progress 75 "Copia de usuario instalada"
-  flatpak_user_installed || die "no se pudo instalar la copia de usuario."
-  info "copia de usuario instalada."
 fi
 
-if [[ "$SYSTEM" == 1 ]]; then
+if [[ "$SYSTEM" == 1 && "$USER" == 1 ]]; then
   step "Copias instaladas"
   cat <<EOF
   Conviven dos instalaciones de Bottles:
@@ -120,5 +116,5 @@ print_permissions
 
 progress 100 "Listo"
 step "Listo"
-info "Bottles Flatpak queda en modo usuario y con los permisos de ETOL."
+info "Bottles Flatpak queda con los permisos de ETOL en el ámbito $SCOPE."
 info "Cierra Bottles si estaba abierto y vuelve a abrirlo."

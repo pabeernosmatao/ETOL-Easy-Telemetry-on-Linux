@@ -97,25 +97,51 @@ pub fn run(cfg: &Config) -> Vec<Check> {
     }
 
     // --- Dependencias externas ---
+    // La pista cambia segun el sistema: en Bazzite /usr es de solo lectura y
+    // `dnf install` no funciona; hay que usar `rpm-ostree install --apply-live`.
     match util::which("python3") {
         Some(path) => checks.push(ok("Python", path.display().to_string())),
         None => checks.push(fail(
             "Python",
             "no se encontró python3; los puentes de telemetría lo necesitan",
-            Some(
-                "Arch/CachyOS: sudo pacman -S python · Ubuntu: sudo apt install python3 · Fedora: sudo dnf install python3"
-                    .to_string(),
-            ),
+            Some(cfg.system.install_hint("python3")),
         )),
     }
-    if util::which("curl").is_none() {
-        checks.push(warn(
+    for (command, detail) in [
+        (
             "curl",
             "no se encontró curl; la preparación del prefijo lo necesita para descargar los instaladores",
-            Some(
-                "Arch/CachyOS: sudo pacman -S curl · Ubuntu: sudo apt install curl · Fedora: sudo dnf install curl"
-                    .to_string(),
-            ),
+        ),
+        (
+            "tar",
+            "no se encontró tar; la preparación del prefijo lo necesita para descomprimir los instaladores",
+        ),
+        (
+            "unzip",
+            "no se encontró unzip; la preparación del prefijo lo necesita para abrir el ZIP de SimHub",
+        ),
+        (
+            "file",
+            "no se encontró file; la preparación del prefijo lo usa para comprobar los instaladores",
+        ),
+    ] {
+        if util::which(command).is_none() {
+            checks.push(warn(
+                command,
+                detail,
+                Some(cfg.system.install_hint(command)),
+            ));
+        }
+    }
+
+    // --- DC Pedals: extractor de RAR ---
+    if (cfg.apps.dcpedals_enabled || cfg.apps.dcpedals_exe.is_some())
+        && cfg.system.archive_tool().is_none()
+    {
+        checks.push(warn(
+            "DC Pedals",
+            "no hay extractor de RAR (bsdtar, 7z, 7za, unrar o unar)",
+            Some(cfg.system.install_hint("bsdtar")),
         ));
     }
 
@@ -245,16 +271,13 @@ pub fn run(cfg: &Config) -> Vec<Check> {
     let flatpak = detect::bottles::flatpak_state(&extra_paths);
 
     if flatpak.available {
-        if flatpak.needs_user_install {
-            checks.push(warn(
-                "Bottles",
-                "solo esta la instalacion de sistema (admin); falta la de usuario",
-                Some(messages::bottles_user_fix()),
-            ));
-        } else if flatpak.user {
+        if flatpak.user {
             checks.push(ok("Bottles", "instalacion Flatpak de usuario"));
         } else if flatpak.system {
-            checks.push(ok("Bottles", "instalacion Flatpak de sistema"));
+            checks.push(ok(
+                "Bottles",
+                "instalacion Flatpak de sistema (valida en Atomic)",
+            ));
         }
     }
 
@@ -271,17 +294,30 @@ pub fn run(cfg: &Config) -> Vec<Check> {
         checks.push(warn(
             "Bottles",
             "no se encontro Bottles (ni nativo ni Flatpak)",
+            Some(format!(
+                "{}\n{}",
+                cfg.system.install_hint("flatpak"),
+                messages::bottles_install_fix()
+            )),
+        ));
+    } else if flatpak.needs_install && !origins.contains(&detect::bottles::Origin::Native) {
+        checks.push(warn(
+            "Bottles",
+            "no se encontro Bottles Flatpak",
             Some(messages::bottles_install_fix()),
         ));
     }
 
     // Con Bottles Flatpak, los permisos tienen que cubrir el home, /etc, las
     // bibliotecas de Steam de otros discos y el pad HF8 (devices=all).
-    if flatpak.available && (flatpak.user || flatpak.system) {
+    if flatpak.scope != "none" {
         if flatpak.permissions_ok {
             checks.push(ok(
                 "Permisos Bottles Flatpak",
-                "home, host-etc, Steam y devices=all",
+                format!(
+                    "home, host-etc, Steam y devices=all ({})",
+                    flatpak.scope
+                ),
             ));
         } else {
             let only_libraries = !flatpak.missing_paths.is_empty()
@@ -317,7 +353,11 @@ pub fn run(cfg: &Config) -> Vec<Check> {
                 missing.extend(flatpak.missing_paths.clone());
                 checks.push(warn(
                     "Permisos Bottles Flatpak",
-                    format!("faltan permisos: {}", missing.join(", ")),
+                    format!(
+                        "faltan permisos ({}): {}",
+                        flatpak.scope,
+                        missing.join(", ")
+                    ),
                     Some(messages::flatpak_permissions_fix()),
                 ));
             }

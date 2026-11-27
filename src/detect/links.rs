@@ -152,6 +152,9 @@ fn write_steam_metadata(steam: &Path, games: &[(String, PathBuf, u32)]) -> std::
             });
 
         if let Some(real) = real.filter(|manifest| manifest.is_file()) {
+            // Los enlaces viven dentro de la botella: usar la ruta que ve el
+            // sandbox Flatpak (/home/<usuario>), no /var/home/<usuario>.
+            let real = crate::util::sandbox_path(&real);
             match fs::read_link(&manifest) {
                 Ok(current) if current == real => continue,
                 Ok(_) => {
@@ -164,7 +167,7 @@ fn write_steam_metadata(steam: &Path, games: &[(String, PathBuf, u32)]) -> std::
                     }
                 }
             }
-            let _ = symlink(real, &manifest);
+            let _ = symlink(&real, &manifest);
         } else {
             if let Ok(meta) = fs::symlink_metadata(&manifest) {
                 if meta.file_type().is_symlink() {
@@ -260,10 +263,12 @@ pub fn ensure(cfg: &Config) -> Report {
 
     for (name, real, _) in &games {
         let target = common.join(name);
+        // Igual que con los ACF: el enlace se resuelve dentro del sandbox.
+        let real = crate::util::sandbox_path(real);
         match fs::symlink_metadata(&target) {
             Ok(meta) if meta.file_type().is_symlink() => {
                 let current = fs::read_link(&target).unwrap_or_default();
-                if current == *real {
+                if current == real {
                     continue;
                 }
                 if fs::remove_file(&target).is_err() {
@@ -272,7 +277,7 @@ pub fn ensure(cfg: &Config) -> Report {
                         .push(format!("no se pudo reemplazar {}", target.display()));
                     continue;
                 }
-                match symlink(real, &target) {
+                match symlink(&real, &target) {
                     Ok(()) => report.created.push(target),
                     Err(error) => report
                         .errors

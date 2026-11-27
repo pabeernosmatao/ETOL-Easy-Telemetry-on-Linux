@@ -9,6 +9,7 @@
 //! dispositivo.
 
 use crate::config::Config;
+use crate::logs;
 use anyhow::{bail, Context, Result};
 use serde::Serialize;
 use std::fs;
@@ -187,6 +188,59 @@ fn command_exists(name: &str) -> bool {
         return false;
     };
     std::env::split_paths(&path).any(|dir| dir.join(name).is_file())
+}
+
+/// Garantiza que hay un extractor de RAR antes de instalar DC Pedals.
+///
+/// En Bazzite el paquete que da `bsdtar` se llama `bsdtar` y se instala con
+/// `rpm-ostree install --apply-live`; en CachyOS es `libarchive` y en Debian
+/// `libarchive-tools`. Si no hay ninguno, se pide autorizacion con `pkexec` y
+/// se verifica que el comando aparece despues.
+pub fn ensure_archive_tool(system: &crate::system::SystemInfo) -> Result<Option<String>> {
+    if system.archive_tool().is_some() {
+        return Ok(None);
+    }
+    if !command_exists("pkexec") {
+        bail!(
+            "no hay extractor de RAR y no se encontro pkexec. Ejecuta: {}",
+            system.install_hint("bsdtar")
+        );
+    }
+
+    let package = system.bsdtar_package();
+    let command = system.install_command_root(&package);
+    let mut process = Command::new("pkexec");
+    process.arg("/bin/sh").arg("-c").arg(&command);
+    crate::launch::clean_child_env(&mut process);
+
+    let output = process
+        .output()
+        .context("no se pudo ejecutar pkexec para instalar el extractor de RAR")?;
+    let mut text = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+    if !stderr.is_empty() {
+        if !text.is_empty() {
+            text.push('\n');
+        }
+        text.push_str(&stderr);
+    }
+    if !output.status.success() {
+        bail!(
+            "no se pudo instalar el extractor de RAR ({command})\n{text}"
+        );
+    }
+
+    // Postcondicion: no fiarse del codigo de salida del gestor de paquetes.
+    if system.archive_tool().is_none() {
+        bail!(
+            "la instalacion de {package} termino bien pero no hay ningun extractor disponible. Salida:\n{text}"
+        );
+    }
+    logs::info(
+        "dcpedals",
+        format!("extractor de RAR instalado: {package}"),
+    );
+    Ok(Some(text))
 }
 
 /// Prepara WineBus para que la utilidad reciba el HID real del pedal.

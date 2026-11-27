@@ -1,6 +1,6 @@
 # ETOL · Guía de uso
 
-[English](GUIDE.md) · **Español** · Versión 0.5.1
+[English](GUIDE.md) · **Español** · Versión 0.5.2
 
 Todo lo que hace ETOL, cómo preparar SimHub y CrewChief desde cero y cómo
 sacarle partido a cada simulador.
@@ -46,16 +46,28 @@ clic. No modifica los juegos.
 - **Fanatec CSL DD**: el driver `hid-fanatecff` (paquete `fanatec-dkms`) debe
   estar cargado y `pkexec` se usa para la regla de escritura. Sin el driver ETOL
   funciona igual y la ficha Fanatec no está disponible.
-- **DC Pedals**: `bsdtar`/`7z`/`unrar` para el RAR oficial y `pkexec` para la
-  regla udev.
+- **DC Pedals**: un extractor (`bsdtar`/`7z`/`unrar`) para el RAR oficial y
+  `pkexec` para la regla udev. ETOL instala el extractor si falta.
 - **HF8**: no necesita paquetes extra; `pkexec` solo para la regla de acceso USB.
 - **Puerto 8888**: `ufw` o `firewalld` solo para el botón de abrir el puerto.
+
+### Sistemas Atomic (Bazzite) — beta
+
+**El soporte para sistemas inmutables está en beta.** ETOL detecta el entorno y
+aplica los arreglos, pero todavía puede haber diferencias entre versiones. Las
+distros clásicas siguen siendo el objetivo principal.
+
+ETOL detecta si el sistema es Atomic (`/run/ostree-booted`, `rpm-ostree`) y se
+adapta: usa `rpm-ostree install --apply-live` para los paquetes que falten,
+acepta Bottles como Flatpak de sistema, normaliza `/home` → `/var/home` y aplica
+los permisos udev/Flatpak al ámbito correcto. En **Opciones → Entorno detectado**
+puedes ver el resultado y volver a detectarlo después de un `rpm-ostree upgrade`.
 
 ### Abrir el AppImage
 
 ```bash
-chmod +x ETOL-0.5.1-linux-x86_64-portable.AppImage
-./ETOL-0.5.1-linux-x86_64-portable.AppImage
+chmod +x ETOL-0.5.2-linux-x86_64-portable.AppImage
+./ETOL-0.5.2-linux-x86_64-portable.AppImage
 ```
 
 La variante **portable** usa el WebKit del sistema y necesita
@@ -67,8 +79,8 @@ pide glibc 2.44 o superior.
 La primera vez ETOL mira qué falta y muestra un aviso arriba:
 
 - **Falta Bottles Flatpak**: pulsa el aviso y acepta. ETOL instala Bottles para
-  tu usuario y le da los permisos mínimos (home, host-etc, bibliotecas de Steam
-  y HF8).
+  tu usuario (o usa la copia de sistema en Atomic) y le da los permisos mínimos
+  (home, host-etc, bibliotecas de Steam y HF8).
 - **Falta la botella de SimHub**: ETOL descarga GE-Proton, crea la botella
   `simhub`, instala las dependencias y abre los instaladores de CrewChief y
   SimHub.

@@ -5,6 +5,7 @@ use std::collections::VecDeque;
 use std::io::IsTerminal;
 use std::net::Ipv4Addr;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Directorios que nunca merece la pena recorrer al buscar un ejecutable.
@@ -22,10 +23,66 @@ const SKIP_DIRS: &[&str] = &[
     "tmp",
 ];
 
+/// `$HOME` literal, tal y como lo ve el usuario y Flatpak.
 pub fn home() -> PathBuf {
     std::env::var_os("HOME")
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from("/"))
+}
+
+/// Home canonicalizado, para comparar rutas reales del host.
+///
+/// En sistemas Atomic (Bazzite) `/home/<usuario>` es un enlace a
+/// `/var/home/<usuario>`; comparar `$HOME` literal con rutas reales marca
+/// bibliotecas de Steam como externas. Se canonicaliza una sola vez.
+pub fn home_real() -> PathBuf {
+    static REAL: OnceLock<PathBuf> = OnceLock::new();
+    REAL.get_or_init(|| {
+        let home = home();
+        std::fs::canonicalize(&home).unwrap_or(home)
+    })
+    .clone()
+}
+
+/// Convierte una ruta real del host a la ruta que ve el sandbox Flatpak.
+///
+/// Dentro del sandbox el home es `/home/<usuario>`, no `/var/home/<usuario>`.
+/// Los enlaces que se crean dentro de la botella deben usar esa ruta; si no,
+/// Wine no puede seguir el enlace aunque `home` esté permitido.
+pub fn sandbox_path(path: &Path) -> PathBuf {
+    sandbox_path_with(path, &home(), &home_real())
+}
+
+fn sandbox_path_with(path: &Path, home: &Path, real: &Path) -> PathBuf {
+    if real != home {
+        if let Ok(rest) = path.strip_prefix(real) {
+            return home.join(rest);
+        }
+    }
+    path.to_path_buf()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sandbox_path_rewrites_the_real_home() {
+        let home = Path::new("/home/u");
+        let real = Path::new("/var/home/u");
+        assert_eq!(
+            sandbox_path_with(Path::new("/var/home/u/Steam/game"), home, real),
+            PathBuf::from("/home/u/Steam/game")
+        );
+        assert_eq!(
+            sandbox_path_with(Path::new("/home/u/Steam"), home, real),
+            PathBuf::from("/home/u/Steam")
+        );
+        assert_eq!(
+            sandbox_path_with(Path::new("/mnt/games"), home, real),
+            PathBuf::from("/mnt/games")
+        );
+    }
 }
 
 /// Expande un `~` inicial. El resto de la ruta se deja igual.

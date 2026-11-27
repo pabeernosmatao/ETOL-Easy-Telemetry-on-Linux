@@ -148,6 +148,23 @@ fn bootstrap_inner() -> Result<Bootstrap> {
         cfg = fresh;
     }
 
+    // Sonda de entorno: se refresca en cada arranque para detectar cambios
+    // tras un rpm-ostree upgrade o un cambio de ambito Flatpak.
+    let system_changed = cfg.refresh_system();
+    if system_changed {
+        logs::info(
+            "system",
+            format!(
+                "{} / {} · home_real={} · flatpak={} · paquetes={}",
+                cfg.system.kind,
+                cfg.system.distro,
+                cfg.system.home_real,
+                cfg.system.flatpak_scope,
+                cfg.system.package_backend
+            ),
+        );
+    }
+
     // SimHub necesita libraryfolders.vdf y appmanifest_*.acf para detectar
     // los juegos. Se recrean en cada arranque si faltan (idempotente).
     let links = detect::links::ensure(&cfg);
@@ -155,7 +172,7 @@ fn bootstrap_inner() -> Result<Bootstrap> {
 
     // Si la carpeta de scripts desaparecio (por ejemplo tras reinstalar el
     // sistema), usa la copia incluida en el AppImage o cualquier ruta valida.
-    let mut changed = first_run || missing_game;
+    let mut changed = first_run || missing_game || system_changed;
     let current_valid = cfg
         .app_dir()
         .map(detect::is_app_dir)
@@ -219,6 +236,7 @@ async fn detect(app: tauri::AppHandle) -> Result<Bootstrap, String> {
     blocking(move || {
         let mut cfg = detect::detect();
         detect::preserve_manual_wine(&mut cfg);
+        cfg.refresh_system();
         cfg.save()?;
         i18n::set_from_setting(&cfg.ui.language);
         envgen::write(&cfg)?;
@@ -240,6 +258,31 @@ async fn detect(app: tauri::AppHandle) -> Result<Bootstrap, String> {
 #[tauri::command]
 async fn get_config() -> Result<Config, String> {
     blocking(Config::load).await
+}
+
+/// Vuelve a sondear el entorno (Atomic/clasico, distro, home real, Flatpak y
+/// gestor de paquetes) y lo guarda en `[system]`.
+#[tauri::command]
+async fn detect_system() -> Result<etol::system::SystemInfo, String> {
+    blocking(|| {
+        let mut cfg = Config::load()?;
+        let info = etol::system::detect();
+        cfg.system = info.clone();
+        cfg.save()?;
+        logs::info(
+            "system",
+            format!(
+                "redetectado: {} / {} · home_real={} · flatpak={} · paquetes={}",
+                info.kind,
+                info.distro,
+                info.home_real,
+                info.flatpak_scope,
+                info.package_backend
+            ),
+        );
+        Ok(info)
+    })
+    .await
 }
 
 /// Estado del arranque automatico (fichero XDG, no `config.toml`).
@@ -550,6 +593,15 @@ async fn install_dcpedals(update: bool) -> Result<DcPedalsInstall, String> {
         let script = app_dir.join("dcpedals/instalar_dcpedals.py");
         if !script.is_file() {
             bail!("no existe {}", script.display());
+        }
+
+        // En Bazzite el 7z de Fedora no abre RAR5 y puede que no haya ningun
+        // extractor. Antes de descargar, se instala el paquete correcto.
+        if let Some(output) = etol::dcpedals::ensure_archive_tool(&cfg.system)? {
+            logs::info(
+                "dcpedals",
+                format!("extractor instalado antes de continuar: {output}"),
+            );
         }
 
         let mut command = Command::new("python3");
@@ -896,18 +948,34 @@ fn native_tray() -> &'static Mutex<Option<ksni::blocking::Handle<NativeTray>>> {
 fn tray_icon() -> Vec<ksni::Icon> {
     static ICON: OnceLock<Vec<ksni::Icon>> = OnceLock::new();
     ICON.get_or_init(|| {
-        let Ok(image) = tauri::image::Image::from_bytes(include_bytes!("../icons/32x32.png")) else {
-            return Vec::new();
-        };
-        let mut data = image.rgba().to_vec();
-        for pixel in data.chunks_exact_mut(4) {
-            pixel.rotate_right(1); // RGBA -> ARGB
-        }
-        vec![ksni::Icon {
-            width: image.width() as i32,
-            height: image.height() as i32,
-            data,
-        }]
+        // El icono de la aplicacion tiene mucho margen interior y en la
+        // bandeja parece pequeno. `tray-*.png` es una version con el medidor
+        // mas grande; se ofrecen varios tamanos para que el host SNI elija el
+        // que mejor encaje con el panel (16, 22, 24, 32, 48, 64, 128).
+        const SOURCES: &[&[u8]] = &[
+            include_bytes!("../icons/tray-16.png"),
+            include_bytes!("../icons/tray-22.png"),
+            include_bytes!("../icons/tray-24.png"),
+            include_bytes!("../icons/tray-32.png"),
+            include_bytes!("../icons/tray-48.png"),
+            include_bytes!("../icons/tray-64.png"),
+            include_bytes!("../icons/tray-128.png"),
+        ];
+        SOURCES
+            .iter()
+            .filter_map(|bytes| {
+                let image = tauri::image::Image::from_bytes(*bytes).ok()?;
+                let mut data = image.rgba().to_vec();
+                for pixel in data.chunks_exact_mut(4) {
+                    pixel.rotate_right(1); // RGBA -> ARGB
+                }
+                Some(ksni::Icon {
+                    width: image.width() as i32,
+                    height: image.height() as i32,
+                    data,
+                })
+            })
+            .collect()
     })
     .clone()
 }
@@ -2016,6 +2084,7 @@ fn main() {
             detect,
             get_config,
             set_config,
+            detect_system,
             autostart_status,
             set_autostart,
             status,

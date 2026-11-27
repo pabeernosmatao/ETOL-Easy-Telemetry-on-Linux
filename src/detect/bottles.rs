@@ -124,9 +124,15 @@ pub fn installed_origins() -> Vec<Origin> {
 /// Indica de que instalacion sale una ruta (botella o runner).
 pub fn origin_of(path: &Path) -> Option<Origin> {
     let path = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
-    if path.starts_with(flatpak_base()) {
+    let flatpak = flatpak_base()
+        .canonicalize()
+        .unwrap_or_else(|_| flatpak_base());
+    let native = native_base()
+        .canonicalize()
+        .unwrap_or_else(|_| native_base());
+    if path.starts_with(&flatpak) {
         Some(Origin::Flatpak)
-    } else if path.starts_with(native_base()) {
+    } else if path.starts_with(&native) {
         Some(Origin::Native)
     } else {
         None
@@ -135,30 +141,12 @@ pub fn origin_of(path: &Path) -> Option<Origin> {
 
 /// Permisos de sistema de ficheros del Flatpak de Bottles, si esta instalado.
 ///
-/// Devuelve `None` cuando no hay Flatpak o no se pueden consultar. Cada entrada
-/// viene sin los sufijos `:ro`/`:create`.
-pub fn flatpak_filesystems() -> Option<Vec<String>> {
-    let output = std::process::Command::new("flatpak")
-        .args([
-            "info",
-            "--user",
-            "--show-permissions",
-            "com.usebottles.bottles",
-        ])
-        .output()
-        .ok()?;
-    if !output.status.success() {
-        return None;
-    }
-    let text = String::from_utf8_lossy(&output.stdout);
-    let line = text.lines().find(|line| line.starts_with("filesystems="))?;
-    Some(
-        line.trim_start_matches("filesystems=")
-            .split(';')
-            .filter(|item| !item.is_empty())
-            .map(|item| item.split(':').next().unwrap_or(item).to_string())
-            .collect(),
-    )
+/// `user` indica el ambito: `true` para la copia de usuario, `false` para la
+/// de sistema. Devuelve `None` cuando no hay Flatpak o no se pueden consultar.
+/// Cada entrada viene sin los sufijos `:ro`/`:create`.
+pub fn flatpak_filesystems(user: bool) -> Option<Vec<String>> {
+    let (filesystems, _) = flatpak_context(user);
+    (!filesystems.is_empty()).then_some(filesystems)
 }
 
 /// Estado de Bottles como Flatpak (usuario, sistema y permisos).
@@ -170,7 +158,13 @@ pub struct FlatpakState {
     pub user: bool,
     /// `com.usebottles.bottles` instalado para todo el sistema.
     pub system: bool,
-    /// Solo esta la copia de sistema: hay que instalar la de usuario.
+    /// Ambito activo: `user` si existe la copia de usuario, si no `system`,
+    /// si no `none`. Es el que se usa para leer permisos y ejecutar Bottles.
+    pub scope: String,
+    /// No hay ninguna copia de Bottles Flatpak (ni de usuario ni de sistema).
+    pub needs_install: bool,
+    /// Heredado: ya no se fuerza la copia de usuario cuando la de sistema
+    /// existe. Se mantiene para no romper consumidores antiguos.
     pub needs_user_install: bool,
     /// Permisos `filesystems=` efectivos (sin `:ro`/`:create`).
     pub filesystems: Vec<String>,
@@ -247,15 +241,22 @@ pub fn flatpak_state(extra_paths: &[PathBuf]) -> FlatpakState {
     let available = flatpak_version_ok();
     let user = available && flatpak_app_installed("--user");
     let system = available && flatpak_app_installed("--system");
-    let (filesystems, devices) = if user {
-        flatpak_context(true)
+    // La copia de usuario tiene prioridad si existe; si solo esta la de
+    // sistema (Bazzite), esa es perfectamente valida y se usa tal cual.
+    let scope = if user {
+        "user"
     } else if system {
-        flatpak_context(false)
+        "system"
     } else {
-        (Vec::new(), Vec::new())
+        "none"
+    };
+    let (filesystems, devices) = match scope {
+        "user" => flatpak_context(true),
+        "system" => flatpak_context(false),
+        _ => (Vec::new(), Vec::new()),
     };
 
-    let home = util::home();
+    let home = util::home_real();
     let missing_home = !filesystems.iter().any(|item| item == "home" || item == "host");
     let missing_host_etc = !filesystems.iter().any(|item| item == "host-etc");
     let missing_devices = !devices.iter().any(|item| item == "all");
@@ -265,11 +266,13 @@ pub fn flatpak_state(extra_paths: &[PathBuf]) -> FlatpakState {
         if !path.is_dir() {
             continue;
         }
+        // Canonicalizar antes de comparar: en Bazzite /home -> /var/home.
+        let path = path.canonicalize().unwrap_or_else(|_| path.clone());
         // Dentro del home lo cubre `home` (o `host`).
         if path.starts_with(&home) {
             continue;
         }
-        if !flatpak_covers(&filesystems, path) {
+        if !flatpak_covers(&filesystems, &path) {
             let text = path.display().to_string();
             if !missing_paths.contains(&text) {
                 missing_paths.push(text);
@@ -292,7 +295,7 @@ pub fn flatpak_state(extra_paths: &[PathBuf]) -> FlatpakState {
     }
     let missing_paths = filtered;
 
-    let permissions_ok = user
+    let permissions_ok = scope != "none"
         && !missing_home
         && !missing_host_etc
         && !missing_devices
@@ -302,7 +305,10 @@ pub fn flatpak_state(extra_paths: &[PathBuf]) -> FlatpakState {
         available,
         user,
         system,
-        needs_user_install: system && !user,
+        scope: scope.to_string(),
+        needs_install: !user && !system,
+        // En Atomic la copia de sistema es valida; no se fuerza la de usuario.
+        needs_user_install: false,
         filesystems,
         devices,
         missing_paths,
@@ -320,13 +326,29 @@ pub fn bottle_ready(path: &Path) -> bool {
 
 /// Comprueba si los permisos del Flatpak cubren una ruta del host.
 pub fn flatpak_covers(filesystems: &[String], path: &Path) -> bool {
-    let home = util::home();
+    let home = util::home_real();
+    // Las dos rutas se comparan canonicalizadas: /home y /var/home son la
+    // misma carpeta en Bazzite, pero como texto no lo parecen.
+    let path = path
+        .canonicalize()
+        .unwrap_or_else(|_| path.to_path_buf());
     let path = path.to_string_lossy();
+    let xdg_data = std::env::var_os("XDG_DATA_HOME")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| home.join(".local/share"));
+    let xdg_data = xdg_data.canonicalize().unwrap_or(xdg_data);
+
     filesystems.iter().any(|entry| {
         let entry = match entry.as_str() {
             "home" => home.to_string_lossy().to_string(),
             "host" => return true,
-            other => other.to_string(),
+            "xdg-data" => xdg_data.to_string_lossy().to_string(),
+            "xdg-data/Steam" => xdg_data.join("Steam").to_string_lossy().to_string(),
+            other => {
+                let candidate = PathBuf::from(other);
+                let candidate = candidate.canonicalize().unwrap_or(candidate);
+                candidate.to_string_lossy().to_string()
+            }
         };
         path == entry || path.starts_with(&format!("{entry}/"))
     })

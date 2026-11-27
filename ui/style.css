@@ -1836,6 +1836,42 @@ h2 {
 
 /* -------------------------------------------------------------- opciones */
 
+.system-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.system-item {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.system-item .label {
+  color: var(--dim);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.system-item .value {
+  margin-top: 4px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+}
+
+.system-item .value.ok {
+  color: var(--accent);
+}
+
+.system-item .value.warn {
+  color: var(--warn);
+}
+
 .options {
   display: flex;
   flex-direction: column;

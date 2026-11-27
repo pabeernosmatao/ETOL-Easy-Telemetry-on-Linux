@@ -307,6 +307,7 @@ pub fn detect() -> Config {
 
     let mut cfg = Config::default();
     if let Some(prev) = &previous {
+        cfg.system = prev.system.clone();
         cfg.hf8.enabled = prev.hf8.enabled;
         cfg.hf8.com_port = prev.hf8.com_port.clone();
         cfg.hf8.vendor_id = prev.hf8.vendor_id.clone();
@@ -318,6 +319,9 @@ pub fn detect() -> Config {
         cfg.ui = prev.ui.clone();
         // Los perfiles del volante no se pierden al redetectar.
         cfg.fanatec = prev.fanatec.clone();
+    }
+    if cfg.system.detected.is_empty() || cfg.system.kind == "unknown" {
+        cfg.system = crate::system::detect();
     }
     let _ = cfg.ensure_run_base();
     let steam_apps = steam::apps();
